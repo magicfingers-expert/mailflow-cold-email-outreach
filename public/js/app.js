@@ -100,6 +100,7 @@ const app = {
   },
 
   bindEvents() {
+    // Nav tabs (Sidebar)
     document.querySelectorAll('.nav-link').forEach(link => {
       link.addEventListener('click', (e) => {
         e.preventDefault();
@@ -108,6 +109,7 @@ const app = {
       });
     });
 
+    // Nav tabs (Mobile Bottom Dock)
     document.querySelectorAll('.mobile-bottom-nav-item').forEach(item => {
       item.addEventListener('click', (e) => {
         e.preventDefault();
@@ -115,6 +117,89 @@ const app = {
         if (tab) this.switchTab(tab);
       });
     });
+
+    // Global Keyboard Shortcuts (1-8 or Cmd/Ctrl+1-8 when not typing in form controls)
+    document.addEventListener('keydown', (e) => {
+      const activeTag = document.activeElement ? document.activeElement.tagName.toLowerCase() : '';
+      const isInputFocused = activeTag === 'input' || activeTag === 'textarea' || activeTag === 'select' || (document.activeElement && document.activeElement.isContentEditable);
+      
+      const tabMap = {
+        '1': 'composer',
+        '2': 'tracker',
+        '3': 'sent',
+        '4': 'all-inbox',
+        '5': 'primary-inbox',
+        '6': 'spam',
+        '7': 'bounces',
+        '8': 'accounts'
+      };
+
+      if (!isInputFocused && tabMap[e.key]) {
+        e.preventDefault();
+        this.switchTab(tabMap[e.key]);
+      } else if ((e.metaKey || e.ctrlKey) && tabMap[e.key]) {
+        e.preventDefault();
+        this.switchTab(tabMap[e.key]);
+      }
+    });
+
+    // Real-time recipient parser with debounce + live preview sync
+    const leadsInput = document.getElementById('leadsInput');
+    if (leadsInput) {
+      let debounce = null;
+      leadsInput.addEventListener('input', () => {
+        clearTimeout(debounce);
+        debounce = setTimeout(() => {
+          this.parseLeadsLive();
+          this.updateDesktopLivePreview();
+        }, 200);
+      });
+    }
+
+    // Auto-clean & auto-persist password input on paste / input
+    const passInput = document.getElementById('senderPassword');
+    if (passInput) {
+      passInput.addEventListener('input', () => {
+        const cleaned = passInput.value.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
+        if (cleaned !== passInput.value) {
+          passInput.value = cleaned;
+        }
+        const email = document.getElementById('senderEmail')?.value.trim().toLowerCase();
+        if (email && email.includes('@')) {
+          let acc = this.accounts.find(a => a.email.toLowerCase() === email);
+          if (acc) {
+            acc.password = cleaned;
+            acc.hasPassword = !!cleaned;
+            this.saveAccountsToStorage();
+          }
+        }
+      });
+    }
+
+    const emailInput = document.getElementById('senderEmail');
+    if (emailInput) {
+      emailInput.addEventListener('change', () => {
+        this.normalizeEmailInput(emailInput);
+        const email = emailInput.value.trim().toLowerCase();
+        if (email && email.includes('@')) {
+          const acc = this.accounts.find(a => a.email.toLowerCase() === email);
+          if (acc && passInput && !passInput.value && acc.password) {
+            passInput.value = acc.password;
+          }
+        }
+        this.updateDesktopLivePreview();
+      });
+      emailInput.addEventListener('input', () => {
+        this.updateDesktopLivePreview();
+      });
+    }
+
+    const nameInput = document.getElementById('senderDisplayName');
+    if (nameInput) {
+      nameInput.addEventListener('input', () => {
+        this.updateDesktopLivePreview();
+      });
+    }
   },
 
   updateAllInboxBadge(count) {
@@ -290,59 +375,6 @@ const app = {
     } catch (e) {}
   },
 
-  bindEvents() {
-    // Nav tabs
-    document.querySelectorAll('.nav-link').forEach(link => {
-      link.addEventListener('click', () => {
-        const tab = link.getAttribute('data-tab');
-        this.switchTab(tab);
-      });
-    });
-
-    // Real-time recipient parser with debounce
-    const leadsInput = document.getElementById('leadsInput');
-    if (leadsInput) {
-      let debounce = null;
-      leadsInput.addEventListener('input', () => {
-        clearTimeout(debounce);
-        debounce = setTimeout(() => this.parseLeadsLive(), 250);
-      });
-    }
-
-    // Auto-clean & auto-persist password input on paste / input
-    const passInput = document.getElementById('senderPassword');
-    if (passInput) {
-      passInput.addEventListener('input', () => {
-        const cleaned = passInput.value.replace(/[\u200B-\u200D\uFEFF]/g, '').trim();
-        if (cleaned !== passInput.value) {
-          passInput.value = cleaned;
-        }
-        // Auto-persist to active account in localStorage
-        const email = document.getElementById('senderEmail')?.value.trim().toLowerCase();
-        if (email && email.includes('@')) {
-          let acc = this.accounts.find(a => a.email.toLowerCase() === email);
-          if (acc) {
-            acc.password = cleaned;
-            this.saveAccountsToStorage();
-          }
-        }
-      });
-    }
-
-    const emailInput = document.getElementById('senderEmail');
-    if (emailInput) {
-      emailInput.addEventListener('change', () => {
-        this.normalizeEmailInput(emailInput);
-        const email = emailInput.value.trim().toLowerCase();
-        if (email && email.includes('@')) {
-          const acc = this.accounts.find(a => a.email.toLowerCase() === email);
-          if (acc && passInput && !passInput.value && acc.password) {
-            passInput.value = acc.password;
-          }
-        }
-      });
-    }
-  },
 
   normalizeEmailInput(inputEl) {
     if (!inputEl || !inputEl.value) return;
@@ -2005,7 +2037,7 @@ const app = {
   },
 
   // ==========================================================
-  // MULTI-ACCOUNT MANAGEMENT & PERSISTENCE
+  // MULTI-ACCOUNT MANAGEMENT, PERSISTENCE & CREDENTIALS VAULT
   // ==========================================================
 
   async loadSavedAccounts() {
@@ -2023,11 +2055,11 @@ const app = {
       const data = await res.json();
       if (data.success && Array.isArray(data.accounts)) {
         data.accounts.forEach(backendAcc => {
-          const existing = this.accounts.find(a => a.email.toLowerCase() === backendAcc.email.toLowerCase());
+          const existing = this.accounts.find(a => a.email && a.email.toLowerCase() === backendAcc.email.toLowerCase());
           if (existing) {
             existing.isDefault = !!backendAcc.isDefault;
             existing.status = backendAcc.status || existing.status;
-            existing.hasPassword = !!backendAcc.hasPassword;
+            existing.hasPassword = !!(existing.password || backendAcc.hasPassword);
             if (backendAcc.id) existing.id = backendAcc.id;
           } else {
             this.accounts.push({
@@ -2044,15 +2076,31 @@ const app = {
       }
     } catch (e) {}
 
+    // Auto-hydrate backend session memory with stored passwords
+    if (this.accounts.length > 0) {
+      this.accounts.forEach(acc => {
+        if (acc.password) {
+          fetch('/api/accounts', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ email: acc.email, password: acc.password, isDefault: !!acc.isDefault })
+          }).catch(() => {});
+        }
+      });
+    }
+
     this.saveAccountsToStorage();
     this.renderAccountSwitcherDropdown();
     this.renderAccountsManagerTable();
 
-    if (this.accounts.length > 0) {
-      const active = this.accounts.find(a => a.isDefault) || this.accounts[0];
-      if (active) {
-        this.selectActiveAccount(active.id);
-      }
+    const savedActiveId = localStorage.getItem('mailflow_active_account_id');
+    let active = this.accounts.find(a => a.id === savedActiveId);
+    if (!active) {
+      active = this.accounts.find(a => a.isDefault) || this.accounts[0];
+    }
+
+    if (active) {
+      this.selectActiveAccount(active.id);
     } else {
       this.resetAccountUI();
     }
@@ -2085,21 +2133,42 @@ const app = {
       passInput.value = '';
       passInput.placeholder = 'abcd efgh ijkl mnop';
     }
+    this.updateDesktopLivePreview();
   },
 
   saveAccountsToStorage() {
     try {
-      // Security: Strip sensitive credentials before writing to browser localStorage
-      const safeAccounts = this.accounts.map(a => ({
+      const fullAccounts = this.accounts.map(a => ({
         id: a.id,
         email: a.email,
-        name: a.name,
+        name: a.name || a.email.split('@')[0],
+        password: a.password || '',
         isDefault: !!a.isDefault,
         status: a.status || 'Connected',
-        hasPassword: true
+        hasPassword: !!(a.password || a.hasPassword)
       }));
-      localStorage.setItem('mailflow_accounts_list', JSON.stringify(safeAccounts));
+      localStorage.setItem('mailflow_accounts_list', JSON.stringify(fullAccounts));
+      if (this.activeAccountId) {
+        localStorage.setItem('mailflow_active_account_id', this.activeAccountId);
+      }
     } catch (e) {}
+  },
+
+  getActiveAccountPassword(email) {
+    const passInput = document.getElementById('senderPassword');
+    const inputVal = passInput ? passInput.value.trim() : '';
+    if (inputVal && !inputVal.includes('•') && !inputVal.includes('*')) {
+      return inputVal;
+    }
+
+    const targetEmail = (email || this.getActiveAccountEmail() || document.getElementById('senderEmail')?.value || '').trim().toLowerCase();
+    const acc = this.accounts.find(a => a.email && a.email.toLowerCase() === targetEmail);
+    if (acc && acc.password) return acc.password;
+
+    const active = this.accounts.find(a => a.id === this.activeAccountId) || this.accounts.find(a => a.isDefault) || this.accounts[0];
+    if (active && active.password) return active.password;
+
+    return '';
   },
 
   renderAccountSwitcherDropdown() {
@@ -2166,40 +2235,52 @@ const app = {
     if (!acc) return;
 
     this.activeAccountId = accountId;
+    localStorage.setItem('mailflow_active_account_id', accountId);
 
     const emailInput = document.getElementById('senderEmail');
     const passInput = document.getElementById('senderPassword');
 
     if (emailInput) emailInput.value = acc.email;
     if (passInput) {
-      passInput.value = '';
-      if (acc.hasPassword || acc.password) {
+      passInput.value = acc.password || '';
+      if (acc.password || acc.hasPassword) {
         passInput.placeholder = '•••••••••••••••• (Saved in Secure Vault)';
       } else {
-        passInput.placeholder = '••••••••••••••••';
+        passInput.placeholder = 'abcd efgh ijkl mnop';
       }
     }
 
     const headerEmail = document.getElementById('headerSenderEmail');
     const headerDot = document.getElementById('headerStatusDot');
+    const headerSmtpBadge = document.getElementById('headerSmtpBadge');
     const sbText = document.getElementById('sbSenderStatusText');
     const sbDot = document.getElementById('sbStatusDot');
+    const mobileDot = document.getElementById('mobileHeaderStatusDot');
 
     if (headerEmail) headerEmail.innerText = acc.email;
     if (headerDot) headerDot.className = 'status-dot';
+    if (headerSmtpBadge) {
+      headerSmtpBadge.innerText = '● Connected';
+      headerSmtpBadge.style.color = 'var(--status-success)';
+    }
     if (sbText) sbText.innerText = acc.email;
     if (sbDot) sbDot.className = 'status-dot';
-
-    const mobileDot = document.getElementById('mobileHeaderStatusDot');
     if (mobileDot) mobileDot.className = 'status-dot';
 
     const statusDiv = document.getElementById('smtpVerifyStatus');
     if (statusDiv) {
-      statusDiv.innerHTML = `<span style="color: var(--status-success); font-weight: 500;">● Active Account: ${acc.email} (Encrypted & Protected)</span>`;
+      statusDiv.innerHTML = `<span style="color: var(--status-success); font-weight: 500;">● Active Account: ${acc.email} (Connected &amp; Ready)</span>`;
     }
+
+    const helpBox = document.getElementById('authHelpBox');
+    if (helpBox) helpBox.style.display = 'none';
+
+    const consoleDiv = document.getElementById('smtpDiagnosticConsole');
+    if (consoleDiv) consoleDiv.style.display = 'none';
 
     this.renderAccountSwitcherDropdown();
     this.renderAccountsManagerTable();
+    this.updateDesktopLivePreview();
   },
 
   saveCurrentAccountToStorage() {
@@ -2216,13 +2297,17 @@ const app = {
     const isNewPassword = password && !password.includes('•') && !password.includes('*');
 
     if (acc) {
-      if (isNewPassword) acc.hasPassword = true;
+      if (isNewPassword) {
+        acc.password = password;
+        acc.hasPassword = true;
+      }
       acc.status = 'Connected';
     } else {
       acc = {
         id: 'acc-' + Date.now(),
         email: email.toLowerCase(),
         name: email.split('@')[0],
+        password: isNewPassword ? password : '',
         hasPassword: isNewPassword,
         isDefault: this.accounts.length === 0,
         status: 'Connected'
@@ -2236,15 +2321,15 @@ const app = {
     this.renderAccountsManagerTable();
 
     const payload = { email, isDefault: acc.isDefault };
-    if (isNewPassword) {
-      payload.password = password;
+    if (acc.password) {
+      payload.password = acc.password;
     }
 
     fetch('/api/accounts', {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify(payload)
-    });
+    }).catch(() => {});
 
     this.showToast(`✓ Account ${email} saved.`);
   },
@@ -2267,7 +2352,7 @@ const app = {
     const consoleDiv = document.getElementById('smtpDiagnosticConsole');
 
     if (statusDiv) {
-      statusDiv.innerHTML = `<span style="color: var(--status-success); font-weight: 600;">✓ Connected & Ready (${email})</span>`;
+      statusDiv.innerHTML = `<span style="color: var(--status-success); font-weight: 600;">✓ Connected &amp; Ready (${email})</span>`;
     }
     if (helpBox) helpBox.style.display = 'none';
     if (consoleDiv) consoleDiv.style.display = 'none';
@@ -2283,7 +2368,7 @@ const app = {
     this.renderAccountsManagerTable();
     this.showToast('Default account updated.');
 
-    fetch(`/api/accounts/switch/${accountId}`, { method: 'POST' });
+    fetch(`/api/accounts/switch/${accountId}`, { method: 'POST' }).catch(() => {});
   },
 
   removeAccount(accountId) {
@@ -2297,6 +2382,7 @@ const app = {
       else {
         document.getElementById('senderEmail').value = '';
         document.getElementById('senderPassword').value = '';
+        this.resetAccountUI();
       }
     }
 
@@ -2305,7 +2391,7 @@ const app = {
     this.renderAccountsManagerTable();
     this.showToast('Account removed.');
 
-    fetch(`/api/accounts/${accountId}`, { method: 'DELETE' });
+    fetch(`/api/accounts/${accountId}`, { method: 'DELETE' }).catch(() => {});
   },
 
   openAddAccountModal() {
@@ -2326,6 +2412,7 @@ const app = {
     let acc = this.accounts.find(a => a.email.toLowerCase() === email.toLowerCase());
     if (acc) {
       acc.password = password;
+      acc.hasPassword = !!password;
       acc.status = 'Connected';
     } else {
       acc = {
@@ -2333,6 +2420,7 @@ const app = {
         email: email.toLowerCase(),
         name: email.split('@')[0],
         password: password,
+        hasPassword: !!password,
         isDefault: this.accounts.length === 0,
         status: 'Connected'
       };
@@ -2349,7 +2437,78 @@ const app = {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({ email, password, isDefault: true })
-    });
+    }).catch(() => {});
+  },
+
+  // ==========================================================
+  // DESKTOP STUDIO LIVE PREVIEW & SPINTAX EVALUATOR
+  // ==========================================================
+
+  updateDesktopLivePreview() {
+    const senderName = document.getElementById('senderDisplayName')?.value.trim() || '';
+    let senderEmail = document.getElementById('senderEmail')?.value.trim() || 'user@gmail.com';
+    if (senderEmail.endsWith('@gmail')) senderEmail = senderEmail + '.com';
+
+    const leadsInput = document.getElementById('leadsInput')?.value.trim() || '';
+    let firstLead = 'lead1@example.com';
+    if (leadsInput) {
+      const lines = leadsInput.split(/\r?\n/).map(l => l.trim()).filter(l => l.includes('@'));
+      if (lines.length > 0) firstLead = lines[0];
+    }
+
+    const currentSubject = document.getElementById('emailSubject')?.value || '{quick question|quick thought|intro}';
+    const currentMessage = document.getElementById('emailMessage')?.value || '{Hi|Hey|Hello} {{email}},\n\nWanted to connect.\n\nBest,\nTeam';
+
+    const previewFrom = document.getElementById('previewFromVal');
+    const previewTo = document.getElementById('previewToVal');
+    const previewSubject = document.getElementById('previewSubjectVal');
+    const previewBody = document.getElementById('previewBodyVal');
+    const previewTag = document.getElementById('previewVariantTag');
+
+    if (previewFrom) {
+      const fromDisplay = senderName ? `"${senderName}" <${senderEmail}>` : `<${senderEmail}>`;
+      previewFrom.innerText = fromDisplay;
+    }
+    if (previewTo) {
+      previewTo.innerText = firstLead;
+    }
+    if (previewSubject) {
+      previewSubject.innerText = this.processSpintaxPreview(currentSubject, firstLead);
+    }
+    if (previewBody) {
+      previewBody.innerText = this.processSpintaxPreview(currentMessage, firstLead);
+    }
+    if (previewTag) {
+      previewTag.innerText = `Message ${(this.activeVariantIndex || 0) + 1} Active`;
+    }
+
+    // Update launch station summary numbers
+    const validCount = (this.parsedValidation && this.parsedValidation.validCount) || (leadsInput ? leadsInput.split(/\r?\n/).filter(l => l.trim().includes('@')).length : 0);
+    const delay = parseInt(document.getElementById('sendingDelaySelect')?.value || '15');
+    const estMinutes = Math.ceil((validCount * delay) / 60);
+
+    const leadsSummary = document.getElementById('launchSummaryLeads');
+    const durSummary = document.getElementById('launchSummaryDuration');
+    if (leadsSummary) leadsSummary.innerText = validCount;
+    if (durSummary) durSummary.innerText = validCount > 0 ? `~${estMinutes}m` : '~0m';
+  },
+
+  spinSpintaxLivePreview() {
+    this.updateDesktopLivePreview();
+    this.showToast('🎲 Spintax Variation Spun!');
+  },
+
+  processSpintaxPreview(text, recipientEmail = 'lead1@example.com') {
+    if (!text) return '';
+    let result = text.replace(/\{\{email\}\}/gi, recipientEmail);
+    const regex = /\{([^{}]+)\}/g;
+    while (regex.test(result)) {
+      result = result.replace(regex, (match, choices) => {
+        const options = choices.split('|');
+        return options[Math.floor(Math.random() * options.length)];
+      });
+    }
+    return result;
   },
 
   // ==========================================================
@@ -2527,6 +2686,7 @@ const app = {
 
     this.setVariantSaveStatus('Saved', 'completed');
     this.analyzeSpamScoreLive();
+    this.updateDesktopLivePreview();
   },
 
   onCurrentVariantInput() {
@@ -2545,6 +2705,7 @@ const app = {
     }, 400);
 
     this.analyzeSpamScoreLive();
+    this.updateDesktopLivePreview();
   },
 
   async populateAll5MessageVariants() {
@@ -2707,16 +2868,9 @@ const app = {
     const spinner = document.getElementById('syncSpinnerIcon');
     const syncBadge = document.getElementById('inboxSyncBadge');
 
-    let email = document.getElementById('senderEmail')?.value.trim() || '';
-    let password = document.getElementById('senderPassword')?.value.trim() || '';
-
-    if (!email || !password) {
-      const active = this.accounts.find(a => a.id === this.activeAccountId) || this.accounts.find(a => a.isDefault) || this.accounts[0];
-      if (active) {
-        if (!email) email = active.email;
-        if (!password) password = active.password;
-      }
-    }
+    let email = document.getElementById('senderEmail')?.value.trim() || this.getActiveAccountEmail();
+    if (email.endsWith('@gmail')) email = email + '.com';
+    let password = this.getActiveAccountPassword(email);
 
     if (!email || !password) {
       alert('Please enter and save your Gmail address and 16-character App Password in Step 1 (Send Outreach) before syncing.');
@@ -2901,8 +3055,8 @@ const app = {
     }
 
     try {
-      const senderEmail = document.getElementById('senderEmail')?.value.trim() || '';
-      const senderPassword = document.getElementById('senderPassword')?.value.trim() || '';
+      const senderEmail = document.getElementById('senderEmail')?.value.trim() || this.getActiveAccountEmail();
+      const senderPassword = this.getActiveAccountPassword(senderEmail);
 
       const res = await fetch('/api/inbox/reply', {
         method: 'POST',
@@ -2947,8 +3101,7 @@ const app = {
     let email = document.getElementById('senderEmail').value.trim();
     if (email.endsWith('@gmail')) email = email + '.com';
     document.getElementById('senderEmail').value = email;
-    let password = document.getElementById('senderPassword').value.trim();
-    if (password.includes('•') || password.includes('*')) password = '';
+    let password = this.getActiveAccountPassword(email);
 
     const statusDiv = document.getElementById('smtpVerifyStatus');
     const helpBox = document.getElementById('authHelpBox');
@@ -2962,8 +3115,7 @@ const app = {
       return;
     }
 
-    const activeAcc = this.accounts.find(a => a.email.toLowerCase() === email.toLowerCase());
-    if (!password && (!activeAcc || !activeAcc.hasPassword)) {
+    if (!password) {
       alert('Please enter your 16-character App Password.');
       document.getElementById('senderPassword').focus();
       return;
@@ -3010,7 +3162,27 @@ const app = {
         }
         if (helpBox) helpBox.style.display = 'none';
         this.showToast(`✓ Socket authentication verified for ${email}`);
-        this.saveCurrentAccountToStorage();
+        
+        let acc = this.accounts.find(a => a.email.toLowerCase() === email.toLowerCase());
+        if (acc) {
+          acc.password = password;
+          acc.status = 'Connected';
+          acc.hasPassword = true;
+        } else {
+          acc = {
+            id: 'acc-' + Date.now(),
+            email: email.toLowerCase(),
+            name: email.split('@')[0],
+            password: password,
+            hasPassword: true,
+            isDefault: this.accounts.length === 0,
+            status: 'Connected'
+          };
+          this.accounts.push(acc);
+        }
+        this.activeAccountId = acc.id;
+        this.saveAccountsToStorage();
+        this.selectActiveAccount(acc.id);
       } else {
         if (statusDiv) {
           statusDiv.innerHTML = `<span style="color: var(--status-danger); font-weight: 600;">✕ ${data.targetHost || 'smtp.gmail.com'} rejected credentials</span>`;
@@ -3040,8 +3212,7 @@ const app = {
   async executeTestSend() {
     let senderEmail = document.getElementById('senderEmail').value.trim();
     if (senderEmail.endsWith('@gmail')) senderEmail = senderEmail + '.com';
-    let senderPassword = document.getElementById('senderPassword').value.trim();
-    if (senderPassword.includes('•') || senderPassword.includes('*')) senderPassword = '';
+    let senderPassword = this.getActiveAccountPassword(senderEmail);
     const senderName = document.getElementById('senderDisplayName')?.value.trim() || '';
     const testRecipient = document.getElementById('testRecipientEmail').value.trim();
     const subject = document.getElementById('emailSubject').value.trim() || '{quick question|intro}';
@@ -3054,8 +3225,7 @@ const app = {
       return;
     }
 
-    const activeAcc = this.accounts.find(a => a.email.toLowerCase() === senderEmail.toLowerCase());
-    if (!senderPassword && (!activeAcc || !activeAcc.hasPassword)) {
+    if (!senderPassword) {
       alert('Please enter your 16-character Google App Password in Step 1 first.');
       return;
     }
@@ -3172,6 +3342,8 @@ const app = {
         errorAlert.style.display = 'none';
       }
     }
+
+    this.updateDesktopLivePreview();
   },
 
   pasteSampleLeads() {
@@ -3229,8 +3401,7 @@ lead10@businesspartner.com`;
     if (senderEmail.endsWith('@gmail')) senderEmail = senderEmail + '.com';
     document.getElementById('senderEmail').value = senderEmail;
 
-    let senderPassword = document.getElementById('senderPassword').value.trim();
-    if (senderPassword.includes('•') || senderPassword.includes('*')) senderPassword = '';
+    let senderPassword = this.getActiveAccountPassword(senderEmail);
 
     const senderName = document.getElementById('senderDisplayName')?.value.trim() || '';
     const subject = document.getElementById('emailSubject').value.trim();
@@ -3245,8 +3416,7 @@ lead10@businesspartner.com`;
       return;
     }
 
-    const activeAcc = this.accounts.find(a => a.email.toLowerCase() === senderEmail.toLowerCase());
-    if (!senderPassword && (!activeAcc || !activeAcc.hasPassword)) {
+    if (!senderPassword) {
       alert('Please enter your 16-character Google App Password in Step 1 before launching outreach.\n\nIf you don\'t have one yet, click "App Password Help ↗" in Step 1 to generate one at myaccount.google.com/apppasswords.');
       document.getElementById('senderPassword').focus();
       return;
@@ -3755,8 +3925,23 @@ lead10@businesspartner.com`;
       'guide': 'Gmail App Password Help'
     };
 
+    const breadcrumbs = {
+      'composer': 'Campaign Studio',
+      'tracker': 'Live Open Tracker',
+      'sent': 'Sent Outreach Log',
+      'all-inbox': 'All Inboxes',
+      'primary-inbox': 'Primary Inbox',
+      'spam': 'Spam Rescue',
+      'bounces': 'Bounced Leads & Deliverability',
+      'accounts': 'Sender Accounts',
+      'guide': 'App Password Help'
+    };
+
     const titleEl = document.getElementById('pageTitle');
     if (titleEl && titles[tabId]) titleEl.innerText = titles[tabId];
+
+    const bcEl = document.getElementById('pageBreadcrumb');
+    if (bcEl && breadcrumbs[tabId]) bcEl.innerText = breadcrumbs[tabId];
 
     const sidebar = document.getElementById('sidebar');
     const backdrop = document.getElementById('mobileBackdrop');
@@ -3766,7 +3951,10 @@ lead10@businesspartner.com`;
     // Smooth scroll to top on tab switch
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
-    if (tabId === 'composer') this.analyzeSpamScoreLive();
+    if (tabId === 'composer') {
+      this.analyzeSpamScoreLive();
+      this.updateDesktopLivePreview();
+    }
     if (tabId === 'all-inbox') this.loadAllInbox();
     if (tabId === 'primary-inbox') this.loadPrimaryInbox();
     if (tabId === 'sent') this.loadSent();
