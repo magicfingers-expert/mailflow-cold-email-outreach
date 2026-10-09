@@ -607,9 +607,13 @@ app.post('/api/draft', (req, res) => {
   }
 });
 
-app.listen(PORT, () => {
-  console.log(`====================================================`);
-  console.log(`🚀 MailFlow Outreach Server Running at: http://localhost:${PORT}`);
-  console.log(`👁️ Live Email Open Tracker & Notification Engine: Active`);
-  console.log(`====================================================`);
-});
+if (!process.env.VERCEL) {
+  app.listen(PORT, () => {
+    console.log(`====================================================`);
+    console.log(`🚀 MailFlow Outreach Server Running at: http://localhost:${PORT}`);
+    console.log(`👁️ Live Email Open Tracker & Notification Engine: Active`);
+    console.log(`====================================================`);
+  });
+}
+
+module.exports = app;
