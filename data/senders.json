@@ -1,0 +1,33 @@
+[
+  {
+    "id": "sender-default",
+    "name": "Primary Outreach Account",
+    "email": "outreach.primary@gmail.com",
+    "host": "smtp.gmail.com",
+    "port": 465,
+    "user": "outreach.primary@gmail.com",
+    "pass": "",
+    "dailyLimit": 50,
+    "sentToday": 13,
+    "status": "ready",
+    "isDefault": true,
+    "mode": "simulator",
+    "totalSent": 13
+  },
+  {
+    "id": "sender-1791426591614",
+    "name": "Timmy Sender 2",
+    "email": "timmy.outreach2@gmail.com",
+    "host": "smtp.gmail.com",
+    "port": 465,
+    "user": "timmy.outreach2@gmail.com",
+    "pass": "",
+    "dailyLimit": 50,
+    "sentToday": 0,
+    "totalSent": 0,
+    "status": "ready",
+    "mode": "simulator",
+    "isDefault": false,
+    "createdAt": "2026-10-08T02:29:51.616Z"
+  }
+]

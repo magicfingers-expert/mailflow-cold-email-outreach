@@ -1,0 +1,167 @@
+[
+  {
+    "id": "camp-1791560566799",
+    "senderEmail": "wixsupporteamlive@gmail.com",
+    "senderName": "Thomas Hammed",
+    "subject": "quick thought",
+    "message": "Hello,\n\n{Quick question for you — are you open to discussing new opportunities this month?|I came across your profile and wanted to reach out with a brief question.|Just wanted to reach out directly with a quick note.}\n\n{Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be available for a brief 2-minute call this week.}\n\n{Best|Thanks|Best regards},\nThomas",
+    "messageVariants": [
+      {
+        "subject": "quick thought",
+        "message": "Hello,\n\n{Quick question for you — are you open to discussing new opportunities this month?|I came across your profile and wanted to reach out with a brief question.|Just wanted to reach out directly with a quick note.}\n\n{Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be available for a brief 2-minute call this week.}\n\n{Best|Thanks|Best regards},\nThomas"
+      },
+      {
+        "subject": "{question regarding your workflow|quick inquiry for {{email}}|partnership inquiry}",
+        "message": "{Hi|Hello|Hey} {{email}},\n\n{I was exploring your work recently and wanted to see how you are currently handling client acquisition this quarter.|Hope you are having a productive week — wanted to ask a quick question about your current operations.}\n\n{We recently built a system that helps streamline outreach seamlessly. Would you be open to seeing a 1-minute breakdown?|If you're interested, happy to share a brief note on how we help similar teams.}\n\n{Cheers|Warmly|Regards},\nThomas"
+      },
+      {
+        "subject": "{quick intro|connecting briefly|reaching out to {{email}}}",
+        "message": "{Hey|Hi} {{email}},\n\n{Are you currently taking on new projects or clients this month?|Just checking in to see if you have any availability for new collaboration this month.}\n\n{If so, let me know when might be a convenient time to connect briefly.|Let me know if you'd be open to a brief exchange.}\n\n{Best|Thanks|All the best},\nThomas"
+      },
+      {
+        "subject": "{quick question for {{email}}|seeking your perspective|brief question}",
+        "message": "{Hi|Hello} {{email}},\n\n{I came across your recent work and really admired what you are building.|I've been following your progress and wanted to ask a quick question.}\n\n{Are you open to exploring fresh ways to scale your outreach without ending up in spam?|Would you be open to a 2-minute chat to share perspectives?}\n\n{Best regards|Thanks|Warm regards},\nThomas"
+      },
+      {
+        "subject": "{hello from Thomas|checking in with {{email}}|quick hello}",
+        "message": "{Hey|Hi|Hello} {{email}},\n\n{Hope everything is going smoothly with you.|Wanted to drop a quick personal note to see if you are exploring new growth channels this quarter.}\n\n{If you're open to a 2-minute discussion, let me know what day works best for you.|Feel free to let me know if you'd like to chat briefly.}\n\n{Have a great week|Best|Warmly},\nThomas"
+      }
+    ],
+    "totalRecipients": 1,
+    "sentCount": 1,
+    "failedCount": 0,
+    "pendingCount": 0,
+    "openCount": 0,
+    "delaySeconds": 15,
+    "plainTextOnly": true,
+    "enableTracking": false,
+    "status": "Completed",
+    "createdAt": "2026-10-09T15:42:46.799Z",
+    "completedAt": "2026-10-09T15:42:49.268Z",
+    "recipients": [
+      {
+        "id": "rec-1",
+        "trackingId": "trk-1791560566799-1-vfmhg7",
+        "email": "oyedemipeter8@gmail.com",
+        "variantNumber": 1,
+        "status": "Sent",
+        "sentAt": "2026-10-09T15:42:49.266Z",
+        "error": null,
+        "opened": false,
+        "openedAt": null,
+        "openCount": 0,
+        "mode": "plain_text_stealth",
+        "messageId": "<434c413c-a607-ffcb-3f8e-6281f98bd039@gmail.com>",
+        "subjectSent": "quick thought"
+      }
+    ]
+  },
+  {
+    "id": "camp-1791558551157",
+    "senderEmail": "alexawixpartner@gmail.com",
+    "senderName": "Alexa Wix Partner",
+    "subject": "Outreach Test",
+    "message": "Hello lead,\n\nTesting auto suppression.",
+    "messageVariants": [
+      {
+        "subject": "Outreach Test",
+        "message": "Hello lead,\n\nTesting auto suppression."
+      }
+    ],
+    "totalRecipients": 2,
+    "sentCount": 1,
+    "failedCount": 1,
+    "pendingCount": 0,
+    "openCount": 0,
+    "delaySeconds": 5,
+    "plainTextOnly": true,
+    "enableTracking": false,
+    "status": "Completed",
+    "createdAt": "2026-10-09T15:09:11.157Z",
+    "completedAt": "2026-10-09T15:09:13.982Z",
+    "recipients": [
+      {
+        "id": "rec-1",
+        "trackingId": "trk-1791558551157-1-tltbmp",
+        "email": "invalid-lead-auto-suppress@fakehost404.com",
+        "variantNumber": 1,
+        "status": "Suppressed",
+        "sentAt": null,
+        "error": "Lead was previously bounced (Auto-Suppressed to protect inbox reputation)",
+        "opened": false,
+        "openedAt": null,
+        "openCount": 0,
+        "isSuppressed": true
+      },
+      {
+        "id": "rec-2",
+        "trackingId": "trk-1791558551157-2-ka0t4x",
+        "email": "thomashammed3@gmail.com",
+        "variantNumber": 1,
+        "status": "Sent",
+        "sentAt": "2026-10-09T15:09:13.981Z",
+        "error": null,
+        "opened": false,
+        "openedAt": null,
+        "openCount": 0,
+        "mode": "plain_text_stealth",
+        "messageId": "<f292f15a-e1f5-00f6-13e2-15d0b0554467@gmail.com>",
+        "subjectSent": "Outreach Test"
+      }
+    ]
+  },
+  {
+    "id": "camp-1791558489902",
+    "senderEmail": "alexawixpartner@gmail.com",
+    "senderName": "Alexa Wix Partner",
+    "subject": "Outreach Test",
+    "message": "Hello lead,\n\nTesting auto suppression.",
+    "messageVariants": [
+      {
+        "subject": "Outreach Test",
+        "message": "Hello lead,\n\nTesting auto suppression."
+      }
+    ],
+    "totalRecipients": 2,
+    "sentCount": 1,
+    "failedCount": 1,
+    "pendingCount": 0,
+    "openCount": 0,
+    "delaySeconds": 5,
+    "plainTextOnly": true,
+    "enableTracking": false,
+    "status": "Completed",
+    "createdAt": "2026-10-09T15:08:09.902Z",
+    "completedAt": "2026-10-09T15:08:13.607Z",
+    "recipients": [
+      {
+        "id": "rec-1",
+        "trackingId": "trk-1791558489902-1-degjuu",
+        "email": "invalid-lead-auto-suppress@fakehost404.com",
+        "variantNumber": 1,
+        "status": "Suppressed",
+        "sentAt": null,
+        "error": "Lead was previously bounced (Auto-Suppressed to protect inbox reputation)",
+        "opened": false,
+        "openedAt": null,
+        "openCount": 0,
+        "isSuppressed": true
+      },
+      {
+        "id": "rec-2",
+        "trackingId": "trk-1791558489902-2-uj5jfz",
+        "email": "thomashammed3@gmail.com",
+        "variantNumber": 1,
+        "status": "Sent",
+        "sentAt": "2026-10-09T15:08:13.606Z",
+        "error": null,
+        "opened": false,
+        "openedAt": null,
+        "openCount": 0,
+        "mode": "plain_text_stealth",
+        "messageId": "<a5706b2f-068e-400b-a018-80752c119b4b@gmail.com>",
+        "subjectSent": "Outreach Test"
+      }
+    ]
+  }
+]

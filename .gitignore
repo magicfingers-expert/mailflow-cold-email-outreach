@@ -1,0 +1,25 @@
+# Dependencies
+node_modules/
+package-lock.json
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+
+# Environment & Master Encryption Keys
+.env
+.env.local
+.env.*.local
+data/.app_vault_key
+
+# Large media files
+*.mp4
+*.mov
+*.avi
+*.mkv
+
+# Temporary cache & scratch files
+scratch/
+*.log
+data/inbox_cache.json
+.DS_Store
+Thumbs.db

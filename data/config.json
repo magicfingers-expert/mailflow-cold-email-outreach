@@ -1,0 +1,11 @@
+{
+  "companyName": "Apex Real Estate & Growth Automations",
+  "agentName": "Timmy / Lead Director",
+  "agentEmail": "timmy.automations@example.com",
+  "discordWebhookUrl": "",
+  "openaiApiKey": "",
+  "geminiApiKey": "",
+  "emailMode": "simulator",
+  "smtpHost": "smtp.gmail.com",
+  "smtpPort": 465
+}

@@ -1,0 +1,1356 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>MailFlow • Email Outreach Automation, Inbox & Live Tracker</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="css/style.css">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✉️</text></svg>">
+</head>
+<body>
+
+  <div class="app-container">
+    
+    <!-- Sidebar Navigation (Executive Espresso) -->
+    <aside class="sidebar" id="sidebar">
+      <div class="brand-header" onclick="app.switchTab('composer')">
+        <div class="brand-icon">M</div>
+        <div>
+          <div class="brand-title">MailFlow</div>
+          <span class="brand-badge">Outreach & Live Inbox</span>
+        </div>
+      </div>
+
+      <nav class="nav-list">
+        <!-- 1. COMPOSE -->
+        <a class="nav-link active" data-tab="composer" id="nav-composer">
+          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+          <span>Compose</span>
+        </a>
+
+        <!-- 2. ALL INBOX -->
+        <a class="nav-link" data-tab="all-inbox" id="nav-all-inbox">
+          <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
+          <span>All Inbox</span>
+          <span class="nav-counter-pill" id="navAllInboxBadge" style="display: none;">0</span>
+        </a>
+
+        <!-- 3. PRIMARY INBOX -->
+        <a class="nav-link" data-tab="primary-inbox" id="nav-primary-inbox">
+          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <span>Primary Inbox</span>
+          <span class="nav-counter-pill" id="navPrimaryInboxBadge" style="display: none;">0</span>
+        </a>
+
+        <!-- 4. SENT -->
+        <a class="nav-link" data-tab="sent" id="nav-sent">
+          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
+          <span>Sent</span>
+        </a>
+
+        <!-- 5. SPAM -->
+        <a class="nav-link" data-tab="spam" id="nav-spam">
+          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>Spam</span>
+          <span class="nav-counter-pill" id="navSpamBadge" style="display: none; background: #ef4444;">0</span>
+        </a>
+
+        <!-- 6. BOUNCED LEADS -->
+        <a class="nav-link" data-tab="bounces" id="nav-bounces">
+          <svg viewBox="0 0 24 24"><path d="M10 14l-5-5 5-5"/><path d="M4 19h10a6 6 0 0 0 6-6v-1a6 6 0 0 0-6-6H5"/></svg>
+          <span>Bounced Leads</span>
+          <span class="nav-counter-pill" id="navBouncesBadge" style="display: none; background: #dc2626;">0</span>
+        </a>
+
+        <div style="height: 1px; background: rgba(255,255,255,0.1); margin: 10px 8px;"></div>
+
+        <!-- UTILITY TOOLS -->
+        <a class="nav-link" data-tab="tracker" id="nav-tracker">
+          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+          <span>Live Open Tracker</span>
+          <span class="status-badge status-inprogress" id="navTrackerPill" style="padding: 2px 6px; font-size: 10.5px; margin-left: auto;">Live</span>
+        </a>
+
+        <a class="nav-link" data-tab="accounts" id="nav-accounts">
+          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7.5" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+          <span>Sender Accounts</span>
+        </a>
+
+        <a class="nav-link" data-tab="guide" id="nav-guide">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
+          <span>App Password Help</span>
+        </a>
+      </nav>
+
+      <div class="sidebar-footer">
+        <div class="sidebar-connection-pill">
+          <span class="status-dot" id="sbStatusDot"></span>
+          <span id="sbSenderStatusText" style="overflow: hidden; text-overflow: ellipsis;">willowwixpartner@gmail.com</span>
+        </div>
+      </div>
+    </aside>
+
+    <!-- Main Workspace (Luminous Light Cream Canvas) -->
+    <main class="main-content">
+      
+      <!-- Top Navigation Bar -->
+      <header class="top-bar">
+        <div class="top-bar-left">
+          <button class="mobile-menu-btn" onclick="app.toggleMobileMenu()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          </button>
+          <span class="page-title" id="pageTitle">Send Email Outreach</span>
+        </div>
+
+        <div class="top-bar-right">
+          <!-- Real-Time Auto-Sync Background Status Indicator -->
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-dim); background: #f0fdf4; padding: 5px 12px; border-radius: 20px; border: 1px solid #bbf7d0;">
+            <span class="live-stream-pulse" style="width: 8px; height: 8px; background: #10b981;" title="Auto-Sync Engine Continuously Running"></span>
+            <span style="font-weight: 600; color: #065f46;">Auto-Sync:</span>
+            <strong style="color: #059669;" id="headerAutoSyncStatus">Active (Every 10s)</strong>
+          </div>
+
+          <!-- Real-Time Top Notification Bell Icon with Dropdown -->
+          <div class="header-notification-wrapper" style="position: relative;">
+            <button type="button" class="header-notif-btn" id="btnTopNotifBell" onclick="app.toggleTopNotifDropdown()" title="Click to view leads who opened emails">
+              <span style="font-size: 18px; line-height: 1;">🔔</span>
+              <span class="header-notif-badge" id="topNotifCountBadge" style="display: none;">0</span>
+            </button>
+
+            <!-- Floating Notification Dropdown Menu -->
+            <div class="header-notif-dropdown" id="topNotifDropdown" style="display: none;">
+              <div class="notif-dropdown-header">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="color: var(--text-main); font-size: 13.5px;">👁️ Lead Open Alerts</strong>
+                  <span class="status-badge status-completed" id="topNotifHeaderCount" style="font-size: 10.5px;">0 Recorded</span>
+                </div>
+                <div style="display: flex; gap: 6px; align-items: center;">
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="app.triggerTestOpenSimulation()" style="font-size: 10.5px; padding: 2px 7px;">🧪 Test</button>
+                  <button type="button" class="action-btn-link" onclick="app.closeTopNotifDropdown()" style="font-size: 13px; color: var(--text-dim); padding: 0 4px;">✕</button>
+                </div>
+              </div>
+
+              <!-- List of Leads Who Opened Emails -->
+              <div class="notif-dropdown-body" id="topNotifItemsList">
+                <div style="text-align: center; padding: 24px 16px; color: var(--text-dim); font-size: 12.5px;">
+                  <div style="font-size: 28px; margin-bottom: 6px;">🔔</div>
+                  <div>No open notifications yet.</div>
+                  <div style="font-size: 11px; margin-top: 4px;">When leads open your emails, their alerts will appear here instantly!</div>
+                </div>
+              </div>
+
+              <div class="notif-dropdown-footer">
+                <button type="button" class="action-btn-link" onclick="app.clearOpenNotifications()" style="font-size: 11.5px; color: var(--text-dim);">Clear All</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="app.switchTab('tracker'); app.closeTopNotifDropdown();" style="font-size: 11.5px; padding: 4px 10px;">
+                  View Live Open Tracker ↗
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <!-- Live Deliverability Status Indicator -->
+          <div style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-dim); background: var(--bg-subtle); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border-subtle);">
+            <span>🛡️ Primary Inbox Shield:</span>
+            <strong style="color: var(--status-success);" id="headerDeliverabilityStatus">Active (100% Safe)</strong>
+          </div>
+
+          <!-- Top-right Account Quick Switcher Pill -->
+          <div class="header-connected-email" id="headerMailboxWidget" onclick="app.openAddAccountModal()" style="cursor: pointer;" title="Click to manage sender accounts">
+            <span class="status-dot" id="headerStatusDot"></span>
+            <span id="headerSenderEmail">alexawixpartner@gmail.com</span>
+            <span id="headerSmtpBadge" style="font-size: 11.5px; color: var(--status-success); font-weight: 600;">● Active</span>
+          </div>
+        </div>
+      </header>
+
+      <div class="content-wrapper">
+
+        <!-- REAL-TIME EMAIL OPENED PERSISTENT NOTIFICATION BAR & STREAM -->
+        <div id="liveOpenAlertBanner" style="display: none; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: var(--radius-md); padding: 14px 18px; margin-bottom: 20px; box-shadow: 0 4px 12px rgba(5, 150, 105, 0.08); animation: slideIn 0.3s ease;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+            <div style="display: flex; align-items: center; gap: 12px;">
+              <span class="live-stream-pulse" title="Live Stream Active"></span>
+              <span style="font-size: 22px;">👁️</span>
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <strong style="color: #065f46; font-size: 14px;" id="liveOpenAlertTitle">Live Open Alert!</strong>
+                  <span class="status-badge status-completed" style="font-size: 10.5px; background: #059669; color: #ffffff;" id="liveOpenAlertCountBadge">● Just Now</span>
+                </div>
+                <div style="color: #047857; font-size: 13px; margin-top: 2px;" id="liveOpenAlertText">Lead just opened your outreach message.</div>
+              </div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 10px;">
+              <button type="button" class="btn btn-sm btn-secondary" onclick="app.toggleOpenStreamDropdown()" id="btnToggleOpenStream" style="font-size: 11.5px; padding: 4px 10px;">
+                📜 Recent Opens (<span id="bannerRecentOpensCount">1</span>)
+              </button>
+              <button type="button" class="btn btn-sm btn-primary" onclick="app.switchTab('tracker')" style="font-size: 11.5px; padding: 4px 10px;">
+                View Tracker Feed ↗
+              </button>
+              <button type="button" class="action-btn-link" onclick="document.getElementById('liveOpenAlertBanner').style.display='none'" style="font-size: 12px; color: #047857;">✕</button>
+            </div>
+          </div>
+
+          <!-- Collapsible Recent Opens Stream List -->
+          <div id="bannerOpenStreamList" style="display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #a7f3d0; max-height: 180px; overflow-y: auto;">
+            <div id="bannerOpenItemsContainer" style="display: flex; flex-direction: column; gap: 6px;"></div>
+          </div>
+        </div>
+
+        <!-- ==========================================================
+             TAB 1: SEND OUTREACH (FOCUSED WORKSPACE)
+             ========================================================== -->
+        <section id="tab-composer" class="tab-view active">
+          
+          <!-- LIVE SENDING PROGRESS SCREEN -->
+          <div class="sending-progress-card" id="activeSendingProgressCard" style="display: none; margin-bottom: 24px;">
+            <div class="sending-header">
+              <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+                <div>
+                  <h2 id="liveProgressHeading">Sending Outreach Campaign</h2>
+                  <p id="liveProgressSubtext">Emails are being dispatched with anti-spam pacing and unique Spintax text variations.</p>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button class="btn btn-sm btn-secondary" id="btnLivePause" onclick="app.togglePauseCampaign()">Pause</button>
+                  <button class="btn btn-sm btn-danger" id="btnLiveStop" onclick="app.stopCampaign()">Stop</button>
+                </div>
+              </div>
+            </div>
+
+            <!-- Anti-Spam Queue Banner -->
+            <div class="countdown-banner" id="liveCountdownBanner" style="display: flex; align-items: center; gap: 14px; background: #1c1917; color: #fbf9f5; border: 1px solid #292524; padding: 14px 18px;">
+              <div class="radar-container">
+                <div class="radar-pulse"></div>
+                <span style="font-size: 16px; position: relative; z-index: 2;">⚡</span>
+              </div>
+              <div style="flex: 1;">
+                <div style="font-weight: 600; font-size: 13.5px; color: #ffffff;" id="liveCountdownTitle">Humanized Pacing Queue Active</div>
+                <div style="font-size: 12px; color: #a8a29e;" id="liveCountdownText">Anti-spam delay with organic jitter delay to guarantee primary inbox delivery.</div>
+              </div>
+              <span class="live-stream-pulse" title="Queue Active"></span>
+            </div>
+
+            <!-- Progress Bar -->
+            <div style="margin: 16px 0 12px;">
+              <div style="display: flex; justify-content: space-between; font-size: 13px; margin-bottom: 6px;">
+                <span id="liveProgressCountText" style="font-weight: 600;">0 / 10 leads sent</span>
+                <span id="liveProgressPercentText" style="color: var(--text-dim); font-family: monospace;">0%</span>
+              </div>
+              <div class="progress-bar-bg" style="height: 8px; border-radius: 4px; overflow: hidden;">
+                <div class="progress-bar-fill progress-shimmer" id="liveProgressBar" style="width: 0%;"></div>
+              </div>
+            </div>
+
+            <!-- 4-Stat Box with Live Opens -->
+            <div class="sending-stats-grid" style="grid-template-columns: repeat(4, 1fr);">
+              <div class="send-stat-box sent">
+                <div class="send-stat-value" id="liveStatSent">0</div>
+                <div class="send-stat-label">Delivered</div>
+              </div>
+              <div class="send-stat-box" style="background: #eff6ff;">
+                <div class="send-stat-value" style="color: #2563eb;" id="liveStatOpened">0</div>
+                <div class="send-stat-label" style="color: #1d4ed8; font-weight: 600;">👁️ Opened</div>
+              </div>
+              <div class="send-stat-box pending">
+                <div class="send-stat-value" id="liveStatPending">0</div>
+                <div class="send-stat-label">Pending</div>
+              </div>
+              <div class="send-stat-box failed">
+                <div class="send-stat-value" id="liveStatFailed">0</div>
+                <div class="send-stat-label">Failed</div>
+              </div>
+            </div>
+
+            <!-- Completed State Banner -->
+            <div class="completed-banner" id="liveCompletedBanner" style="display: none;">
+              <div class="completed-check-icon">✓</div>
+              <div class="completed-title">Campaign Sent Successfully</div>
+              <div class="completed-subtext" id="completedSummaryText">All emails delivered safely.</div>
+              <div style="display: flex; justify-content: center; gap: 10px; margin-top: 16px;">
+                <button class="btn btn-primary" onclick="app.resetComposer()">+ Send Another Campaign</button>
+                <button class="btn btn-secondary" onclick="app.switchTab('campaigns')">View History</button>
+                <button class="btn btn-secondary" onclick="app.switchTab('inbox')">Check Real Replies</button>
+              </div>
+            </div>
+
+            <!-- Live Recipient Audit Table -->
+            <div class="table-container" style="max-height: 240px; overflow-y: auto; margin-top: 18px;">
+              <table class="clean-table">
+                <thead>
+                  <tr>
+                    <th>Lead Email</th>
+                    <th>Delivery</th>
+                    <th>Open Tracking</th>
+                    <th>Timestamp</th>
+                  </tr>
+                </thead>
+                <tbody id="liveRecipientsTableBody"></tbody>
+              </table>
+            </div>
+          </div>
+
+
+          <!-- OUTREACH COMPOSER FORM CARD -->
+          <div class="new-campaign-container" id="composerContainer">
+            <div class="campaign-card">
+              
+              <!-- STEP 1: GMAIL SENDER GATEWAY -->
+              <div class="form-step" style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; margin-bottom: 24px;">
+                
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+                  <div style="font-size: 14px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                    <span>1. Gmail Sender Gateway & Credentials</span>
+                    <span class="status-badge status-completed" style="font-size: 10.5px;">● Gmail SMTP (Port 465 SSL)</span>
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="app.openAddAccountModal()">+ Add Account</button>
+                    <button type="button" class="action-btn-link" onclick="app.switchTab('guide')">App Password Help ↗</button>
+                  </div>
+                </div>
+
+                <!-- Account Switcher Selector -->
+                <div style="margin-bottom: 14px;">
+                  <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Select Active Gmail Account</label>
+                  <select id="accountSwitcherSelect" class="form-control" onchange="app.onAccountDropdownChange()" style="font-weight: 600; font-size: 13.5px;">
+                    <option value="">-- Loading accounts... --</option>
+                  </select>
+                </div>
+
+                <!-- Active Sender Credentials Input Form -->
+                <div style="display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 12px;">
+                  <div>
+                    <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Your Full Name (Human Name) *</label>
+                    <input type="text" id="senderDisplayName" class="form-control" placeholder="Thomas Hammed" value="Thomas Hammed" title="Using a real human name stops Google from flagging your emails as a bot">
+                  </div>
+                  <div>
+                    <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Gmail Address *</label>
+                    <input type="email" id="senderEmail" class="form-control" placeholder="willowwixpartner@gmail.com" required onblur="app.normalizeEmailInput(this)">
+                  </div>
+                  <div>
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                      <label class="step-label" style="font-size: 12px; margin-bottom: 0;">16-Char App Password *</label>
+                      <button type="button" class="action-btn-link" onclick="app.togglePasswordVisibility('senderPassword', this)" style="font-size: 11px; padding: 0;">👁️ Show</button>
+                    </div>
+                    <div style="position: relative;">
+                      <input type="password" id="senderPassword" class="form-control" placeholder="abcd efgh ijkl mnop" required style="letter-spacing: 0.5px;">
+                    </div>
+                  </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 10px;">
+                  <div id="smtpVerifyStatus" style="font-size: 12.5px; color: var(--text-dim); display: flex; align-items: center; gap: 6px;">
+                    <span class="status-dot"></span>
+                    <span>Ready to dispatch outreach via Google SMTP</span>
+                  </div>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm btn-secondary" id="btnTestSmtp" onclick="app.testSmtpConnection()">
+                      ⚡ Live Socket Diagnose
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="app.instantConnectAccount()">
+                      ⚡ 1-Click Connect & Save
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Live Socket Diagnostic Terminal Console -->
+                <div id="smtpDiagnosticConsole" style="display: none;">
+                  <div class="terminal-box" id="terminalLogContainer">
+                    <div class="terminal-line"><span class="term-tag-info">[INIT]</span> Initializing Gmail SMTP socket diagnostics...</div>
+                  </div>
+                </div>
+
+                <!-- Inline Helpful Diagnostic Box -->
+                <div id="authHelpBox" style="display: none; margin-top: 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 14px; font-size: 12.5px; color: #92400e; line-height: 1.6;">
+                  <div style="font-weight: 700; margin-bottom: 4px; font-size: 13px;">⚠️ Google App Password Troubleshooting</div>
+                  <p style="margin-bottom: 8px;">
+                    Google rejected credentials for this account.
+                  </p>
+                  <ol style="margin-left: 18px; margin-bottom: 12px;">
+                    <li>Ensure <strong>IMAP is Enabled</strong> at <a href="https://mail.google.com/mail/u/0/#settings/fwdandpop" target="_blank" style="color: var(--primary); font-weight: 600;">Gmail Settings > POP/IMAP</a>.</li>
+                    <li>Ensure <strong>2-Step Verification</strong> is ON for <strong id="helpSenderEmail">willowwixpartner@gmail.com</strong> at <a href="https://myaccount.google.com/security" target="_blank" style="color: var(--primary); font-weight: 600;">myaccount.google.com/security</a>.</li>
+                    <li>Generate an App Password at <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: underline;">myaccount.google.com/apppasswords</a>.</li>
+                  </ol>
+                  <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm btn-primary" onclick="app.instantConnectAccount()">⚡ Connect & Save Anyway</button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('authHelpBox').style.display='none'">Dismiss</button>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- STEP 2: PASTE EMAIL LEADS (UP TO 50) -->
+              <div class="form-step">
+                <div class="step-label-row">
+                  <label class="step-label" for="leadsInput">2. Paste Email Leads (Max 50)</label>
+                  <button type="button" class="action-btn-link" onclick="app.pasteSampleLeads()">Paste 10 Example Leads</button>
+                </div>
+                <span class="step-helper" style="display: block; margin-bottom: 8px;">Paste up to 50 email addresses, one per line. No names or complicated CSV columns needed.</span>
+
+                <textarea 
+                  id="leadsInput" 
+                  class="form-control mono-textarea" 
+                  placeholder="thomashammed3@gmail.com&#10;sarah@example.com&#10;mike@example.com"
+                ></textarea>
+
+                <!-- Counter & Progress -->
+                <div class="recipient-counter-box">
+                  <div class="counter-row">
+                    <span class="counter-text" id="leadsCountLabel">0 / 50 leads</span>
+                    <span class="counter-limit-warning" id="leadsLimitWarning">Maximum of 50 leads reached.</span>
+                  </div>
+                  <div class="progress-bar-bg">
+                    <div class="progress-bar-fill" id="leadsProgressBar" style="width: 0%;"></div>
+                  </div>
+                </div>
+
+                <!-- Validation Pills -->
+                <div class="validation-summary">
+                  <span class="val-pill val-valid" id="pillValid" style="display: none;">✓ 0 valid</span>
+                  <span class="val-pill val-invalid" id="pillInvalid" style="display: none;">⚠ 0 invalid</span>
+                  <span class="val-pill val-dupes" id="pillDupes" style="display: none;">↻ 0 duplicates removed</span>
+                  <span class="val-pill val-limit" id="pillLimit" style="display: none;">Capped to 50</span>
+                </div>
+
+                <div class="validation-error-alert" id="validationErrorAlert"></div>
+              </div>
+
+              <!-- STEP 3: OUTREACH MESSAGE & 5-VARIANT AUTO-SHUFFLER -->
+              <div class="form-step">
+                <div class="step-label-row" style="margin-bottom: 8px; flex-wrap: wrap; gap: 8px;">
+                  <div>
+                    <label class="step-label" style="font-size: 14px; font-weight: 700; color: var(--text-main);">3. 5-Message Auto-Shuffle Rotation & Anti-Spam Engine</label>
+                    <div style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">Automatically rotates across 5 unique outreach messages to prevent Google content hashing.</div>
+                  </div>
+                  <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="app.populateAll5MessageVariants()" style="font-size: 11.5px; padding: 5px 12px;">
+                      🎲 Populate 5 Unique Variants
+                    </button>
+                    <button type="button" class="btn btn-sm btn-primary" onclick="app.saveAllMessageVariants()" style="font-size: 11.5px; padding: 5px 12px; background: #059669; border-color: #059669; color: #ffffff;">
+                      💾 Save All 5 Messages
+                    </button>
+                    <button type="button" class="btn btn-sm btn-secondary" onclick="app.autoOptimizeSpamDeliverability()" style="font-size: 11.5px; padding: 5px 12px;">
+                      ✨ 1-Click Anti-Spam Optimizer
+                    </button>
+                  </div>
+                </div>
+
+                <!-- 5-VARIANT SWITCHER TABS -->
+                <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; background: #f0fdf4; padding: 6px; border-radius: 8px; border: 1px solid #d1fae5;">
+                  <button type="button" class="variant-tab-btn active" id="btnVarTab-0" onclick="app.switchVariantTab(0)">
+                    ✉️ Message 1 <span class="pill-rate">Active</span>
+                  </button>
+                  <button type="button" class="variant-tab-btn" id="btnVarTab-1" onclick="app.switchVariantTab(1)">
+                    ✉️ Message 2
+                  </button>
+                  <button type="button" class="variant-tab-btn" id="btnVarTab-2" onclick="app.switchVariantTab(2)">
+                    ✉️ Message 3
+                  </button>
+                  <button type="button" class="variant-tab-btn" id="btnVarTab-3" onclick="app.switchVariantTab(3)">
+                    ✉️ Message 4
+                  </button>
+                  <button type="button" class="variant-tab-btn" id="btnVarTab-4" onclick="app.switchVariantTab(4)">
+                    ✉️ Message 5
+                  </button>
+                </div>
+
+                <!-- IN-BUILT COMPOSER CONTAINER -->
+                <div class="inbuilt-template-container" style="border: 1px solid var(--border-emerald); background: #ffffff; border-radius: var(--radius-md);">
+                  
+                  <!-- Deliverability Health Bar & Active Variant Actions -->
+                  <div class="inbuilt-meter-row" id="deliverabilityMeter" style="background: #f0fdf4; border-bottom: 1px solid #d1fae5; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+                    <div class="meter-info-group">
+                      <span style="font-size: 16px;">🛡️</span>
+                      <span class="meter-score-text" id="meterTitle" style="color: #065f46; font-weight: 700;">Primary Inbox Placement: 99.8%</span>
+                      <span class="meter-badge-pill" id="meterBadge" style="background: #059669; color: #ffffff;">● Shuffler Protected</span>
+                    </div>
+                    <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                      <span style="font-size: 12px; color: #047857; font-weight: 600;" id="activeVariantIndicator">Editing Message 1 of 5</span>
+                      <span class="status-badge status-completed" id="variantSaveStatusBadge" style="font-size: 10.5px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">● Saved</span>
+                      <button type="button" class="btn btn-sm btn-primary" id="btnSaveCurrentVariant" onclick="app.saveCurrentActiveVariant()" style="font-size: 11.5px; padding: 3px 10px; background: #059669; border-color: #059669; color: #ffffff;" title="Save this message variant">
+                        💾 Save Message 1
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Real-time Spam Keywords Detected Alert -->
+                  <div class="spam-keywords-alert" id="spamKeywordsAlert"></div>
+
+                  <!-- Subject Input -->
+                  <div style="padding: 14px 16px 6px;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+                      <label class="step-label" for="emailSubject" style="font-size: 12px; color: var(--text-main);" id="variantSubjectLabel">Email Subject for Message 1 *</label>
+                      <span style="font-size: 11px; color: var(--primary); font-weight: 600;">Supports Spintax {A|B|C}</span>
+                    </div>
+                    <input 
+                      type="text" 
+                      id="emailSubject" 
+                      class="form-control" 
+                      placeholder="{quick question|quick thought|intro|hey}"
+                      value="{quick question|quick thought|intro|hey}"
+                      oninput="app.onCurrentVariantInput()"
+                      style="font-size: 13.5px; font-weight: 600; border-color: #cbd5e1;"
+                    >
+                  </div>
+
+                  <!-- Message Textarea -->
+                  <div style="padding: 6px 16px 16px;">
+                    <div class="step-label-row" style="margin-bottom: 4px;">
+                      <label class="step-label" for="emailMessage" style="font-size: 12px; color: var(--text-main);" id="variantMessageLabel">Message Body for Message 1 *</label>
+                      <span class="step-helper" style="font-size: 11.5px; color: var(--status-success); font-weight: 600;">✓ Natural 1-on-1 human format</span>
+                    </div>
+                    <textarea 
+                      id="emailMessage" 
+                      class="form-control composer-textarea" 
+                      placeholder="Write your outreach message here..."
+                      oninput="app.onCurrentVariantInput()"
+                      style="min-height: 140px; border-color: #cbd5e1;"
+                    >{Hi|Hey|Hello} {{email}},
+
+{Quick question for you — are you open to discussing new opportunities this month?|I came across your profile and wanted to reach out with a brief question.|Just wanted to reach out directly with a quick note.}
+
+{Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be free for a brief 2-minute call this week.}
+
+{Best|Thanks|Best regards},
+Thomas</textarea>
+
+                    <div class="personalization-hint" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                      <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
+                        <span style="font-weight: 600; color: var(--text-dim); font-size: 12px;">Tags:</span>
+                        <button type="button" class="tag-btn" onclick="app.insertTag('{{email}}')">{{email}}</button>
+                        <button type="button" class="tag-btn" onclick="app.insertSpintaxSample()" style="background: #f0fdf4; color: #047857; font-weight: 600; border-color: #a7f3d0;">+ Spintax {A|B|C}</button>
+                      </div>
+
+                      <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.saveCurrentActiveVariant()" id="btnSaveCurrentVariantBottom" style="font-size: 11.5px; padding: 4px 10px; font-weight: 600;">
+                          💾 Save Message 1
+                        </button>
+                        <button type="button" class="btn btn-sm btn-primary" onclick="app.saveAllMessageVariants()" style="font-size: 11.5px; padding: 4px 12px; font-weight: 600; background: #059669; border-color: #059669; color: #ffffff;">
+                          💾 Save All 5
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+              <!-- STEP 4: DELIVERABILITY & ANTI-SPAM SETTINGS -->
+              <div class="form-step" style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 16px;">
+                <div style="font-weight: 700; font-size: 13.5px; color: var(--text-main); margin-bottom: 10px; display: flex; align-items: center; gap: 6px;">
+                  <span>🛡️ Deliverability Shield & Anti-Spam Safeguards</span>
+                  <span class="status-badge status-completed" style="font-size: 10.5px;">Recommended</span>
+                </div>
+
+                <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+                  <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 12.5px; color: var(--text-muted); background: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                    <input type="checkbox" id="chkStealthMode" checked style="margin-top: 3px;">
+                    <div>
+                      <strong style="color: var(--text-main);">🛡️ Stealth Plain-Text Mode</strong>
+                      <div style="color: var(--text-dim); font-size: 11.5px;">Bypasses HTML promotional filters. Looks 100% human-typed.</div>
+                    </div>
+                  </label>
+
+                  <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 12.5px; color: var(--text-muted); background: #ffffff; padding: 10px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                    <input type="checkbox" id="chkJitterDelay" checked style="margin-top: 3px;">
+                    <div>
+                      <strong style="color: var(--text-main);">🎲 Humanized Jitter Delay</strong>
+                      <div style="color: var(--text-dim); font-size: 11.5px;">Randomizes sending intervals (±2s) to mimic human typing rhythm.</div>
+                    </div>
+                  </label>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; pt: 8px; border-top: 1px dashed var(--border-subtle); padding-top: 10px; flex-wrap: wrap; gap: 8px;">
+                  <div>
+                    <span style="font-size: 12.5px; font-weight: 600; color: var(--text-main);">Anti-Spam Base Interval:</span>
+                    <span id="sendingDelayLabel" style="font-size: 12px; color: var(--text-dim); margin-left: 6px;">Sends 1 email every ~15s</span>
+                  </div>
+                  <div>
+                    <select id="sendingDelaySelect" class="form-control" style="width: 200px; font-weight: 600;" onchange="app.onDelayChange(this.value)">
+                      <option value="20">20s (Fast & Safe)</option>
+                      <option value="15" selected>15s (Turbo Safe - Recommended)</option>
+                      <option value="10">10s (High Speed)</option>
+                      <option value="5">5s (Ultra Fast)</option>
+                    </select>
+                  </div>
+                </div>
+              </div>
+
+              <!-- ACTIONS: TEST SEND & LAUNCH CAMPAIGN -->
+              <div style="display: flex; gap: 12px; margin-top: 24px;">
+                <button type="button" class="btn btn-secondary btn-lg" style="flex: 1;" onclick="app.openTestSendModal()">
+                  Send 1 Test Email to My Inbox
+                </button>
+                <button type="button" class="btn btn-primary btn-lg" style="flex: 2;" id="btnSendOutreach" onclick="app.startOutreachCampaign()">
+                  Send Outreach Campaign
+                </button>
+              </div>
+
+        </section>
+
+
+        <!-- ==========================================================
+             TAB 2: ALL INBOX (ALL LOGGED-IN ACCOUNTS UNIFIED)
+             ========================================================== -->
+        <section id="tab-all-inbox" class="tab-view">
+          <div class="card" style="padding: 0; overflow: hidden;">
+            
+            <!-- All Inbox Top Bar -->
+            <div class="inbox-topbar">
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <div class="card-title" style="margin-bottom: 0; font-size: 15px;">📥 All Inbox (All Connected Accounts)</div>
+                <span class="status-badge status-completed" id="allInboxBadge">● Unified Feed</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <input type="text" id="allInboxSearchInput" class="form-control" placeholder="Search across all accounts..." style="width: 220px; font-size: 12.5px; padding: 6px 12px;" oninput="app.filterAllInboxMessages()">
+                <button class="btn btn-sm btn-primary" id="btnSyncAllInbox" onclick="app.syncAllInboxes()">
+                  <span id="syncAllSpinnerIcon">↻</span> Sync All Inboxes
+                </button>
+              </div>
+            </div>
+
+            <!-- Account Filter Chips Row -->
+            <div style="padding: 10px 18px; background: #f8fafc; border-bottom: 1px solid var(--border-subtle); display: flex; align-items: center; gap: 8px; flex-wrap: wrap;" id="allInboxAccountChips">
+              <!-- Rendered via JS -->
+            </div>
+
+            <!-- Inbox Split Pane Layout -->
+            <div class="inbox-split-layout">
+              
+              <!-- Left: Message List -->
+              <div class="inbox-sidebar-pane">
+                <div class="inbox-filter-tabs">
+                  <button class="inbox-tab-btn active" data-all-filter="all" onclick="app.setAllInboxFilter('all', this)">All Messages</button>
+                  <button class="inbox-tab-btn" data-all-filter="leads" onclick="app.setAllInboxFilter('leads', this)">🎯 Lead Replies</button>
+                  <button class="inbox-tab-btn" data-all-filter="unread" onclick="app.setAllInboxFilter('unread', this)">Unread</button>
+                </div>
+                <div class="inbox-items-container" id="allInboxItemsList">
+                  <!-- Rendered via JS -->
+                </div>
+              </div>
+
+              <!-- Right: Email Reader & Quick Reply -->
+              <div class="inbox-reader-pane">
+                
+                <div id="allInboxEmptySelection" class="inbox-empty-pane">
+                  <div style="font-size: 40px; margin-bottom: 12px;">📭</div>
+                  <div style="font-weight: 700; font-size: 15px; color: var(--text-main); margin-bottom: 6px;">All Connected Inboxes</div>
+                  <div style="font-size: 13px; color: var(--text-dim); max-width: 340px; line-height: 1.6; margin-bottom: 16px;">
+                    Displaying messages and lead replies from all logged-in sender accounts. Click <strong>"Sync All Inboxes"</strong> to fetch latest emails.
+                  </div>
+                  <button class="btn btn-sm btn-primary" onclick="app.syncAllInboxes()">↻ Sync All Inboxes Now</button>
+                </div>
+
+                <div id="allInboxActiveView" style="display: none; height: 100%; display: flex; flex-direction: column;">
+                  
+                  <!-- Email Header -->
+                  <div class="inbox-view-header">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                      <h3 style="font-size: 17px; font-weight: 700; color: var(--text-main); margin: 0;" id="allInboxViewSubject">Subject line</h3>
+                      <div style="display: flex; gap: 6px;">
+                        <span id="allInboxViewAccountBadge" class="status-badge" style="background: #ecfdf5; color: #047857; font-weight: 600;">@account</span>
+                        <span id="allInboxViewLeadBadge" class="status-badge status-completed" style="display: none;">🎯 Lead Reply</span>
+                      </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="inbox-avatar" id="allInboxViewAvatar">T</div>
+                        <div>
+                          <div style="font-weight: 600; font-size: 13.5px; color: var(--text-main);" id="allInboxViewFromName">Sender Name</div>
+                          <div style="font-size: 12px; color: var(--text-dim);" id="allInboxViewFromEmail">sender@domain.com</div>
+                        </div>
+                      </div>
+                      <div style="font-size: 12px; color: var(--text-dim);" id="allInboxViewDate">Oct 8, 2026, 2:40 PM</div>
+                    </div>
+                  </div>
+
+                  <!-- Email Body -->
+                  <div class="inbox-view-body" id="allInboxViewContent">
+                    <!-- Body rendered here -->
+                  </div>
+
+                  <!-- Inline Quick Reply Box -->
+                  <div class="inbox-reply-box">
+                    <div style="font-weight: 600; font-size: 13px; color: var(--text-main); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                      <span>⚡ Quick Reply to Lead</span>
+                      <span style="font-size: 11.5px; color: #059669; font-weight: 600;" id="allInboxReplySenderIndicator">Sending via account</span>
+                    </div>
+                    <textarea id="allInboxReplyText" class="form-control" placeholder="Write your direct response to this lead..." style="min-height: 90px; margin-bottom: 10px; font-size: 13.5px;"></textarea>
+                    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                      <button class="btn btn-sm btn-secondary" onclick="document.getElementById('allInboxReplyText').value=''">Clear</button>
+                      <button class="btn btn-sm btn-primary" id="btnSendAllInboxReply" onclick="app.sendAllInboxReply()">⚡ Send Direct Reply</button>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================================
+             TAB 3: PRIMARY INBOX (SELECTED ACCOUNT INBOX)
+             ========================================================== -->
+        <section id="tab-primary-inbox" class="tab-view">
+          <div class="card" style="padding: 0; overflow: hidden;">
+            
+            <!-- Primary Inbox Top Bar -->
+            <div class="inbox-topbar">
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <div class="card-title" style="margin-bottom: 0; font-size: 15px;">
+                  📬 Primary Inbox: <span id="primaryInboxAccountTitle" style="color: #059669;">willowwixpartner@gmail.com</span>
+                </div>
+                <span class="status-badge status-completed" id="primaryInboxBadge">● Active Account</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <!-- Account Switcher Selector -->
+                <select id="primaryInboxAccountSelect" class="form-control" onchange="app.onPrimaryInboxAccountChange(this.value)" style="width: 210px; font-size: 12.5px; font-weight: 600;">
+                  <!-- Rendered via JS -->
+                </select>
+                <input type="text" id="primaryInboxSearchInput" class="form-control" placeholder="Search primary inbox..." style="width: 180px; font-size: 12.5px; padding: 6px 12px;" oninput="app.filterPrimaryInboxMessages()">
+                <button class="btn btn-sm btn-primary" id="btnSyncPrimaryInbox" onclick="app.syncPrimaryInbox()">
+                  <span id="syncPrimarySpinnerIcon">↻</span> Sync Active Inbox
+                </button>
+              </div>
+            </div>
+
+            <!-- Inbox Split Pane Layout -->
+            <div class="inbox-split-layout">
+              
+              <!-- Left: Message List -->
+              <div class="inbox-sidebar-pane">
+                <div class="inbox-filter-tabs">
+                  <button class="inbox-tab-btn active" data-pri-filter="all" onclick="app.setPrimaryInboxFilter('all', this)">All</button>
+                  <button class="inbox-tab-btn" data-pri-filter="leads" onclick="app.setPrimaryInboxFilter('leads', this)">🎯 Lead Replies</button>
+                  <button class="inbox-tab-btn" data-pri-filter="unread" onclick="app.setPrimaryInboxFilter('unread', this)">Unread</button>
+                </div>
+                <div class="inbox-items-container" id="primaryInboxItemsList">
+                  <!-- Rendered via JS -->
+                </div>
+              </div>
+
+              <!-- Right: Email Reader & Quick Reply -->
+              <div class="inbox-reader-pane">
+                
+                <div id="primaryInboxEmptySelection" class="inbox-empty-pane">
+                  <div style="font-size: 40px; margin-bottom: 12px;">✉️</div>
+                  <div style="font-weight: 700; font-size: 15px; color: var(--text-main); margin-bottom: 6px;">Primary Account Inbox</div>
+                  <div style="font-size: 13px; color: var(--text-dim); max-width: 320px; line-height: 1.6; margin-bottom: 16px;">
+                    Viewing live incoming emails for <strong id="primaryInboxEmptyAccount">selected account</strong>. Click <strong>"Sync Active Inbox"</strong> to refresh messages.
+                  </div>
+                  <button class="btn btn-sm btn-primary" onclick="app.syncPrimaryInbox()">↻ Sync Active Inbox Now</button>
+                </div>
+
+                <div id="primaryInboxActiveView" style="display: none; height: 100%; display: flex; flex-direction: column;">
+                  
+                  <!-- Email Header -->
+                  <div class="inbox-view-header">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                      <h3 style="font-size: 17px; font-weight: 700; color: var(--text-main); margin: 0;" id="primaryInboxViewSubject">Subject line</h3>
+                      <span id="primaryInboxViewLeadBadge" class="status-badge status-completed" style="display: none;">🎯 Lead Reply</span>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="inbox-avatar" id="primaryInboxViewAvatar">T</div>
+                        <div>
+                          <div style="font-weight: 600; font-size: 13.5px; color: var(--text-main);" id="primaryInboxViewFromName">Sender Name</div>
+                          <div style="font-size: 12px; color: var(--text-dim);" id="primaryInboxViewFromEmail">sender@domain.com</div>
+                        </div>
+                      </div>
+                      <div style="font-size: 12px; color: var(--text-dim);" id="primaryInboxViewDate">Oct 8, 2026, 2:40 PM</div>
+                    </div>
+                  </div>
+
+                  <!-- Email Body -->
+                  <div class="inbox-view-body" id="primaryInboxViewContent">
+                    <!-- Body rendered here -->
+                  </div>
+
+                  <!-- Inline Quick Reply Box -->
+                  <div class="inbox-reply-box">
+                    <div style="font-weight: 600; font-size: 13px; color: var(--text-main); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                      <span>⚡ Quick Reply to Lead</span>
+                      <span style="font-size: 11.5px; color: #059669; font-weight: 600;" id="primaryInboxReplySenderIndicator">Sending via active account</span>
+                    </div>
+                    <textarea id="primaryInboxReplyText" class="form-control" placeholder="Write your response to this lead..." style="min-height: 90px; margin-bottom: 10px; font-size: 13.5px;"></textarea>
+                    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                      <button class="btn btn-sm btn-secondary" onclick="document.getElementById('primaryInboxReplyText').value=''">Clear</button>
+                      <button class="btn btn-sm btn-primary" id="btnSendPrimaryInboxReply" onclick="app.sendPrimaryInboxReply()">⚡ Send Direct Reply</button>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================================
+             TAB 4: SENT (OUTREACH CAMPAIGNS & SENT MESSAGES)
+             ========================================================== -->
+        <section id="tab-sent" class="tab-view">
+          
+          <!-- TOP TELEMETRY STATS CARDS -->
+          <div class="history-stats-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px;">
+            <div class="stat-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 18px;">
+              <div style="font-size: 11.5px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px;">Total Outreach</div>
+              <div style="font-size: 24px; font-weight: 800; color: var(--text-main);" id="sentStatCampaigns">0</div>
+              <div style="font-size: 11.5px; color: var(--text-dim);">Dispatched campaigns</div>
+            </div>
+            <div class="stat-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 18px;">
+              <div style="font-size: 11.5px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px;">Total Leads Sent</div>
+              <div style="font-size: 24px; font-weight: 800; color: var(--text-main);" id="sentStatLeads">0</div>
+              <div style="font-size: 11.5px; color: var(--text-dim);">Recipients targeted</div>
+            </div>
+            <div class="stat-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 18px;">
+              <div style="font-size: 11.5px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px;">Live Email Opens</div>
+              <div style="font-size: 24px; font-weight: 800; color: var(--primary);" id="sentStatOpens">0</div>
+              <div style="font-size: 11.5px; color: var(--primary); font-weight: 500;">👁️ Tracked in real time</div>
+            </div>
+            <div class="stat-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 14px 18px;">
+              <div style="font-size: 11.5px; font-weight: 600; color: var(--text-dim); text-transform: uppercase; margin-bottom: 4px;">Inbox Placement</div>
+              <div style="font-size: 24px; font-weight: 800; color: var(--status-success);" id="sentStatDeliverability">99.8%</div>
+              <div style="font-size: 11.5px; color: var(--status-success); font-weight: 500;">🛡️ 5-Variant Shuffler</div>
+            </div>
+          </div>
+
+          <div class="card">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                  <span>📤 Sent Messages & Outreach Log</span>
+                  <span class="status-badge status-completed" style="font-size: 11px;">● Live Dispatches</span>
+                </div>
+                <div class="card-subtitle">Complete log of sent campaigns, direct replies, and test messages for selected account</div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <select id="sentAccountFilterSelect" class="form-control" onchange="app.onSentAccountFilterChange(this.value)" style="width: 200px; font-size: 12.5px; font-weight: 600;">
+                  <option value="all">All Accounts</option>
+                </select>
+                <input type="text" id="sentSearchInput" class="form-control" placeholder="Search sent..." style="width: 180px; font-size: 12.5px; padding: 5px 10px;" oninput="app.filterSentTable()">
+                <button class="btn btn-sm btn-secondary" onclick="app.loadCampaigns()">↻ Refresh Sent</button>
+                <button class="btn btn-sm btn-danger" onclick="app.clearAllHistory()">Clear Log</button>
+              </div>
+            </div>
+
+            <!-- Well-Fitted Sent Table -->
+            <div class="table-container">
+              <table class="clean-table history-table">
+                <thead>
+                  <tr>
+                    <th style="width: 22%;">Sender Account</th>
+                    <th style="width: 20%;">Lead / Recipient</th>
+                    <th style="width: 22%;">Subject / Outreach</th>
+                    <th style="width: 12%;">Opens (Tracked)</th>
+                    <th style="width: 10%;">Delivery</th>
+                    <th style="width: 14%;">Sent Date</th>
+                    <th style="width: 10%;">Action</th>
+                  </tr>
+                </thead>
+                <tbody id="sentHistoryTableBody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================================
+             TAB 5: SPAM (FILTERED LEADS RESCUE & INBOX DISPLAY)
+             ========================================================== -->
+        <section id="tab-spam" class="tab-view">
+          <div class="card" style="padding: 0; overflow: hidden;">
+            
+            <!-- Spam Top Bar -->
+            <div class="inbox-topbar" style="background: #fffbeb; border-bottom: 1px solid #fde68a;">
+              <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
+                <div class="card-title" style="margin-bottom: 0; font-size: 15px; color: #92400e;">
+                  ⚠️ Spam & Filtered Leads Rescue
+                </div>
+                <span class="status-badge" style="background: #fee2e2; color: #991b1b; font-weight: 700;">● Filtered Messages</span>
+              </div>
+              <div style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                <select id="spamAccountSelect" class="form-control" onchange="app.onSpamAccountChange(this.value)" style="width: 200px; font-size: 12.5px; font-weight: 600;">
+                  <option value="all">All Accounts</option>
+                </select>
+                <input type="text" id="spamSearchInput" class="form-control" placeholder="Search spam..." style="width: 180px; font-size: 12.5px; padding: 6px 12px;" oninput="app.filterSpamMessages()">
+                <button class="btn btn-sm btn-primary" id="btnSyncSpam" onclick="app.syncSpamLive()" style="background: #d97706; border-color: #d97706;">
+                  <span id="syncSpamSpinnerIcon">↻</span> Sync Spam Folder
+                </button>
+              </div>
+            </div>
+
+            <!-- Helpful Spam Rescue Banner -->
+            <div style="padding: 12px 18px; background: #fef3c7; border-bottom: 1px solid #fde68a; font-size: 13px; color: #92400e; display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 20px;">🛡️</span>
+                <div>
+                  <strong>Never Lose a Lead:</strong> Some lead responses might enter Gmail's Spam folder by mistake. You can read every filtered email here and click <strong>"⚡ Rescue to Primary Inbox"</strong> to move it into your primary inbox instantly.
+                </div>
+              </div>
+              <button class="btn btn-sm btn-secondary" onclick="app.syncSpamLive()" style="font-size: 11.5px; padding: 4px 10px;">↻ Check Spam Now</button>
+            </div>
+
+            <!-- Inbox Split Pane Layout for Spam -->
+            <div class="inbox-split-layout">
+              
+              <!-- Left: Spam Message List -->
+              <div class="inbox-sidebar-pane">
+                <div class="inbox-items-container" id="spamItemsList">
+                  <!-- Rendered via JS -->
+                </div>
+              </div>
+
+              <!-- Right: Email Reader & Rescue Action -->
+              <div class="inbox-reader-pane">
+                
+                <div id="spamEmptySelection" class="inbox-empty-pane">
+                  <div style="font-size: 40px; margin-bottom: 12px;">🛡️</div>
+                  <div style="font-weight: 700; font-size: 15px; color: var(--text-main); margin-bottom: 6px;">No Spam Messages Selected</div>
+                  <div style="font-size: 13px; color: var(--text-dim); max-width: 340px; line-height: 1.6; margin-bottom: 16px;">
+                    Select an email from the left list to read its content cleanly or click <strong>"Sync Spam Folder"</strong> to check for filtered lead responses.
+                  </div>
+                  <button class="btn btn-sm btn-primary" onclick="app.syncSpamLive()" style="background: #d97706; border-color: #d97706;">↻ Check Spam Folder</button>
+                </div>
+
+                <div id="spamActiveView" style="display: none; height: 100%; display: flex; flex-direction: column;">
+                  
+                  <!-- Email Header with Rescue Callout -->
+                  <div class="inbox-view-header" style="background: #fffbeb; border-bottom: 1px solid #fde68a;">
+                    <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+                      <div>
+                        <h3 style="font-size: 17px; font-weight: 700; color: var(--text-main); margin: 0 0 4px;" id="spamViewSubject">Subject line</h3>
+                        <span class="status-badge" style="background: #fee2e2; color: #991b1b; font-size: 11px;">⚠️ Filtered Message</span>
+                      </div>
+                      <div style="display: flex; gap: 8px;">
+                        <button class="btn btn-sm btn-primary" onclick="app.rescueActiveSpamMessage()" style="background: #059669; border-color: #059669; font-weight: 700;">
+                          ⚡ Rescue to Primary Inbox
+                        </button>
+                      </div>
+                    </div>
+                    <div style="display: flex; justify-content: space-between; align-items: center;">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <div class="inbox-avatar" id="spamViewAvatar" style="background: #fde68a; color: #92400e;">T</div>
+                        <div>
+                          <div style="font-weight: 600; font-size: 13.5px; color: var(--text-main);" id="spamViewFromName">Sender Name</div>
+                          <div style="font-size: 12px; color: var(--text-dim);" id="spamViewFromEmail">sender@domain.com</div>
+                        </div>
+                      </div>
+                      <div style="font-size: 12px; color: var(--text-dim);" id="spamViewDate">Oct 8, 2026, 2:40 PM</div>
+                    </div>
+                  </div>
+
+                  <!-- Email Body -->
+                  <div class="inbox-view-body" id="spamViewContent">
+                    <!-- Body rendered here -->
+                  </div>
+
+                  <!-- Inline Quick Reply Box -->
+                  <div class="inbox-reply-box">
+                    <div style="font-weight: 600; font-size: 13px; color: var(--text-main); margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+                      <span>⚡ Reply & Whitelist Lead</span>
+                      <span style="font-size: 11.5px; color: #059669; font-weight: 600;">Direct reply marks future emails safe</span>
+                    </div>
+                    <textarea id="spamReplyText" class="form-control" placeholder="Write your response to pull this lead into your main conversation..." style="min-height: 80px; margin-bottom: 10px; font-size: 13.5px;"></textarea>
+                    <div style="display: flex; justify-content: flex-end; gap: 8px;">
+                      <button class="btn btn-sm btn-secondary" onclick="document.getElementById('spamReplyText').value=''">Clear</button>
+                      <button class="btn btn-sm btn-primary" onclick="app.sendSpamReply()">⚡ Send Direct Reply</button>
+                    </div>
+                  </div>
+
+                </div>
+
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================================
+             TAB: BOUNCED LEADS & DELIVERY FAILURE CENTER
+             ========================================================== -->
+        <section id="tab-bounces" class="tab-view">
+          <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+              <div>
+                <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                  <span>⚠️ Bounced Leads & Delivery Failure Center</span>
+                  <span class="status-badge" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca; font-size: 11px;">● Deliverability Guard Active</span>
+                </div>
+                <div class="card-subtitle">Real-time bounce detection (550 / 552), diagnostic logs, and automated lead suppression to protect your primary sender reputation.</div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="app.simulateBounceReport()">
+                  🧪 Simulate Test Bounce
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="app.loadBounces()">
+                  🔄 Refresh Bounces
+                </button>
+                <button type="button" class="btn btn-sm btn-danger" onclick="app.clearBouncesHistory()" style="font-size: 12px; padding: 6px 12px;">
+                  🗑️ Clear Bounce Log
+                </button>
+              </div>
+            </div>
+
+            <!-- 4 Metric Cards -->
+            <div class="send-stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 20px;">
+              <div class="send-stat-box" style="background: #fef2f2; border-color: #fecaca;">
+                <div class="send-stat-value" style="color: #dc2626;" id="bounceStatTotal">0</div>
+                <div class="send-stat-label" style="color: #b91c1c; font-weight: 600;">Total Bounced</div>
+              </div>
+              <div class="send-stat-box" style="background: #fff7ed; border-color: #ffedd5;">
+                <div class="send-stat-value" style="color: #ea580c;" id="bounceStatHard">0</div>
+                <div class="send-stat-label" style="color: #c2410c; font-weight: 600;">Hard Bounces (550)</div>
+              </div>
+              <div class="send-stat-box" style="background: #fefce8; border-color: #fef08a;">
+                <div class="send-stat-value" style="color: #ca8a04;" id="bounceStatSoft">0</div>
+                <div class="send-stat-label" style="color: #a16207; font-weight: 600;">Soft Bounces (552)</div>
+              </div>
+              <div class="send-stat-box" style="background: #f0fdf4; border-color: #bbf7d0;">
+                <div class="send-stat-value" style="color: #059669;" id="bounceStatSuppressed">0</div>
+                <div class="send-stat-label" style="color: #065f46; font-weight: 600;">Auto-Suppressed 🛡️</div>
+              </div>
+            </div>
+
+            <!-- Deliverability Shield Info Banner -->
+            <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px 16px; margin-bottom: 20px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+              <div style="display: flex; align-items: center; gap: 10px;">
+                <span style="font-size: 20px;">🛡️</span>
+                <div>
+                  <strong style="color: #065f46; font-size: 13px;">Automated Deliverability Protection: Active</strong>
+                  <div style="color: #047857; font-size: 12px; margin-top: 2px;">MailFlow automatically halts future outreach to all bounced leads so your Google sender reputation stays 100% clean and never hits spam filters.</div>
+                </div>
+              </div>
+              <span class="status-badge status-completed" style="font-size: 11px; background: #059669; color: #ffffff;">Zero-Spam Protected</span>
+            </div>
+
+            <!-- Filter & Search Controls -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; gap: 12px; flex-wrap: wrap;">
+              <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-sm btn-secondary active-bounce-filter" id="bounceFilterAll" onclick="app.filterBounces('all')" style="font-weight: 600;">
+                  All Bounces (<span id="countBounceAll">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" id="bounceFilterHard" onclick="app.filterBounces('hard')">
+                  Hard Bounces 550 (<span id="countBounceHard">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" id="bounceFilterSoft" onclick="app.filterBounces('soft')">
+                  Soft Bounces 552 (<span id="countBounceSoft">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-secondary" id="bounceFilterBlocked" onclick="app.filterBounces('blocked')">
+                  Policy / Blocked (<span id="countBounceBlocked">0</span>)
+                </button>
+              </div>
+
+              <div style="min-width: 240px; position: relative;">
+                <input type="text" id="bouncesSearchInput" class="form-control" placeholder="Search lead or error code..." oninput="app.searchBounces(this.value)" style="font-size: 12.5px; padding: 6px 10px 6px 30px;">
+                <span style="position: absolute; left: 10px; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 12px;">🔍</span>
+              </div>
+            </div>
+
+            <!-- Bounced Leads Table -->
+            <div class="table-container">
+              <table class="clean-table">
+                <thead>
+                  <tr>
+                    <th>Bounced Lead</th>
+                    <th>Bounce Type</th>
+                    <th>Diagnostic Reason</th>
+                    <th>Sender Account</th>
+                    <th>Detected Date</th>
+                    <th>Deliverability Shield</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="bouncesTableBody">
+                  <!-- Rendered via app.renderBouncesTable() -->
+                </tbody>
+              </table>
+            </div>
+
+          </div>
+        </section>
+
+
+        <!-- ==========================================================
+             TAB 4: LIVE OPEN TRACKER & REAL-TIME ACTIVITY FEED
+             ========================================================== -->
+        <section id="tab-tracker" class="tab-view">
+          <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header">
+              <div>
+                <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                  <span>👁️ Real-Time Email Open Tracker</span>
+                  <span class="status-badge status-completed" style="font-size: 11px;">● Live Listener Active</span>
+                </div>
+                <div class="card-subtitle">Live stream of leads opening your messages with instant sound chimes & alerts</div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button class="btn btn-sm btn-primary" onclick="app.triggerTestOpenSimulation()">
+                  🧪 Test Live Open Alert
+                </button>
+                <button class="btn btn-sm btn-secondary" onclick="app.requestPushPermission()">
+                  🔔 Browser Push Alerts
+                </button>
+              </div>
+            </div>
+
+            <!-- Tracker Metric Cards -->
+            <div class="sending-stats-grid" style="grid-template-columns: repeat(4, 1fr); margin-bottom: 20px;">
+              <div class="send-stat-box" style="background: #eff6ff; border-color: #bfdbfe;">
+                <div class="send-stat-value" style="color: #2563eb;" id="trackerStatTotalOpens">0</div>
+                <div class="send-stat-label" style="color: #1d4ed8; font-weight: 600;">Total Opens Recorded</div>
+              </div>
+              <div class="send-stat-box" style="background: #f0fdf4; border-color: #bbf7d0;">
+                <div class="send-stat-value" style="color: #16a34a;" id="trackerStatActiveCampaigns">0</div>
+                <div class="send-stat-label" style="color: #15803d; font-weight: 600;">Active Campaigns</div>
+              </div>
+              <div class="send-stat-box" style="background: #faf5ff; border-color: #e9d5ff;">
+                <div class="send-stat-value" style="color: #7e22ce;" id="trackerStatSoundStatus">ON 🔔</div>
+                <div class="send-stat-label" style="color: #6b21a8; font-weight: 600;">Audio Chime</div>
+              </div>
+              <div class="send-stat-box" style="background: var(--bg-subtle);">
+                <div class="send-stat-value" style="color: var(--text-main); font-size: 16px; font-weight: 600; padding: 4px 0;" id="trackerStatLastOpenTime">Never</div>
+                <div class="send-stat-label">Last Open Detected</div>
+              </div>
+            </div>
+
+            <!-- Live Open Activity Stream Table -->
+            <div class="table-container">
+              <table class="clean-table">
+                <thead>
+                  <tr>
+                    <th>Lead Email</th>
+                    <th>Outreach Subject</th>
+                    <th>Open Count</th>
+                    <th>Exact Time</th>
+                    <th>Device / Client</th>
+                    <th>Live Status</th>
+                  </tr>
+                </thead>
+                <tbody id="trackerActivityTableBody">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================================
+             TAB 5: SENDER ACCOUNTS (GMAIL APP PASSWORD MANAGER)
+             ========================================================== -->
+        <section id="tab-accounts" class="tab-view">
+          <div class="card">
+            <div class="card-header">
+              <div>
+                <div class="card-title">Connected Sender Accounts</div>
+                <div class="card-subtitle">Manage multiple email accounts and switch senders without losing your credentials</div>
+              </div>
+              <button class="btn btn-sm btn-primary" onclick="app.openAddAccountModal()">+ Add Account</button>
+            </div>
+
+            <div class="table-container">
+              <table class="clean-table">
+                <thead>
+                  <tr>
+                    <th>Email Address</th>
+                    <th>Status</th>
+                    <th>Daily Usage</th>
+                    <th>Type</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="accountsManagerTableBody">
+                  <!-- Rendered via JS -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================================
+             TAB 6: GMAIL APP PASSWORD GUIDE & TROUBLESHOOTING
+             ========================================================== -->
+        <section id="tab-guide" class="tab-view">
+          <div class="card" style="max-width: 720px; margin: 0 auto;">
+            <div class="card-header">
+              <div>
+                <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                  <span>🔑 Google App Password & SMTP Guide</span>
+                </div>
+                <div class="card-subtitle">Follow these 3 essential steps to get flawless Google SMTP & IMAP authentication</div>
+              </div>
+            </div>
+
+            <div style="font-size: 14px; line-height: 1.7; color: var(--text-muted);">
+              
+              <div style="background: #eff6ff; border: 1px solid #bfdbfe; border-radius: var(--radius-sm); padding: 14px 16px; margin-bottom: 20px; color: #1e40af;">
+                <strong>Why does Google require an App Password?</strong><br>
+                Google protects your primary password by requiring a dedicated 16-letter App Password for third-party email tools.
+              </div>
+
+              <h4 style="color: var(--text-main); margin: 18px 0 8px;">Step 1: Enable IMAP in Gmail Settings</h4>
+              <ol style="margin-left: 20px; margin-bottom: 16px;">
+                <li>Open <a href="https://mail.google.com" target="_blank" style="color: var(--primary); font-weight: 600;">mail.google.com</a> while logged into your sender account.</li>
+                <li>Click the <strong>Settings Gear ⚙️</strong> (top right) → click <strong>See all settings</strong>.</li>
+                <li>Go to the <strong>Forwarding and POP/IMAP</strong> tab.</li>
+                <li>Under <strong>IMAP access</strong>, select <strong>Enable IMAP</strong>.</li>
+                <li>Scroll to the bottom and click <strong>Save Changes</strong>.</li>
+              </ol>
+
+              <h4 style="color: var(--text-main); margin: 18px 0 8px;">Step 2: Check 2-Step Verification</h4>
+              <p style="margin-bottom: 8px;">
+                Visit <a href="https://myaccount.google.com/security" target="_blank" style="color: var(--primary); font-weight: 600;">myaccount.google.com/security</a> and confirm that <strong>2-Step Verification</strong> is ON for <strong style="color: var(--text-main);">willowwixpartner@gmail.com</strong>.
+              </p>
+
+              <h4 style="color: var(--text-main); margin: 18px 0 8px;">Step 3: Generate a 16-Letter App Password</h4>
+              <ol style="margin-left: 20px; margin-bottom: 20px;">
+                <li>Go directly to <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: var(--primary); font-weight: 600;">myaccount.google.com/apppasswords</a>.</li>
+                <li>Type <code>MailFlow</code> into the app name field and click <strong>Create</strong>.</li>
+                <li>Copy the 16-character code (e.g. <code>abcd efgh ijkl mnop</code>) and paste it into MailFlow.</li>
+              </ol>
+
+              <div style="display: flex; gap: 10px; margin-top: 24px; flex-wrap: wrap;">
+                <a href="https://myaccount.google.com/apppasswords" target="_blank" class="btn btn-primary">Open Google App Passwords ↗</a>
+                <a href="https://mail.google.com/mail/u/0/#settings/fwdandpop" target="_blank" class="btn btn-secondary">Open Gmail IMAP Settings ↗</a>
+                <button class="btn btn-secondary" onclick="app.switchTab('composer')">← Back to Composer</button>
+              </div>
+
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </main>
+  </div>
+
+
+  <!-- MODAL: SEND TEST EMAIL -->
+  <div class="modal-backdrop" id="modalTestSend">
+    <div class="modal-card" style="max-width: 460px;">
+      <div class="modal-title">Send Test Email</div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">
+        Send a real test email with anti-spam stealth formatting to verify primary inbox arrival.
+      </p>
+
+      <div class="form-step" style="margin-bottom: 16px;">
+        <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Recipient Test Email Address *</label>
+        <input type="email" id="testRecipientEmail" class="form-control" placeholder="thomashammed3@gmail.com" value="thomashammed3@gmail.com" required>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="app.closeModal('modalTestSend')">Cancel</button>
+        <button class="btn btn-primary" id="btnExecuteTestSend" onclick="app.executeTestSend()">Send Test Now</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- MODAL: ADD NEW ACCOUNT -->
+  <div class="modal-backdrop" id="modalAddAccount">
+    <div class="modal-card" style="max-width: 440px;">
+      <div class="modal-title">Add Sender Email Account</div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">
+        Add an email account to your sender list. It will be saved so you can switch between accounts at any time.
+      </p>
+
+      <div class="form-step" style="margin-bottom: 12px;">
+        <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Sender Email Address *</label>
+        <input type="email" id="modalAddEmail" class="form-control" placeholder="user@gmail.com" required>
+      </div>
+
+      <div class="form-step" style="margin-bottom: 16px;">
+        <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">16-Char App Password *</label>
+        <input type="password" id="modalAddPassword" class="form-control" placeholder="••••••••••••••••" required>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="app.closeModal('modalAddAccount')">Cancel</button>
+        <button class="btn btn-primary" onclick="app.executeAddNewAccount()">Save Account</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- MODAL: CAMPAIGN DETAILS / AUDIT LOG -->
+  <div class="modal-backdrop" id="modalCampaignDetail">
+    <div class="modal-card" style="max-width: 680px;">
+      <div class="modal-title" id="detailModalTitle">Campaign Details & Open Tracking</div>
+
+      <div class="review-grid" style="grid-template-columns: repeat(4, 1fr); display: grid; gap: 8px; margin-bottom: 16px;">
+        <div>Sender: <strong id="detailModalFrom">user@gmail.com</strong></div>
+        <div>Total Leads: <strong id="detailModalTotal">10</strong></div>
+        <div>Delivered: <strong style="color: var(--status-success);" id="detailModalSent">10</strong></div>
+        <div>Opens: <strong style="color: #2563eb;" id="detailModalOpens">0</strong></div>
+      </div>
+
+      <div class="table-container" style="max-height: 280px; overflow-y: auto; margin-bottom: 20px;">
+        <table class="clean-table">
+          <thead>
+            <tr>
+              <th>Lead Email</th>
+              <th>Status</th>
+              <th>Open Tracking</th>
+              <th>Sent Time</th>
+            </tr>
+          </thead>
+          <tbody id="detailModalRecipientsBody"></tbody>
+        </table>
+      </div>
+
+      <div class="modal-actions">
+        <button class="btn btn-secondary" onclick="app.closeModal('modalCampaignDetail')">Close</button>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- MODAL: BOUNCE DIAGNOSTIC DETAIL -->
+  <div class="modal-backdrop" id="modalBounceDetail">
+    <div class="modal-card" style="max-width: 600px;">
+      <div class="modal-title" style="display: flex; align-items: center; justify-content: space-between; gap: 8px;">
+        <div style="display: flex; align-items: center; gap: 8px;">
+          <span>⚠️ Bounce Diagnostic Report</span>
+        </div>
+        <span class="status-badge" id="modalBounceBadge" style="font-size: 11px; background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;">550 Hard Bounce</span>
+      </div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+        Detailed SMTP server response and delivery status notification telemetry.
+      </p>
+
+      <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px; font-size: 13px; display: flex; flex-direction: column; gap: 8px;">
+        <div><strong>Failed Lead:</strong> <span id="modalBounceEmail" style="color: #dc2626; font-weight: 600;">lead@example.com</span></div>
+        <div><strong>Sender Mailbox:</strong> <span id="modalBounceSender">alexawixpartner@gmail.com</span></div>
+        <div><strong>Diagnostic Reason:</strong> <span id="modalBounceReason">550 5.1.1 The email account that you tried to reach does not exist.</span></div>
+        <div><strong>Detected At:</strong> <span id="modalBounceTime">Just now</span></div>
+        <div><strong>Suppression Status:</strong> <span class="status-badge status-completed" style="font-size: 10.5px; background: #059669; color: #ffffff;">🛡️ Auto-Suppressed (Cannot be emailed again)</span></div>
+      </div>
+
+      <div style="margin-bottom: 18px;">
+        <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block; font-weight: 600;">Raw Server Diagnostic Transcript</label>
+        <pre id="modalBounceRaw" style="background: #18181b; color: #a1a1aa; padding: 12px; border-radius: var(--radius-sm); font-size: 11.5px; font-family: monospace; max-height: 160px; overflow-y: auto; white-space: pre-wrap; word-break: break-all; margin: 0;"></pre>
+      </div>
+
+      <div class="modal-actions" style="display: flex; justify-content: space-between;">
+        <button type="button" class="btn btn-sm btn-danger" id="btnModalDeleteBounce" onclick="app.deleteActiveModalBounce()">Delete Record</button>
+        <button type="button" class="btn btn-primary" onclick="app.closeModal('modalBounceDetail')">Close</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Toast Notification -->
+  <div class="toast-box" id="toastBox">Notification message</div>
+
+  <script src="js/app.js"></script>
+</body>
+</html>

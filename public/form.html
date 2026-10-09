@@ -1,0 +1,185 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Real Estate Inquiry & Property Request • Apex Real Estate</title>
+  <link rel="stylesheet" href="css/style.css">
+  <style>
+    body {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      padding: 40px 20px;
+    }
+    .form-container {
+      max-width: 680px;
+      width: 100%;
+      background: var(--bg-card);
+      backdrop-filter: var(--glass);
+      border: 1px solid var(--border-color);
+      border-radius: var(--radius-lg);
+      padding: 40px;
+      box-shadow: var(--shadow-lg);
+    }
+    .form-header {
+      text-align: center;
+      margin-bottom: 32px;
+    }
+    .form-header h1 {
+      font-size: 26px;
+      font-weight: 800;
+      background: linear-gradient(135deg, #ffffff, #c7d2fe);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      margin-bottom: 8px;
+    }
+    .form-header p {
+      color: var(--text-muted);
+      font-size: 14px;
+    }
+    .success-card {
+      display: none;
+      text-align: center;
+      padding: 30px 20px;
+    }
+    .success-icon {
+      font-size: 48px;
+      margin-bottom: 16px;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="form-container">
+    <div class="form-header" id="formHeader">
+      <div style="font-size: 32px; margin-bottom: 12px;">🏡</div>
+      <h1>Find Your Dream Property</h1>
+      <p>Tell us your property requirements and receive curated, off-market opportunities in your inbox in minutes.</p>
+    </div>
+
+    <!-- Active Form -->
+    <form id="publicClientForm">
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Full Name *</label>
+          <input type="text" id="custName" class="form-control" placeholder="e.g. Oluwa Timilehin" required>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Email Address *</label>
+          <input type="email" id="custEmail" class="form-control" placeholder="e.g. timilehin@gmail.com" required>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Phone / WhatsApp Number</label>
+          <input type="text" id="custPhone" class="form-control" placeholder="e.g. +234 808 401 8619">
+        </div>
+        <div class="form-group">
+          <label class="form-label">Looking For</label>
+          <select id="custLookingFor" class="form-control">
+            <option value="Buying a luxury property">Buying a luxury property</option>
+            <option value="Buying a property">Buying a residential home</option>
+            <option value="Land purchase">Land purchase / Investment plot</option>
+            <option value="Renting / Leasing">Renting / Apartment lease</option>
+            <option value="Commercial property">Commercial property / Office</option>
+          </select>
+        </div>
+      </div>
+
+      <div class="form-row">
+        <div class="form-group">
+          <label class="form-label">Target Budget Range</label>
+          <select id="custBudget" class="form-control">
+            <option value="Above ₦50M">Above ₦50M ($500k+)</option>
+            <option value="₦20M - ₦50M">₦20M - ₦50M ($200k - $500k)</option>
+            <option value="₦5M - ₦20M">₦5M - ₦20M ($50k - $200k)</option>
+            <option value="Below ₦5M">Below ₦5M (Under $50k)</option>
+          </select>
+        </div>
+        <div class="form-group">
+          <label class="form-label">Preferred City / Location</label>
+          <input type="text" id="custLocation" class="form-control" placeholder="e.g. Lekki, Lagos or Victoria Island" required>
+        </div>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">When are you looking to purchase or move?</label>
+        <select id="custTimeline" class="form-control">
+          <option value="Immediately">Immediately (Within next 1-2 weeks)</option>
+          <option value="Within 3 months">Within 1 to 3 months</option>
+          <option value="Just browsing">Just browsing / Planning for future</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label class="form-label">Any specific requirements or amenities?</label>
+        <textarea id="custNotes" class="form-control" placeholder="e.g. Swimming pool, 4 bedrooms, 24/7 security, high rental yield..."></textarea>
+      </div>
+
+      <button type="submit" id="btnSubmit" class="btn btn-primary" style="width: 100%; justify-content: center; padding: 14px; font-size: 15px;">
+        <span>Submit Property Request</span>
+      </button>
+    </form>
+
+    <!-- Success Screen -->
+    <div class="success-card" id="successCard">
+      <div class="success-icon">✨</div>
+      <h2 style="font-size: 22px; font-weight: 700; margin-bottom: 8px;">Inquiry Received!</h2>
+      <p style="color: var(--text-muted); font-size: 14px; margin-bottom: 24px;">
+        Thank you <strong id="successName"></strong>. Our AI engine has analyzed your preferences and dispatched a personalized property recommendation to <strong id="successEmail"></strong>.
+      </p>
+      <button class="btn btn-secondary" onclick="location.reload()">Submit Another Inquiry</button>
+    </div>
+  </div>
+
+  <script>
+    const form = document.getElementById('publicClientForm');
+    const successCard = document.getElementById('successCard');
+    const formHeader = document.getElementById('formHeader');
+
+    form.addEventListener('submit', async (e) => {
+      e.preventDefault();
+      const btn = document.getElementById('btnSubmit');
+      btn.disabled = true;
+      btn.innerText = 'Processing your inquiry with AI...';
+
+      const payload = {
+        name: document.getElementById('custName').value,
+        email: document.getElementById('custEmail').value,
+        phone: document.getElementById('custPhone').value,
+        lookingFor: document.getElementById('custLookingFor').value,
+        budget: document.getElementById('custBudget').value,
+        location: document.getElementById('custLocation').value,
+        timeline: document.getElementById('custTimeline').value,
+        notes: document.getElementById('custNotes').value
+      };
+
+      try {
+        const res = await fetch('/api/leads/submit', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        });
+        const data = await res.json();
+        if (data.success) {
+          form.style.display = 'none';
+          formHeader.style.display = 'none';
+          document.getElementById('successName').innerText = payload.name;
+          document.getElementById('successEmail').innerText = payload.email;
+          successCard.style.display = 'block';
+        } else {
+          alert('Error: ' + (data.error || 'Failed to submit'));
+          btn.disabled = false;
+          btn.innerText = 'Submit Property Request';
+        }
+      } catch (err) {
+        alert('Network error submitting form');
+        btn.disabled = false;
+        btn.innerText = 'Submit Property Request';
+      }
+    });
+  </script>
+</body>
+</html>

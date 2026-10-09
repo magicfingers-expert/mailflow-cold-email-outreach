@@ -1,0 +1,38 @@
+[
+  {
+    "id": "acc-alexawix",
+    "email": "alexawixpartner@gmail.com",
+    "name": "Alexa Wix Partner",
+    "password": "enc:5cc5a1904a69a0a24948a9a4:b2c998fd85a78e5407fa0efd68fe0937:e10217932af66c713d4084772d9d990e",
+    "provider": "gmail",
+    "status": "Connected",
+    "dailyLimit": 50,
+    "sentToday": 0,
+    "isDefault": false,
+    "createdAt": "2026-10-09T15:34:01.002Z"
+  },
+  {
+    "id": "acc-willowwix",
+    "email": "willowwixpartner@gmail.com",
+    "name": "Thomas Willow",
+    "password": "enc:7c320debedf14449c5adceb4:317d6674ce21c9438266256c21a571ce:274465df92277663351cc6706e2fc148",
+    "provider": "gmail",
+    "status": "Connected",
+    "dailyLimit": 50,
+    "sentToday": 0,
+    "isDefault": false,
+    "createdAt": "2026-10-09T15:34:01.024Z"
+  },
+  {
+    "id": "acc-1791560508429-6126",
+    "email": "wixsupporteamlive@gmail.com",
+    "name": "wixsupporteamlive",
+    "password": "enc:d5ce3c5b8e3f59badf81746a:280dec9678edac9ae4ef2d443a6cf1d5:4c952fa8604814773c7f38e27fd9e27a",
+    "provider": "gmail",
+    "status": "Connected",
+    "dailyLimit": 50,
+    "sentToday": 1,
+    "isDefault": true,
+    "createdAt": "2026-10-09T15:41:48.433Z"
+  }
+]
