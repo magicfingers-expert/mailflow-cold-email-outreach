@@ -88,7 +88,7 @@
       <div class="sidebar-footer">
         <div class="sidebar-connection-pill">
           <span class="status-dot" id="sbStatusDot"></span>
-          <span id="sbSenderStatusText" style="overflow: hidden; text-overflow: ellipsis;">willowwixpartner@gmail.com</span>
+          <span id="sbSenderStatusText" style="overflow: hidden; text-overflow: ellipsis;">No Account Connected</span>
         </div>
       </div>
     </aside>
@@ -160,8 +160,8 @@
           <!-- Top-right Account Quick Switcher Pill -->
           <div class="header-connected-email" id="headerMailboxWidget" onclick="app.openAddAccountModal()" style="cursor: pointer;" title="Click to manage sender accounts">
             <span class="status-dot" id="headerStatusDot"></span>
-            <span id="headerSenderEmail">alexawixpartner@gmail.com</span>
-            <span id="headerSmtpBadge" style="font-size: 11.5px; color: var(--status-success); font-weight: 600;">● Active</span>
+            <span id="headerSenderEmail">Connect Sender Account</span>
+            <span id="headerSmtpBadge" style="font-size: 11.5px; color: var(--text-dim); font-weight: 600;">○ Disconnected</span>
           </div>
         </div>
       </header>
@@ -322,11 +322,11 @@
                 <div style="display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 12px;">
                   <div>
                     <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Your Full Name (Human Name) *</label>
-                    <input type="text" id="senderDisplayName" class="form-control" placeholder="Thomas Hammed" value="Thomas Hammed" title="Using a real human name stops Google from flagging your emails as a bot">
+                    <input type="text" id="senderDisplayName" class="form-control" placeholder="Your Name" value="" title="Using a real human name stops Google from flagging your emails as a bot">
                   </div>
                   <div>
                     <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Gmail Address *</label>
-                    <input type="email" id="senderEmail" class="form-control" placeholder="willowwixpartner@gmail.com" required onblur="app.normalizeEmailInput(this)">
+                    <input type="email" id="senderEmail" class="form-control" placeholder="user@gmail.com" required onblur="app.normalizeEmailInput(this)">
                   </div>
                   <div>
                     <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -369,7 +369,7 @@
                   </p>
                   <ol style="margin-left: 18px; margin-bottom: 12px;">
                     <li>Ensure <strong>IMAP is Enabled</strong> at <a href="https://mail.google.com/mail/u/0/#settings/fwdandpop" target="_blank" style="color: var(--primary); font-weight: 600;">Gmail Settings > POP/IMAP</a>.</li>
-                    <li>Ensure <strong>2-Step Verification</strong> is ON for <strong id="helpSenderEmail">willowwixpartner@gmail.com</strong> at <a href="https://myaccount.google.com/security" target="_blank" style="color: var(--primary); font-weight: 600;">myaccount.google.com/security</a>.</li>
+                    <li>Ensure <strong>2-Step Verification</strong> is ON for <strong id="helpSenderEmail">your email</strong> at <a href="https://myaccount.google.com/security" target="_blank" style="color: var(--primary); font-weight: 600;">myaccount.google.com/security</a>.</li>
                     <li>Generate an App Password at <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: underline;">myaccount.google.com/apppasswords</a>.</li>
                   </ol>
                   <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
@@ -391,7 +391,7 @@
                 <textarea 
                   id="leadsInput" 
                   class="form-control mono-textarea" 
-                  placeholder="thomashammed3@gmail.com&#10;sarah@example.com&#10;mike@example.com"
+                  placeholder="lead1@example.com&#10;lead2@example.com&#10;lead3@example.com"
                 ></textarea>
 
                 <!-- Counter & Progress -->
@@ -702,7 +702,7 @@ Thomas</textarea>
             <div class="inbox-topbar">
               <div style="display: flex; align-items: center; gap: 12px; flex-wrap: wrap;">
                 <div class="card-title" style="margin-bottom: 0; font-size: 15px;">
-                  📬 Primary Inbox: <span id="primaryInboxAccountTitle" style="color: #059669;">willowwixpartner@gmail.com</span>
+                  📬 Primary Inbox: <span id="primaryInboxAccountTitle" style="color: var(--text-muted);">Select Account</span>
                 </div>
                 <span class="status-badge status-completed" id="primaryInboxBadge">● Active Account</span>
               </div>
@@ -1210,7 +1210,7 @@ Thomas</textarea>
 
               <h4 style="color: var(--text-main); margin: 18px 0 8px;">Step 2: Check 2-Step Verification</h4>
               <p style="margin-bottom: 8px;">
-                Visit <a href="https://myaccount.google.com/security" target="_blank" style="color: var(--primary); font-weight: 600;">myaccount.google.com/security</a> and confirm that <strong>2-Step Verification</strong> is ON for <strong style="color: var(--text-main);">willowwixpartner@gmail.com</strong>.
+                Visit <a href="https://myaccount.google.com/security" target="_blank" style="color: var(--primary); font-weight: 600;">myaccount.google.com/security</a> and confirm that <strong>2-Step Verification</strong> is ON for your sender account.
               </p>
 
               <h4 style="color: var(--text-main); margin: 18px 0 8px;">Step 3: Generate a 16-Letter App Password</h4>
@@ -1245,7 +1245,7 @@ Thomas</textarea>
 
       <div class="form-step" style="margin-bottom: 16px;">
         <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Recipient Test Email Address *</label>
-        <input type="email" id="testRecipientEmail" class="form-control" placeholder="thomashammed3@gmail.com" value="thomashammed3@gmail.com" required>
+        <input type="email" id="testRecipientEmail" class="form-control" placeholder="lead@example.com" value="" required>
       </div>
 
       <div class="modal-actions">
@@ -1330,7 +1330,7 @@ Thomas</textarea>
 
       <div style="background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px; font-size: 13px; display: flex; flex-direction: column; gap: 8px;">
         <div><strong>Failed Lead:</strong> <span id="modalBounceEmail" style="color: #dc2626; font-weight: 600;">lead@example.com</span></div>
-        <div><strong>Sender Mailbox:</strong> <span id="modalBounceSender">alexawixpartner@gmail.com</span></div>
+        <div><strong>Sender Mailbox:</strong> <span id="modalBounceSender">sender@domain.com</span></div>
         <div><strong>Diagnostic Reason:</strong> <span id="modalBounceReason">550 5.1.1 The email account that you tried to reach does not exist.</span></div>
         <div><strong>Detected At:</strong> <span id="modalBounceTime">Just now</span></div>
         <div><strong>Suppression Status:</strong> <span class="status-badge status-completed" style="font-size: 10.5px; background: #059669; color: #ffffff;">🛡️ Auto-Suppressed (Cannot be emailed again)</span></div>

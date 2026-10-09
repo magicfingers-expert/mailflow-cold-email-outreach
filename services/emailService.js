@@ -29,24 +29,6 @@ class EmailService {
       }
     });
 
-    if (this.accounts.length === 0) {
-      this.accounts = [
-        {
-          id: 'acc-alexawix',
-          email: 'alexawixpartner@gmail.com',
-          name: 'Alexa Wix Partner',
-          password: securityService.encrypt('ckvkguicseuivbvq'),
-          provider: 'gmail',
-          status: 'Connected',
-          dailyLimit: 50,
-          sentToday: 0,
-          isDefault: true,
-          createdAt: new Date().toISOString()
-        }
-      ];
-      needsSave = true;
-    }
-
     if (needsSave) {
       this.saveAccounts();
     }
@@ -309,7 +291,7 @@ class EmailService {
 
       const info = await transporter.sendMail({
         from: '"MailFlow Outreach" <outreach@mailflow.app>',
-        to: to || 'thomashammed3@gmail.com',
+        to: to || 'lead@example.com',
         subject: cleanSubject,
         text: message,
         html: formattedHtml

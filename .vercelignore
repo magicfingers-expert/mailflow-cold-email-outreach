@@ -1,0 +1,18 @@
+# Dependencies
+node_modules
+package-lock.json
+
+# Large media files
+*.mp4
+*.mov
+*.avi
+*.mkv
+screen_recording.mp4
+tiktok1.mp4
+tiktok2.mp4
+
+# Test scratch scripts & temp logs
+scratch
+*.log
+data/inbox_cache.json
+data/.app_vault_key

@@ -50,101 +50,11 @@ class Database {
   }
 
   seedInitialData() {
-    const demoUserId = 'usr-demo-001';
-    const demoConnId = 'conn-demo-001';
-    const now = new Date().toISOString();
-
-    const demoUser = {
-      id: demoUserId,
-      name: 'John Doe',
-      email: 'john@example.com',
-      password_hash: EncryptionService.hashPassword('Password123!'),
-      is_verified: true,
-      reset_token: null,
-      reset_token_expires: null,
-      created_at: now,
-      updated_at: now
-    };
-
-    const demoConnection = {
-      id: demoConnId,
-      user_id: demoUserId,
-      provider: 'gmail',
-      email_address: 'john@gmail.com',
-      encrypted_access_token: EncryptionService.encrypt('demo_access_token'),
-      encrypted_refresh_token: EncryptionService.encrypt('demo_refresh_token'),
-      status: 'Connected',
-      is_default: true,
-      daily_limit: 50,
-      sent_today: 0,
-      created_at: now,
-      updated_at: now
-    };
-
-    const camp1Id = 'camp-001';
-    const camp2Id = 'camp-002';
-
-    const demoCampaign1 = {
-      id: camp1Id,
-      user_id: demoUserId,
-      email_connection_id: demoConnId,
-      subject: 'Partnership Opportunity',
-      message: 'Hi,\n\nI noticed your recent work and wanted to discuss a potential collaboration.\n\nBest regards,\nJohn',
-      recipient_count: 50,
-      sent_count: 50,
-      failed_count: 0,
-      pending_count: 0,
-      status: 'Completed',
-      created_at: new Date(Date.now() - 86400000).toISOString(),
-      completed_at: new Date(Date.now() - 85000000).toISOString()
-    };
-
-    const demoCampaign2 = {
-      id: camp2Id,
-      user_id: demoUserId,
-      email_connection_id: demoConnId,
-      subject: 'Quick Question',
-      message: 'Hi,\n\nAre you currently accepting new clients for Q4?\n\nThanks,\nJohn',
-      recipient_count: 32,
-      sent_count: 32,
-      failed_count: 0,
-      pending_count: 0,
-      status: 'Completed',
-      created_at: new Date(Date.now() - 172800000).toISOString(),
-      completed_at: new Date(Date.now() - 171800000).toISOString()
-    };
-
-    const recipients1 = [];
-    for (let i = 1; i <= 50; i++) {
-      recipients1.push({
-        id: `rec-1-${i}`,
-        campaign_id: camp1Id,
-        recipient_email: `lead${i}@enterprise${i}.com`,
-        status: 'Sent',
-        provider_message_id: `msg-gmail-${Date.now()}-${i}`,
-        error_message: null,
-        sent_at: new Date(Date.now() - 85500000 + i * 2000).toISOString()
-      });
-    }
-
-    const recipients2 = [];
-    for (let i = 1; i <= 32; i++) {
-      recipients2.push({
-        id: `rec-2-${i}`,
-        campaign_id: camp2Id,
-        recipient_email: `contact${i}@agency${i}.io`,
-        status: 'Sent',
-        provider_message_id: `msg-gmail-prev-${i}`,
-        error_message: null,
-        sent_at: new Date(Date.now() - 172000000 + i * 2000).toISOString()
-      });
-    }
-
     this.data = {
-      users: [demoUser],
-      email_connections: [demoConnection],
-      campaigns: [demoCampaign1, demoCampaign2],
-      campaign_recipients: [...recipients1, ...recipients2],
+      users: [],
+      email_connections: [],
+      campaigns: [],
+      campaign_recipients: [],
       sessions: []
     };
     this.save();

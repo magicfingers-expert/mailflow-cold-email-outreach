@@ -24,19 +24,7 @@ class CampaignService {
         this.leads = [];
       }
     } else {
-      // Default initial sample leads from the video dataset
-      this.leads = [
-        { id: 'lead-s1', name: 'Keller Williams', email: 'pamahem2024@gmail.com', company: 'Keller Williams Realty', niche: 'Real Estate Sales', status: 'ready', dateAdded: new Date().toISOString() },
-        { id: 'lead-s2', name: 'Curt Kelliher', email: 'curt@thekellihergroup.com', company: 'The Kelliher Group', niche: 'Property Management', status: 'ready', dateAdded: new Date().toISOString() },
-        { id: 'lead-s3', name: 'Sarah Figueroa', email: 'sarah.figueroa@bhhsgeorgia.com', company: 'Berkshire Hathaway HomeServices', niche: 'Residential Brokerage', status: 'ready', dateAdded: new Date().toISOString() },
-        { id: 'lead-s4', name: 'Kyle Embler', email: 'kyle@ansleyre.com', company: 'Ansley Real Estate', niche: 'Luxury Property', status: 'ready', dateAdded: new Date().toISOString() },
-        { id: 'lead-s5', name: 'Dawn Burt Landau', email: 'dawn@environrealestate.com', company: 'Team ENVIRONS Real Estate', niche: 'Property Management', status: 'ready', dateAdded: new Date().toISOString() },
-        { id: 'lead-s6', name: 'Chrissie Kallio', email: 'chrissiekallio@gmail.com', company: 'Atlanta Fine Homes Sotheby\'s', niche: 'Real Estate Investments', status: 'ready', dateAdded: new Date().toISOString() },
-        { id: 'lead-s7', name: 'Tristain Yankosky', email: 'tristain.realestate@gmail.com', company: 'Engel & Völkers Atlanta', niche: 'Property Management', status: 'ready', dateAdded: new Date().toISOString() },
-        { id: 'lead-s8', name: 'Tom Ellicott', email: 'tomellicott@gmail.com', company: 'PalmerHouse Properties', niche: 'Commercial Real Estate', status: 'ready', dateAdded: new Date().toISOString() },
-        { id: 'lead-s9', name: 'Chris Jenko', email: 'chris.jenko@remax.net', company: 'RE/MAX Metro Atlanta', niche: 'Property Management', status: 'ready', dateAdded: new Date().toISOString() },
-        { id: 'lead-s10', name: 'Cary Lyle', email: 'carlyle@dorseyalston.com', company: 'Dorsey Alston Realtors', niche: 'Tenant Placement', status: 'ready', dateAdded: new Date().toISOString() }
-      ];
+      this.leads = [];
       this.saveLeads();
     }
   }

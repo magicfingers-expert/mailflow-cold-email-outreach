@@ -228,12 +228,12 @@ app.post('/api/campaigns/test-ethereal', async (req, res) => {
     queueService.registerTestTracking({
       trackingId,
       senderEmail: 'outreach@mailflow.app',
-      recipientEmail: (to || 'thomashammed3@gmail.com').trim(),
+      recipientEmail: (to || 'lead@example.com').trim(),
       subject: subject || 'Test Outreach Email'
     });
 
     const result = await emailService.sendEtherealTestMail({
-      to: (to || 'thomashammed3@gmail.com').trim(),
+      to: (to || 'lead@example.com').trim(),
       subject,
       message,
       trackingId,
@@ -521,7 +521,7 @@ app.post('/api/bounces/simulate', (req, res) => {
   const { email, recipientEmail, senderEmail, reason, bounceType, category } = req.body || {};
   const testBounce = bounceService.recordBounce({
     email: email || recipientEmail || 'invalid.mailbox@nonexistent-domain.xyz',
-    senderEmail: senderEmail || 'alexawixpartner@gmail.com',
+    senderEmail: senderEmail || 'sender@example.com',
     subject: 'Outreach Campaign inquiry',
     reason: reason || '550 5.1.1 The email account that you tried to reach does not exist.',
     bounceType: bounceType || category || 'Hard Bounce (User Unknown - 550)',

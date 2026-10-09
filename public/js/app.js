@@ -357,7 +357,7 @@ const app = {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          email: 'thomashammed3@gmail.com',
+          email: 'lead@example.com',
           subject: 'Quick question about collaboration'
         })
       });
@@ -368,7 +368,7 @@ const app = {
     } catch (e) {
       this.handleLiveOpenNotification({
         id: 'open-' + Date.now(),
-        email: 'thomashammed3@gmail.com',
+        email: 'lead@example.com',
         subject: 'Quick question about collaboration',
         openedAt: new Date().toISOString(),
         openCount: 1,
@@ -948,7 +948,7 @@ const app = {
     if (active && active.email) return active.email;
     const composerEmail = document.getElementById('senderEmail')?.value.trim();
     if (composerEmail && composerEmail.includes('@')) return composerEmail;
-    return 'alexawixpartner@gmail.com';
+    return '';
   },
 
   async loadPrimaryInbox() {
@@ -957,8 +957,8 @@ const app = {
     // Update labels and selectors
     const titleEl = document.getElementById('primaryInboxAccountTitle');
     const emptyAccEl = document.getElementById('primaryInboxEmptyAccount');
-    if (titleEl) titleEl.innerText = activeEmail;
-    if (emptyAccEl) emptyAccEl.innerText = activeEmail;
+    if (titleEl) titleEl.innerText = activeEmail || 'Select Account';
+    if (emptyAccEl) emptyAccEl.innerText = activeEmail || 'your connected account';
 
     const selectEl = document.getElementById('primaryInboxAccountSelect');
     if (selectEl) {
@@ -1905,7 +1905,7 @@ const app = {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           recipientEmail: `undeliverable-lead-${Math.floor(Math.random() * 8999 + 1000)}@invalid-domain-test.com`,
-          senderEmail: this.getActiveAccountEmail() || 'alexawixpartner@gmail.com',
+          senderEmail: this.getActiveAccountEmail() || 'sender@domain.com',
           reason: '550 5.1.1 The email account that you tried to reach does not exist. Please try double-checking the recipient email address for typos.',
           category: 'Hard Bounce 550'
         })
@@ -1960,25 +1960,46 @@ const app = {
       }
     } catch (e) {}
 
-    // Ensure default active account
-    if (this.accounts.length === 0) {
-      this.accounts.push({
-        id: 'acc-alexawix',
-        email: 'alexawixpartner@gmail.com',
-        name: 'Alexa Wix Partner',
-        hasPassword: true,
-        isDefault: true,
-        status: 'Connected'
-      });
-    }
-
     this.saveAccountsToStorage();
     this.renderAccountSwitcherDropdown();
     this.renderAccountsManagerTable();
 
-    const active = this.accounts.find(a => a.isDefault) || this.accounts.find(a => a.email.toLowerCase() === 'alexawixpartner@gmail.com') || this.accounts[0];
-    if (active) {
-      this.selectActiveAccount(active.id);
+    if (this.accounts.length > 0) {
+      const active = this.accounts.find(a => a.isDefault) || this.accounts[0];
+      if (active) {
+        this.selectActiveAccount(active.id);
+      }
+    } else {
+      this.resetAccountUI();
+    }
+  },
+
+  resetAccountUI() {
+    this.activeAccountId = null;
+    const headerEmail = document.getElementById('headerSenderEmail');
+    const headerDot = document.getElementById('headerStatusDot');
+    const sbText = document.getElementById('sbSenderStatusText');
+    const sbDot = document.getElementById('sbStatusDot');
+    const headerSmtpBadge = document.getElementById('headerSmtpBadge');
+    const statusDiv = document.getElementById('smtpVerifyStatus');
+    const emailInput = document.getElementById('senderEmail');
+    const passInput = document.getElementById('senderPassword');
+
+    if (headerEmail) headerEmail.innerText = 'Connect Sender Account';
+    if (headerDot) headerDot.className = 'status-dot';
+    if (headerSmtpBadge) {
+      headerSmtpBadge.innerText = '○ Disconnected';
+      headerSmtpBadge.style.color = 'var(--text-dim)';
+    }
+    if (sbText) sbText.innerText = 'No Account Connected';
+    if (sbDot) sbDot.className = 'status-dot';
+    if (statusDiv) {
+      statusDiv.innerHTML = '<span class="status-dot"></span><span>Ready to connect Google SMTP account</span>';
+    }
+    if (emailInput && !emailInput.value) emailInput.value = '';
+    if (passInput && !passInput.value) {
+      passInput.value = '';
+      passInput.placeholder = 'abcd efgh ijkl mnop';
     }
   },
 
@@ -2934,10 +2955,10 @@ const app = {
     if (senderEmail.endsWith('@gmail')) senderEmail = senderEmail + '.com';
     let senderPassword = document.getElementById('senderPassword').value.trim();
     if (senderPassword.includes('•') || senderPassword.includes('*')) senderPassword = '';
-    const senderName = document.getElementById('senderDisplayName')?.value.trim() || 'Thomas Hammed';
+    const senderName = document.getElementById('senderDisplayName')?.value.trim() || '';
     const testRecipient = document.getElementById('testRecipientEmail').value.trim();
     const subject = document.getElementById('emailSubject').value.trim() || '{quick question|intro}';
-    const message = document.getElementById('emailMessage').value.trim() || 'Hi,\n\nWanted to reach out with a quick question.\n\nBest,\nThomas';
+    const message = document.getElementById('emailMessage').value.trim() || 'Hi,\n\nWanted to reach out with a quick question.\n\nBest,\nTeam';
     const plainTextOnly = document.getElementById('chkStealthMode') ? document.getElementById('chkStealthMode').checked : true;
     const btn = document.getElementById('btnExecuteTestSend');
 
@@ -3067,8 +3088,7 @@ const app = {
   },
 
   pasteSampleLeads() {
-    const sample = `thomashammed3@gmail.com
-sarah@example.com
+    const sample = `sarah@example.com
 mike@example.com
 contact@growthagency.co
 partnerships@globalmedia.net
@@ -3076,7 +3096,8 @@ david.clark@techstart.io
 info@innovate.org
 hello@venturebuild.com
 rachel.adams@summitgroup.io
-alex.miller@enterprise.com`;
+alex.miller@enterprise.com
+lead10@businesspartner.com`;
 
     document.getElementById('leadsInput').value = sample;
     this.parseLeadsLive();
@@ -3124,7 +3145,7 @@ alex.miller@enterprise.com`;
     let senderPassword = document.getElementById('senderPassword').value.trim();
     if (senderPassword.includes('•') || senderPassword.includes('*')) senderPassword = '';
 
-    const senderName = document.getElementById('senderDisplayName')?.value.trim() || 'Thomas Hammed';
+    const senderName = document.getElementById('senderDisplayName')?.value.trim() || '';
     const subject = document.getElementById('emailSubject').value.trim();
     const message = document.getElementById('emailMessage').value.trim();
     const rawRecipients = document.getElementById('leadsInput').value;
@@ -3489,7 +3510,7 @@ alex.miller@enterprise.com`;
           <td>
             <div style="font-weight: 600; color: var(--text-main); display: flex; align-items: center; gap: 6px;">
               <span style="font-size: 13px;">✉️</span>
-              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">${this.escapeHtml(c.senderEmail || 'willowwixpartner@gmail.com')}</span>
+              <span style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 180px;">${this.escapeHtml(c.senderEmail || 'sender@domain.com')}</span>
             </div>
           </td>
 

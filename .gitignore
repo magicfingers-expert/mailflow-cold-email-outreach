@@ -23,3 +23,5 @@ scratch/
 data/inbox_cache.json
 .DS_Store
 Thumbs.db
+
+.vercel
