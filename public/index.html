@@ -16,12 +16,15 @@
     
     <!-- Sidebar Navigation (Executive Espresso) -->
     <aside class="sidebar" id="sidebar">
-      <div class="brand-header" onclick="app.switchTab('composer')">
-        <div class="brand-icon">M</div>
-        <div>
-          <div class="brand-title">MailFlow</div>
-          <span class="brand-badge">Outreach & Live Inbox</span>
+      <div class="brand-header">
+        <div style="display: flex; align-items: center; gap: 10px; cursor: pointer; flex: 1;" onclick="app.switchTab('composer')">
+          <div class="brand-icon">M</div>
+          <div>
+            <div class="brand-title">MailFlow</div>
+            <span class="brand-badge">Outreach & Live Inbox</span>
+          </div>
         </div>
+        <button type="button" class="sidebar-close-btn mobile-only" onclick="app.toggleMobileMenu()" aria-label="Close menu">✕</button>
       </div>
 
       <nav class="nav-list">
@@ -93,25 +96,46 @@
       </div>
     </aside>
 
+    <!-- Mobile Drawer Backdrop Overlay -->
+    <div class="mobile-backdrop" id="mobileBackdrop" onclick="app.toggleMobileMenu()"></div>
+
     <!-- Main Workspace (Luminous Light Cream Canvas) -->
     <main class="main-content">
       
       <!-- Top Navigation Bar -->
       <header class="top-bar">
         <div class="top-bar-left">
-          <button class="mobile-menu-btn" onclick="app.toggleMobileMenu()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+          <button type="button" class="mobile-menu-btn mobile-only" onclick="app.toggleMobileMenu()" aria-label="Open navigation menu">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
           </button>
-          <span class="page-title" id="pageTitle">Send Email Outreach</span>
+
+          <div class="mobile-brand-wrapper mobile-only" onclick="app.switchTab('composer')">
+            <div class="mobile-brand-icon">M</div>
+            <span class="mobile-brand-name">MailFlow</span>
+          </div>
+
+          <span class="page-title desktop-only" id="pageTitle">Send Email Outreach</span>
         </div>
 
         <div class="top-bar-right">
-          <!-- Real-Time Auto-Sync Background Status Indicator -->
-          <div style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-dim); background: #f0fdf4; padding: 5px 12px; border-radius: 20px; border: 1px solid #bbf7d0;">
+          <!-- Real-Time Auto-Sync Background Status Indicator (Desktop) -->
+          <div class="header-badge-pill desktop-only" style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-dim); background: #f0fdf4; padding: 5px 12px; border-radius: 20px; border: 1px solid #bbf7d0;">
             <span class="live-stream-pulse" style="width: 8px; height: 8px; background: #10b981;" title="Auto-Sync Engine Continuously Running"></span>
             <span style="font-weight: 600; color: #065f46;">Auto-Sync:</span>
-            <strong style="color: #059669;" id="headerAutoSyncStatus">Active (Every 10s)</strong>
+            <strong style="color: #059669;" id="headerAutoSyncStatus">Active (10s)</strong>
           </div>
+
+          <!-- Live Deliverability Status Indicator (Desktop) -->
+          <div class="header-badge-pill desktop-only" style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-dim); background: var(--bg-subtle); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border-subtle);">
+            <span>🛡️ Primary Inbox Shield:</span>
+            <strong style="color: var(--status-success);" id="headerDeliverabilityStatus">100% Safe</strong>
+          </div>
+
+          <!-- Mobile Deliverability Shield Icon Button -->
+          <button type="button" class="mobile-shield-btn mobile-only" title="Primary Inbox Shield: 100% Safe" onclick="app.showToast('🛡️ Primary Inbox Shield: Active & 100% Safe')">
+            <span style="font-size: 16px;">🛡️</span>
+            <span class="status-dot" style="position: absolute; bottom: 3px; right: 3px; width: 6px; height: 6px;"></span>
+          </button>
 
           <!-- Real-Time Top Notification Bell Icon with Dropdown -->
           <div class="header-notification-wrapper" style="position: relative;">
@@ -151,18 +175,18 @@
             </div>
           </div>
 
-          <!-- Live Deliverability Status Indicator -->
-          <div style="display: flex; align-items: center; gap: 6px; font-size: 12.5px; color: var(--text-dim); background: var(--bg-subtle); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border-subtle);">
-            <span>🛡️ Primary Inbox Shield:</span>
-            <strong style="color: var(--status-success);" id="headerDeliverabilityStatus">Active (100% Safe)</strong>
-          </div>
-
-          <!-- Top-right Account Quick Switcher Pill -->
-          <div class="header-connected-email" id="headerMailboxWidget" onclick="app.openAddAccountModal()" style="cursor: pointer;" title="Click to manage sender accounts">
+          <!-- Top-right Account Quick Switcher Pill (Desktop) -->
+          <div class="header-connected-email desktop-only" id="headerMailboxWidget" onclick="app.openAddAccountModal()" style="cursor: pointer;" title="Click to manage sender accounts">
             <span class="status-dot" id="headerStatusDot"></span>
             <span id="headerSenderEmail">Connect Sender Account</span>
             <span id="headerSmtpBadge" style="font-size: 11.5px; color: var(--text-dim); font-weight: 600;">○ Disconnected</span>
           </div>
+
+          <!-- Mobile Sleek User Account Avatar Icon Button -->
+          <button type="button" class="mobile-account-btn mobile-only" id="mobileAccountBtn" onclick="app.openAddAccountModal()" title="Manage sender accounts">
+            <span class="mobile-avatar-icon">👤</span>
+            <span class="status-dot disconnected" id="mobileHeaderStatusDot" style="position: absolute; bottom: 3px; right: 3px; width: 7px; height: 7px;"></span>
+          </button>
         </div>
       </header>
 
@@ -319,7 +343,7 @@
                 </div>
 
                 <!-- Active Sender Credentials Input Form -->
-                <div style="display: grid; grid-template-columns: 1fr 1.2fr 1.2fr; gap: 12px;">
+                <div class="sender-inputs-grid">
                   <div>
                     <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Your Full Name (Human Name) *</label>
                     <input type="text" id="senderDisplayName" class="form-control" placeholder="Your Name" value="" title="Using a real human name stops Google from flagging your emails as a bot">
@@ -437,7 +461,7 @@
                 </div>
 
                 <!-- 5-VARIANT SWITCHER TABS -->
-                <div style="display: flex; gap: 6px; margin-bottom: 12px; flex-wrap: wrap; background: #f0fdf4; padding: 6px; border-radius: 8px; border: 1px solid #d1fae5;">
+                <div class="variant-tabs-carousel" style="display: flex; gap: 6px; margin-bottom: 12px; background: #f0fdf4; padding: 6px; border-radius: 8px; border: 1px solid #d1fae5;">
                   <button type="button" class="variant-tab-btn active" id="btnVarTab-0" onclick="app.switchVariantTab(0)">
                     ✉️ Message 1 <span class="pill-rate">Active</span>
                   </button>
@@ -513,7 +537,7 @@
 {Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be free for a brief 2-minute call this week.}
 
 {Best|Thanks|Best regards},
-Thomas</textarea>
+Team</textarea>
 
                     <div class="personalization-hint" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
                       <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
@@ -578,12 +602,12 @@ Thomas</textarea>
               </div>
 
               <!-- ACTIONS: TEST SEND & LAUNCH CAMPAIGN -->
-              <div style="display: flex; gap: 12px; margin-top: 24px;">
-                <button type="button" class="btn btn-secondary btn-lg" style="flex: 1;" onclick="app.openTestSendModal()">
-                  Send 1 Test Email to My Inbox
+              <div class="composer-actions-row" style="display: flex; gap: 12px; margin-top: 24px;">
+                <button type="button" class="btn btn-secondary btn-lg btn-mobile-touch" style="flex: 1;" onclick="app.openTestSendModal()">
+                  Send 1 Test Email
                 </button>
-                <button type="button" class="btn btn-primary btn-lg" style="flex: 2;" id="btnSendOutreach" onclick="app.startOutreachCampaign()">
-                  Send Outreach Campaign
+                <button type="button" class="btn btn-primary btn-lg btn-hero-send btn-mobile-touch" style="flex: 2;" id="btnSendOutreach" onclick="app.startOutreachCampaign()">
+                  ⚡ Send Outreach Campaign
                 </button>
               </div>
 
@@ -1347,6 +1371,47 @@ Thomas</textarea>
       </div>
     </div>
   </div>
+
+  <!-- Native Mobile Bottom Navigation Bar (Dock) -->
+  <nav class="mobile-bottom-nav" id="mobileBottomNav">
+    <a class="mobile-bottom-nav-item active" data-tab="composer" id="mb-nav-composer">
+      <div class="mb-nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+      </div>
+      <span>Compose</span>
+    </a>
+
+    <a class="mobile-bottom-nav-item" data-tab="primary-inbox" id="mb-nav-primary-inbox">
+      <div class="mb-nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+        <span class="mb-nav-counter-pill" id="mbPrimaryInboxBadge" style="display: none;">0</span>
+      </div>
+      <span>Inbox</span>
+    </a>
+
+    <a class="mobile-bottom-nav-item" data-tab="tracker" id="mb-nav-tracker">
+      <div class="mb-nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+        <span class="mb-nav-live-dot"></span>
+      </div>
+      <span>Tracker</span>
+    </a>
+
+    <a class="mobile-bottom-nav-item" data-tab="bounces" id="mb-nav-bounces">
+      <div class="mb-nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M10 14l-5-5 5-5"/><path d="M4 19h10a6 6 0 0 0 6-6v-1a6 6 0 0 0-6-6H5"/></svg>
+        <span class="mb-nav-counter-pill" id="mbBouncesBadge" style="display: none; background: #dc2626;">0</span>
+      </div>
+      <span>Bounces</span>
+    </a>
+
+    <a class="mobile-bottom-nav-item" data-tab="accounts" id="mb-nav-accounts">
+      <div class="mb-nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7.5" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+      </div>
+      <span>Accounts</span>
+    </a>
+  </nav>
 
   <!-- Toast Notification -->
   <div class="toast-box" id="toastBox">Notification message</div>

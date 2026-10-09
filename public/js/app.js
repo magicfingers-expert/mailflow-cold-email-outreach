@@ -58,23 +58,23 @@ const app = {
   messageVariants: [
     {
       subject: "{quick question|quick thought|intro|hey}",
-      message: "{Hi|Hey|Hello} {{email}},\n\n{Quick question for you — are you open to discussing new opportunities this month?|I came across your profile and wanted to reach out with a brief question.|Just wanted to reach out directly with a quick note.}\n\n{Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be free for a brief 2-minute call this week.}\n\n{Best|Thanks|Best regards},\nThomas"
+      message: "{Hi|Hey|Hello} {{email}},\n\n{Quick question for you — are you open to discussing new opportunities this month?|I came across your profile and wanted to reach out with a brief question.|Just wanted to reach out directly with a quick note.}\n\n{Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be free for a brief 2-minute call this week.}\n\n{Best|Thanks|Best regards},\nTeam"
     },
     {
       subject: "{question regarding your workflow|quick inquiry for {{email}}|partnership inquiry}",
-      message: "{Hi|Hello|Hey} {{email}},\n\n{I was exploring your work recently and wanted to see how you are currently handling client acquisition this quarter.|Hope you are having a productive week — wanted to ask a quick question about your current operations.}\n\n{We recently built a system that helps streamline outreach seamlessly. Would you be open to seeing a 1-minute breakdown?|If you're interested, happy to share a brief note on how we help similar teams.}\n\n{Cheers|Warmly|Regards},\nThomas"
+      message: "{Hi|Hello|Hey} {{email}},\n\n{I was exploring your work recently and wanted to see how you are currently handling client acquisition this quarter.|Hope you are having a productive week — wanted to ask a quick question about your current operations.}\n\n{We recently built a system that helps streamline outreach seamlessly. Would you be open to seeing a 1-minute breakdown?|If you're interested, happy to share a brief note on how we help similar teams.}\n\n{Cheers|Warmly|Regards},\nTeam"
     },
     {
       subject: "{quick intro|connecting briefly|reaching out to {{email}}}",
-      message: "{Hey|Hi} {{email}},\n\n{Are you currently taking on new projects or clients this month?|Just checking in to see if you have any availability for new collaboration this month.}\n\n{If so, let me know when might be a convenient time to connect briefly.|Let me know if you'd be open to a brief exchange.}\n\n{Best|Thanks|All the best},\nThomas"
+      message: "{Hey|Hi} {{email}},\n\n{Are you currently taking on new projects or clients this month?|Just checking in to see if you have any availability for new collaboration this month.}\n\n{If so, let me know when might be a convenient time to connect briefly.|Let me know if you'd be open to a brief exchange.}\n\n{Best|Thanks|All the best},\nTeam"
     },
     {
       subject: "{quick question for {{email}}|seeking your perspective|brief question}",
-      message: "{Hi|Hello} {{email}},\n\n{I came across your recent work and really admired what you are building.|I've been following your progress and wanted to ask a quick question.}\n\n{Are you open to exploring fresh ways to scale your outreach without ending up in spam?|Would you be open to a 2-minute chat to share perspectives?}\n\n{Best regards|Thanks|Warm regards},\nThomas"
+      message: "{Hi|Hello} {{email}},\n\n{I came across your recent work and really admired what you are building.|I've been following your progress and wanted to ask a quick question.}\n\n{Are you open to exploring fresh ways to scale your outreach without ending up in spam?|Would you be open to a 2-minute chat to share perspectives?}\n\n{Best regards|Thanks|Warm regards},\nTeam"
     },
     {
-      subject: "{hello from Thomas|checking in with {{email}}|quick hello}",
-      message: "{Hey|Hi|Hello} {{email}},\n\n{Hope everything is going smoothly with you.|Wanted to drop a quick personal note to see if you are exploring new growth channels this quarter.}\n\n{If you're open to a 2-minute discussion, let me know what day works best for you.|Feel free to let me know if you'd like to chat briefly.}\n\n{Have a great week|Best|Warmly},\nThomas"
+      subject: "{quick hello|checking in with {{email}}|brief intro}",
+      message: "{Hey|Hi|Hello} {{email}},\n\n{Hope everything is going smoothly with you.|Wanted to drop a quick personal note to see if you are exploring new growth channels this quarter.}\n\n{If you're open to a 2-minute discussion, let me know what day works best for you.|Feel free to let me know if you'd like to chat briefly.}\n\n{Have a great week|Best|Warmly},\nTeam"
     }
   ],
 
@@ -97,6 +97,90 @@ const app = {
     this.analyzeSpamScoreLive();
     this.updateTopNotifBadge();
     this.renderTopNotifDropdown();
+  },
+
+  bindEvents() {
+    document.querySelectorAll('.nav-link').forEach(link => {
+      link.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tab = link.getAttribute('data-tab');
+        if (tab) this.switchTab(tab);
+      });
+    });
+
+    document.querySelectorAll('.mobile-bottom-nav-item').forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const tab = item.getAttribute('data-tab');
+        if (tab) this.switchTab(tab);
+      });
+    });
+  },
+
+  updateAllInboxBadge(count) {
+    const badge = document.getElementById('navAllInboxBadge');
+    if (badge) {
+      if (count > 0) {
+        badge.innerText = count;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  },
+
+  updatePrimaryInboxBadge(count) {
+    const badge = document.getElementById('navPrimaryInboxBadge');
+    const mbBadge = document.getElementById('mbPrimaryInboxBadge');
+    if (badge) {
+      if (count > 0) {
+        badge.innerText = count;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    if (mbBadge) {
+      if (count > 0) {
+        mbBadge.innerText = count;
+        mbBadge.style.display = 'inline-block';
+      } else {
+        mbBadge.style.display = 'none';
+      }
+    }
+  },
+
+  updateSpamBadge(count) {
+    const badge = document.getElementById('navSpamBadge');
+    if (badge) {
+      if (count > 0) {
+        badge.innerText = count;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+  },
+
+  updateBouncesBadge(count) {
+    const badge = document.getElementById('navBouncesBadge');
+    const mbBadge = document.getElementById('mbBouncesBadge');
+    if (badge) {
+      if (count > 0) {
+        badge.innerText = count;
+        badge.style.display = 'inline-block';
+      } else {
+        badge.style.display = 'none';
+      }
+    }
+    if (mbBadge) {
+      if (count > 0) {
+        mbBadge.innerText = count;
+        mbBadge.style.display = 'inline-block';
+      } else {
+        mbBadge.style.display = 'none';
+      }
+    }
   },
 
   onDelayChange(val) {
@@ -2106,6 +2190,9 @@ const app = {
     if (sbText) sbText.innerText = acc.email;
     if (sbDot) sbDot.className = 'status-dot';
 
+    const mobileDot = document.getElementById('mobileHeaderStatusDot');
+    if (mobileDot) mobileDot.className = 'status-dot';
+
     const statusDiv = document.getElementById('smtpVerifyStatus');
     if (statusDiv) {
       statusDiv.innerHTML = `<span style="color: var(--status-success); font-weight: 500;">● Active Account: ${acc.email} (Encrypted & Protected)</span>`;
@@ -3645,9 +3732,13 @@ lead10@businesspartner.com`;
   switchTab(tabId) {
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
+    document.querySelectorAll('.mobile-bottom-nav-item').forEach(m => m.classList.remove('active'));
 
     const activeLink = document.querySelector(`.nav-link[data-tab="${tabId}"]`);
     if (activeLink) activeLink.classList.add('active');
+
+    const activeBottomNav = document.querySelector(`.mobile-bottom-nav-item[data-tab="${tabId}"]`);
+    if (activeBottomNav) activeBottomNav.classList.add('active');
 
     const targetView = document.getElementById(`tab-${tabId}`);
     if (targetView) targetView.classList.add('active');
@@ -3668,7 +3759,12 @@ lead10@businesspartner.com`;
     if (titleEl && titles[tabId]) titleEl.innerText = titles[tabId];
 
     const sidebar = document.getElementById('sidebar');
+    const backdrop = document.getElementById('mobileBackdrop');
     if (sidebar) sidebar.classList.remove('open');
+    if (backdrop) backdrop.classList.remove('open');
+
+    // Smooth scroll to top on tab switch
+    window.scrollTo({ top: 0, behavior: 'smooth' });
 
     if (tabId === 'composer') this.analyzeSpamScoreLive();
     if (tabId === 'all-inbox') this.loadAllInbox();
@@ -3682,7 +3778,14 @@ lead10@businesspartner.com`;
 
   toggleMobileMenu() {
     const sidebar = document.getElementById('sidebar');
-    if (sidebar) sidebar.classList.toggle('open');
+    const backdrop = document.getElementById('mobileBackdrop');
+    if (sidebar) {
+      const isOpen = sidebar.classList.toggle('open');
+      if (backdrop) {
+        if (isOpen) backdrop.classList.add('open');
+        else backdrop.classList.remove('open');
+      }
+    }
   },
 
   openModal(modalId) {
