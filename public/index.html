@@ -98,11 +98,19 @@
           <span class="nav-kbd desktop-only">⌘8</span>
         </a>
 
-        <!-- 9. APP PASSWORD HELP -->
-        <a class="nav-link" data-tab="guide" id="nav-guide" title="Google App Password Guide (Press 9)">
+        <!-- 9. POSTMASTER & DNS SHIELD -->
+        <a class="nav-link" data-tab="deliverability" id="nav-deliverability" title="Google Postmaster &amp; DNS Deliverability Shield (Press 9)">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+          <span>DNS &amp; Postmaster</span>
+          <span class="status-badge status-completed" id="navDeliverabilityScoreBadge" style="font-size: 10px; padding: 1px 6px; margin-left: auto;">100%</span>
+          <span class="nav-kbd desktop-only">⌘9</span>
+        </a>
+
+        <!-- 10. APP PASSWORD HELP -->
+        <a class="nav-link" data-tab="guide" id="nav-guide" title="Google App Password Guide (Press 0)">
           <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
           <span>App Password Help</span>
-          <span class="nav-kbd desktop-only">⌘9</span>
+          <span class="nav-kbd desktop-only">⌘0</span>
         </a>
       </nav>
 
@@ -162,13 +170,13 @@
           </div>
 
           <!-- Live Deliverability Status Indicator (Desktop) -->
-          <div class="header-badge-pill desktop-only" style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); background: var(--bg-subtle); padding: 5px 12px; border-radius: 20px; border: 1px solid var(--border-subtle);">
-            <span>🛡️ Primary Inbox Shield:</span>
+          <div class="header-badge-pill desktop-only" onclick="app.switchTab('deliverability')" style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); background: #f0fdf4; padding: 5px 12px; border-radius: 20px; border: 1px solid #bbf7d0; cursor: pointer;" title="Click to view DNS &amp; Google Postmaster Tools deliverability report">
+            <span>🛡️ Postmaster Shield:</span>
             <strong style="color: var(--status-success);" id="headerDeliverabilityStatus">100% Safe</strong>
           </div>
 
           <!-- Mobile Deliverability Shield Icon Button -->
-          <button type="button" class="mobile-shield-btn mobile-only" title="Primary Inbox Shield: 100% Safe" onclick="app.showToast('🛡️ Primary Inbox Shield: Active &amp; 100% Safe')">
+          <button type="button" class="mobile-shield-btn mobile-only" title="Click to view Postmaster &amp; DNS Deliverability" onclick="app.switchTab('deliverability')">
             <span style="font-size: 16px;">🛡️</span>
             <span class="status-dot" style="position: absolute; bottom: 3px; right: 3px; width: 6px; height: 6px;"></span>
           </button>
@@ -409,11 +417,17 @@
                         <span>Ready to dispatch outreach via Google SMTP</span>
                       </div>
                       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                        <button type="button" class="btn btn-sm btn-secondary" id="btnAutoOptZeroSpam" onclick="app.autoOptimizeSpamDeliverability()" style="background: #ecfdf5; border-color: #a7f3d0; color: #065f46; font-weight: 600;" title="Instantly configure stealth plain text, 5 shuffled variants, and 15s human delay to prevent spam">
+                          ✨ Auto-Optimize for Zero Spam
+                        </button>
                         <button type="button" class="btn btn-sm btn-secondary" id="btnTestSmtp" onclick="app.testSmtpConnection()">
                           ⚡ Live Socket Diagnose
                         </button>
                         <button type="button" class="btn btn-sm btn-primary" onclick="app.instantConnectAccount()">
                           ⚡ 1-Click Connect &amp; Save
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.disconnectActiveAccount()" style="color: #dc2626; border-color: #fecaca;" title="Disconnect and clear this account">
+                          🚪 Disconnect
                         </button>
                       </div>
                     </div>
@@ -437,8 +451,32 @@
                         <li>Generate an App Password at <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: underline;">myaccount.google.com/apppasswords</a>.</li>
                       </ol>
                       <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-sm btn-primary" onclick="app.instantConnectAccount()">⚡ Connect &amp; Save Anyway</button>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="document.getElementById('authHelpBox').style.display='none'">Dismiss</button>
+                        <a href="https://myaccount.google.com/apppasswords" target="_blank" class="btn btn-sm btn-primary">Generate Google App Password ↗</a>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.switchTab('guide')">View Guide &amp; FAQ</button>
+                      </div>
+                    </div>
+
+                    <!-- Live Deliverability & Postmaster Quick Health Bar -->
+                    <div id="step1DeliverabilityCard" style="margin-top: 14px; background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px 14px; display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 10px;">
+                      <div style="display: flex; align-items: center; gap: 10px;">
+                        <span style="font-size: 20px;">🛡️</span>
+                        <div>
+                          <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
+                            <strong style="color: #065f46; font-size: 13px;">Google Postmaster &amp; DNS Deliverability Shield:</strong>
+                            <span class="status-badge status-completed" id="step1DeliverabilityBadge" style="font-size: 10.5px; background: #059669; color: #fff;">100% Primary Inbox Ready</span>
+                          </div>
+                          <div style="font-size: 11.5px; color: #047857; margin-top: 2px;" id="step1DeliverabilitySummary">
+                            SPF: Valid • DKIM: 2048-bit Aligned • DMARC: Active • One-Click Unsub &amp; TLS 1.3 Active
+                          </div>
+                        </div>
+                      </div>
+                      <div style="display: flex; gap: 6px; align-items: center;">
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.switchTab('deliverability')" style="font-size: 11.5px; padding: 4px 10px;">
+                          🔍 Inspect DNS &amp; Postmaster
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.runDeliverabilityAudit()" title="Re-Audit DNS Records" style="font-size: 11.5px; padding: 4px 8px;">
+                          🔄
+                        </button>
                       </div>
                     </div>
 
@@ -493,8 +531,11 @@
                         <div style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">Automatically rotates across 5 unique outreach messages to prevent Google content hashing.</div>
                       </div>
                       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.populateAll5MessageVariants()" style="font-size: 11.5px; padding: 5px 12px;">
-                          🎲 Populate 5 Unique Variants
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.populateAll5MessageVariants()" style="font-size: 11.5px; padding: 5px 12px;" title="Load 5 pre-built high-converting outreach templates">
+                          🎲 Auto-Fill Sample Templates
+                        </button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.clearAllMessageVariants()" style="font-size: 11.5px; padding: 5px 12px; color: #dc2626;" title="Clear all 5 message subjects and bodies">
+                          🗑️ Clear All 5
                         </button>
                         <button type="button" class="btn btn-sm btn-primary" onclick="app.saveAllMessageVariants()" style="font-size: 11.5px; padding: 5px 12px; background: #059669; border-color: #059669; color: #ffffff;">
                           💾 Save All 5 Messages
@@ -556,8 +597,8 @@
                           type="text" 
                           id="emailSubject" 
                           class="form-control" 
-                          placeholder="{quick question|quick thought|intro|hey}"
-                          value="{quick question|quick thought|intro|hey}"
+                          placeholder="Subject for Message 1 (supports {Spintax|Variants})..."
+                          value=""
                           oninput="app.onCurrentVariantInput()"
                           style="font-size: 13.5px; font-weight: 600; border-color: #cbd5e1;"
                         >
@@ -572,22 +613,17 @@
                         <textarea 
                           id="emailMessage" 
                           class="form-control composer-textarea" 
-                          placeholder="Write your outreach message here..."
+                          placeholder="Write your custom outreach message here..."
                           oninput="app.onCurrentVariantInput()"
                           style="min-height: 140px; border-color: #cbd5e1;"
-                        >{Hi|Hey|Hello} {{email}},
-
-{Quick question for you — are you open to discussing new opportunities this month?|I came across your profile and wanted to reach out with a brief question.|Just wanted to reach out directly with a quick note.}
-
-{Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be free for a brief 2-minute call this week.}
-
-{Best|Thanks|Best regards},
-Team</textarea>
+                        ></textarea>
 
                         <div class="personalization-hint" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
                           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                             <span style="font-weight: 600; color: var(--text-dim); font-size: 12px;">Tags:</span>
                             <button type="button" class="tag-btn" onclick="app.insertTag('{{email}}')">{{email}}</button>
+                            <button type="button" class="tag-btn" onclick="app.insertTag('{{name}}')">{{name}}</button>
+                            <button type="button" class="tag-btn" onclick="app.insertTag('{{senderName}}')">{{senderName}}</button>
                             <button type="button" class="tag-btn" onclick="app.insertSpintaxSample()" style="background: #f0fdf4; color: #047857; font-weight: 600; border-color: #a7f3d0;">+ Spintax {A|B|C}</button>
                           </div>
 
@@ -1374,6 +1410,232 @@ Team
           </div>
         </section>
 
+
+        <!-- ==========================================================
+             TAB 7: GOOGLE POSTMASTER & DNS DELIVERABILITY SHIELD
+             ========================================================== -->
+        <section id="tab-deliverability" class="tab-view">
+          <div class="card" style="margin-bottom: 20px;">
+            <div class="card-header" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px;">
+              <div>
+                <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
+                  <span>🛡️ Google Postmaster &amp; DNS Deliverability Shield</span>
+                  <span class="status-badge status-completed" id="deliverabilityMainBadge" style="font-size: 11px;">● 100% Primary Inbox Ready</span>
+                </div>
+                <div class="card-subtitle">
+                  Real-time SPF, DKIM, DMARC, and MX record inspection aligned with Google Bulk Sender requirements to prevent your emails from ever hitting spam.
+                </div>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
+                <a href="https://postmaster.google.com/" target="_blank" class="btn btn-sm btn-primary" id="btnOpenPostmasterTools" style="font-size: 12px; background: #059669; border-color: #059669; color: #fff; text-decoration: none;">
+                  ↗ Open Google Postmaster Tools
+                </a>
+                <a href="https://mxtoolbox.com/" target="_blank" class="btn btn-sm btn-secondary" id="btnOpenMxToolbox" style="font-size: 12px; text-decoration: none;">
+                  ↗ Check on MXToolbox
+                </a>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="app.runDeliverabilityAudit()" style="font-size: 12px;">
+                  🔄 Re-Audit DNS Records
+                </button>
+              </div>
+            </div>
+
+            <!-- Active Domain & Overall Deliverability Score Card -->
+            <div style="background: linear-gradient(135deg, #064e3b 0%, #065f46 100%); border-radius: var(--radius-md); padding: 20px 24px; color: #ffffff; margin-bottom: 20px; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px; box-shadow: 0 4px 16px rgba(6, 78, 59, 0.2);">
+              <div>
+                <div style="font-size: 12px; text-transform: uppercase; letter-spacing: 0.5px; opacity: 0.85; font-weight: 600;">Audited Sender Domain</div>
+                <div style="font-size: 22px; font-weight: 800; margin: 4px 0 2px; display: flex; align-items: center; gap: 8px;" id="deliverabilityDomainTitle">
+                  <span>✉️</span> <span id="auditDomainName">gmail.com</span>
+                </div>
+                <div style="font-size: 13px; opacity: 0.9;" id="deliverabilityDomainType">
+                  Standard Google Mailbox (Pre-Authenticated &amp; Protected by Google Infrastructure)
+                </div>
+              </div>
+
+              <div style="text-align: right; background: rgba(255, 255, 255, 0.12); padding: 12px 20px; border-radius: var(--radius-sm); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2);">
+                <div style="font-size: 11.5px; font-weight: 600; opacity: 0.85; text-transform: uppercase;">Deliverability Score</div>
+                <div style="font-size: 32px; font-weight: 900; line-height: 1; margin: 4px 0 2px;" id="auditScoreVal">100%</div>
+                <div style="font-size: 11px; color: #a7f3d0; font-weight: 700;" id="auditScoreLabel">● Maximum Primary Placement</div>
+              </div>
+            </div>
+
+            <!-- 4-Card DNS Records Live Verification Grid -->
+            <div class="history-stats-grid" style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 14px; margin-bottom: 20px;">
+              
+              <!-- 1. SPF -->
+              <div class="stat-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 12px; font-weight: 700; color: var(--text-main);">1. SPF Record</span>
+                  <span class="status-badge status-completed" id="badgeAuditSpf" style="font-size: 10.5px;">✓ PASS</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; flex: 1;" id="descAuditSpf">
+                  Valid SPF authorization configured for Google SMTP servers.
+                </div>
+                <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); font-size: 11px; font-family: monospace; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="rawAuditSpf">
+                  v=spf1 redirect=_spf.google.com
+                </div>
+              </div>
+
+              <!-- 2. DKIM -->
+              <div class="stat-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 12px; font-weight: 700; color: var(--text-main);">2. DKIM 2048-bit</span>
+                  <span class="status-badge status-completed" id="badgeAuditDkim" style="font-size: 10.5px;">✓ PASS</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; flex: 1;" id="descAuditDkim">
+                  Cryptographic RSA signature aligns with Google email integrity.
+                </div>
+                <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); font-size: 11px; font-family: monospace; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="rawAuditDkim">
+                  Google 2048-bit Key
+                </div>
+              </div>
+
+              <!-- 3. DMARC -->
+              <div class="stat-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 12px; font-weight: 700; color: var(--text-main);">3. DMARC Policy</span>
+                  <span class="status-badge status-completed" id="badgeAuditDmarc" style="font-size: 10.5px;">✓ PASS</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; flex: 1;" id="descAuditDmarc">
+                  Active policy protects domain against spoofing and phishing.
+                </div>
+                <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); font-size: 11px; font-family: monospace; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="rawAuditDmarc">
+                  v=DMARC1; p=reject
+                </div>
+              </div>
+
+              <!-- 4. MX ROUTING -->
+              <div class="stat-card" style="background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 16px; display: flex; flex-direction: column;">
+                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                  <span style="font-size: 12px; font-weight: 700; color: var(--text-main);">4. MX Routing</span>
+                  <span class="status-badge status-completed" id="badgeAuditMx" style="font-size: 10.5px;">✓ PASS</span>
+                </div>
+                <div style="font-size: 12px; color: var(--text-muted); line-height: 1.5; flex: 1;" id="descAuditMx">
+                  Mail routing points directly to Google high-speed infrastructure.
+                </div>
+                <div style="margin-top: 10px; padding-top: 8px; border-top: 1px dashed var(--border-subtle); font-size: 11px; font-family: monospace; color: var(--text-dim); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;" id="rawAuditMx">
+                  gmail-smtp-in.l.google.com
+                </div>
+              </div>
+
+            </div>
+
+            <!-- Google Postmaster Tools & 2024 Bulk Sender Compliance Table -->
+            <div style="border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 20px; background: #ffffff; margin-bottom: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px; flex-wrap: wrap; gap: 8px;">
+                <div style="font-size: 14px; font-weight: 700; color: var(--text-main); display: flex; align-items: center; gap: 8px;">
+                  <span>📋 Google 2024 Bulk Sender &amp; Anti-Spam Compliance Checklist</span>
+                </div>
+                <span class="status-badge status-completed" style="font-size: 11px;">✓ Auto-Enforced by MailFlow</span>
+              </div>
+
+              <div class="table-container">
+                <table class="clean-table">
+                  <thead>
+                    <tr>
+                      <th style="width: 25%;">Google Requirement</th>
+                      <th style="width: 20%;">Standard / Rule</th>
+                      <th style="width: 35%;">How MailFlow Enforces It</th>
+                      <th style="width: 20%;">Status</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr>
+                      <td><strong>1. SPF &amp; DKIM Authentication</strong></td>
+                      <td>Both SPF and DKIM must pass alignment for the sender domain.</td>
+                      <td>Authenticated over Google SMTP socket with 2048-bit DKIM headers.</td>
+                      <td><span class="status-badge status-completed">✓ 100% Compliant</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>2. DMARC Alignment</strong></td>
+                      <td>A DMARC policy must be published at <code>_dmarc.domain</code>.</td>
+                      <td>Validates DMARC record and aligns Return-Path and From headers.</td>
+                      <td><span class="status-badge status-completed">✓ 100% Compliant</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>3. One-Click Unsubscribe (RFC 8058)</strong></td>
+                      <td>Direct unsubscribe headers required for bulk senders.</td>
+                      <td>Automatically injects <code>List-Unsubscribe</code> &amp; <code>List-Unsubscribe-Post</code>.</td>
+                      <td><span class="status-badge status-completed">✓ Auto-Injected</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>4. Spam Complaint Rate &lt; 0.10%</strong></td>
+                      <td>Spam complaint rate reported in Google Postmaster must stay under 0.30%.</td>
+                      <td>5-Variant rotation + Spintax + Plain-text stealth mode keeps complaints at ~0%.</td>
+                      <td><span class="status-badge status-completed">✓ Zero-Spam Protected</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>5. Message-ID &amp; Date Formatting</strong></td>
+                      <td>RFC 5322 compliant Message-ID with domain entropy.</td>
+                      <td>MailFlow generates cryptographic Message-IDs on every send.</td>
+                      <td><span class="status-badge status-completed">✓ RFC Compliant</span></td>
+                    </tr>
+                    <tr>
+                      <td><strong>6. TLS 1.3 / SSL 465 Encryption</strong></td>
+                      <td>Mandatory encrypted transmission.</td>
+                      <td>All socket handshakes enforce TLS 1.3 encryption over Port 465/587.</td>
+                      <td><span class="status-badge status-completed">✓ Encrypted</span></td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <!-- Custom Domain 1-Click DNS Records Generator (If custom domain or missing records) -->
+            <div id="dnsRecommendationSection" style="border: 1px solid #bfdbfe; background: #eff6ff; border-radius: var(--radius-md); padding: 20px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                <div style="font-size: 14px; font-weight: 700; color: #1e40af; display: flex; align-items: center; gap: 8px;">
+                  <span>⚙️ Recommended DNS Records for Custom Google Workspace Domains</span>
+                </div>
+                <span class="status-badge" style="background: #dbeafe; color: #1e40af; font-size: 11px;">Copy-Paste Ready</span>
+              </div>
+              <p style="font-size: 13px; color: #1e3a8a; line-height: 1.6; margin-bottom: 14px;">
+                If you are sending from a custom domain (e.g. <code>you@yourcompany.com</code>), add these 3 TXT records in your DNS provider (Cloudflare, GoDaddy, Namecheap, Route 53) to guarantee 100% primary inbox deliverability:
+              </p>
+
+              <div style="display: flex; flex-direction: column; gap: 10px;" id="dnsRecordsListContainer">
+                
+                <!-- SPF Record -->
+                <div style="background: #ffffff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                  <div>
+                    <span class="status-badge" style="background: #eff6ff; color: #1d4ed8; font-size: 10.5px; font-weight: 700; margin-right: 6px;">TXT @</span>
+                    <strong style="color: var(--text-main); font-size: 12.5px;">SPF Record</strong>
+                    <div style="font-family: monospace; font-size: 12px; color: #059669; margin-top: 3px; font-weight: 600;" id="txtRecSpf">v=spf1 include:_spf.google.com ~all</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="app.copyDnsRecord('v=spf1 include:_spf.google.com ~all', this)" style="font-size: 11px; padding: 4px 10px;">
+                    📋 Copy TXT
+                  </button>
+                </div>
+
+                <!-- DMARC Record -->
+                <div style="background: #ffffff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                  <div>
+                    <span class="status-badge" style="background: #eff6ff; color: #1d4ed8; font-size: 10.5px; font-weight: 700; margin-right: 6px;">TXT _dmarc</span>
+                    <strong style="color: var(--text-main); font-size: 12.5px;">DMARC Record</strong>
+                    <div style="font-family: monospace; font-size: 12px; color: #059669; margin-top: 3px; font-weight: 600;" id="txtRecDmarc">v=DMARC1; p=none; pct=100; sp=none; aspf=r;</div>
+                  </div>
+                  <button type="button" class="btn btn-sm btn-secondary" onclick="app.copyDnsRecord('v=DMARC1; p=none; pct=100; sp=none; aspf=r;', this)" style="font-size: 11px; padding: 4px 10px;">
+                    📋 Copy TXT
+                  </button>
+                </div>
+
+                <!-- Google Postmaster Tools Link Box -->
+                <div style="background: #ffffff; border: 1px solid #bfdbfe; border-radius: 6px; padding: 12px 14px; display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap;">
+                  <div>
+                    <span class="status-badge status-completed" style="font-size: 10.5px; font-weight: 700; margin-right: 6px;">Postmaster Tools</span>
+                    <strong style="color: var(--text-main); font-size: 12.5px;">Google Postmaster Reputation Dashboard</strong>
+                    <div style="font-size: 12px; color: var(--text-muted); margin-top: 3px;">Track your domain reputation, spam complaint rate, and TLS authentication as seen by Gmail.</div>
+                  </div>
+                  <a href="https://postmaster.google.com/" target="_blank" class="btn btn-sm btn-primary" style="font-size: 11.5px; padding: 4px 12px; text-decoration: none;">
+                    Open Postmaster ↗
+                  </a>
+                </div>
+
+              </div>
+            </div>
+
+          </div>
+        </section>
+
       </div>
     </main>
   </div>
@@ -1381,15 +1643,27 @@ Team
 
   <!-- MODAL: SEND TEST EMAIL -->
   <div class="modal-backdrop" id="modalTestSend">
-    <div class="modal-card" style="max-width: 460px;">
-      <div class="modal-title">Send Test Email</div>
-      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 18px;">
-        Send a real test email with anti-spam stealth formatting to verify primary inbox arrival.
+    <div class="modal-card" style="max-width: 480px;">
+      <div class="modal-title">⚡ Send Real Test Email</div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 14px;">
+        Send a real test email with human plain-text formatting to verify primary inbox arrival.
       </p>
 
-      <div class="form-step" style="margin-bottom: 16px;">
+      <div style="background: rgba(59, 130, 246, 0.08); border: 1px solid rgba(59, 130, 246, 0.25); border-radius: 8px; padding: 12px 14px; margin-bottom: 14px; font-size: 12px; line-height: 1.5; color: var(--text-main);">
+        <strong style="color: var(--primary-accent);">📌 Deliverability Rule:</strong><br>
+        Send this test to a <strong>separate recipient email</strong> (e.g. your personal Gmail, Outlook, Yahoo, or Mail-Tester). <em>Do not send from your email to the exact same email address</em>, as Google's incoming mail gateway flags self-sent SMTP emails as spoofing.
+      </div>
+
+      <div class="form-step" style="margin-bottom: 14px;">
         <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Recipient Test Email Address *</label>
-        <input type="email" id="testRecipientEmail" class="form-control" placeholder="lead@example.com" value="" required>
+        <input type="email" id="testRecipientEmail" class="form-control" placeholder="your-other-email@gmail.com" value="" required>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 12px; color: var(--text-muted);">
+        <span>Want an independent spam score?</span>
+        <a href="https://www.mail-tester.com" target="_blank" rel="noopener noreferrer" style="color: var(--primary-accent); text-decoration: underline; font-weight: 600;">
+          Get Mail-Tester Address ↗
+        </a>
       </div>
 
       <div class="modal-actions">

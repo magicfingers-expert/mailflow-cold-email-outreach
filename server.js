@@ -9,6 +9,7 @@ const EmailValidator = require('./services/emailValidator');
 const QueueService = require('./services/queueService');
 const InboxService = require('./services/inboxService');
 const bounceService = require('./services/bounceService');
+const deliverabilityService = require('./services/deliverabilityService');
 
 // Global error handlers to prevent crashes from transient socket resets (e.g. ECONNRESET)
 process.on('uncaughtException', (err) => {
@@ -86,25 +87,33 @@ app.post('/api/track/simulate-open', (req, res) => {
 const VARIANTS_FILE = path.join(__dirname, 'data', 'saved_variants.json');
 
 const DEFAULT_MESSAGE_VARIANTS = [
+  { subject: "", message: "" },
+  { subject: "", message: "" },
+  { subject: "", message: "" },
+  { subject: "", message: "" },
+  { subject: "", message: "" }
+];
+
+const SAMPLE_OUTREACH_TEMPLATES = [
   {
     subject: "{quick question|quick thought|intro|hey}",
-    message: "{Hi|Hey|Hello} {{email}},\n\n{Quick question for you — are you open to discussing new opportunities this month?|I came across your profile and wanted to reach out with a brief question.|Just wanted to reach out directly with a quick note.}\n\n{Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be free for a brief 2-minute call this week.}\n\n{Best|Thanks|Best regards},\nThomas"
+    message: "{Hi|Hey|Hello} {{name}},\n\n{Quick question for you — wanted to reach out regarding your recent work.|I came across your profile and wanted to reach out with a quick note.|Just wanted to reach out directly with a brief question.}\n\n{Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be free for a brief chat this week.}\n\n{Best|Thanks|Best regards},\n{{senderName}}"
   },
   {
-    subject: "{question regarding your workflow|quick inquiry for {{email}}|partnership inquiry}",
-    message: "{Hi|Hello|Hey} {{email}},\n\n{I was exploring your work recently and wanted to see how you are currently handling client acquisition this quarter.|Hope you are having a productive week — wanted to ask a quick question about your current operations.}\n\n{We recently built a system that helps streamline outreach seamlessly. Would you be open to seeing a 1-minute breakdown?|If you're interested, happy to share a brief note on how we help similar teams.}\n\n{Cheers|Warmly|Regards},\nThomas"
+    subject: "{question regarding your workflow|quick inquiry for {{name}}|workflow question}",
+    message: "{Hi|Hello|Hey} {{name}},\n\n{I was exploring your work recently and wanted to see how you are currently handling your workflows this quarter.|Hope you are having a productive week — wanted to ask a quick question about your current operations.}\n\n{We recently built a simple workflow system that helps save several hours each week. Would you be open to seeing a 1-minute breakdown?|If you're interested, happy to share a brief note on how we help similar teams.}\n\n{Cheers|Warmly|Regards},\n{{senderName}}"
   },
   {
-    subject: "{quick intro|connecting briefly|reaching out to {{email}}}",
-    message: "{Hey|Hi} {{email}},\n\n{Are you currently taking on new projects or clients this month?|Just checking in to see if you have any availability for new collaboration this month.}\n\n{If so, let me know when might be a convenient time to connect briefly.|Let me know if you'd be open to a brief exchange.}\n\n{Best|Thanks|All the best},\nThomas"
+    subject: "{quick intro|connecting briefly|reaching out to {{name}}}",
+    message: "{Hey|Hi} {{name}},\n\n{Are you currently taking on new projects or clients this month?|Just checking in to see if you have any availability for new collaboration this month.}\n\n{If so, let me know when might be a convenient time to connect briefly.|Let me know if you'd be open to a brief exchange.}\n\n{Best|Thanks|All the best},\n{{senderName}}"
   },
   {
-    subject: "{quick question for {{email}}|seeking your perspective|brief question}",
-    message: "{Hi|Hello} {{email}},\n\n{I came across your recent work and really admired what you are building.|I've been following your progress and wanted to ask a quick question.}\n\n{Are you open to exploring fresh ways to scale your outreach without ending up in spam?|Would you be open to a 2-minute chat to share perspectives?}\n\n{Best regards|Thanks|Warm regards},\nThomas"
+    subject: "{quick question for {{name}}|seeking your perspective|brief question}",
+    message: "{Hi|Hello} {{name}},\n\n{I came across your recent work and really admired what you and the team are building.|I've been following your work and wanted to ask a quick question.}\n\n{Would you be open to a quick 2-minute exchange to share perspectives sometime this week?|Are you open to exploring new ways to streamline your communication?}\n\n{Best regards|Thanks|Warm regards},\n{{senderName}}"
   },
   {
-    subject: "{hello from Thomas|checking in with {{email}}|quick hello}",
-    message: "{Hey|Hi|Hello} {{email}},\n\n{Hope everything is going smoothly with you.|Wanted to drop a quick personal note to see if you are exploring new growth channels this quarter.}\n\n{If you're open to a 2-minute discussion, let me know what day works best for you.|Feel free to let me know if you'd like to chat briefly.}\n\n{Have a great week|Best|Warmly},\nThomas"
+    subject: "{hello from {{senderFirstName}}|checking in with {{name}}|quick hello}",
+    message: "{Hey|Hi|Hello} {{name}},\n\n{Hope everything is going smoothly with you.|Wanted to drop a quick personal note to see how things are going this quarter.}\n\n{If you're open to a brief discussion, let me know what day works best for you.|Feel free to let me know if you'd like to chat briefly.}\n\n{Have a great week|Best|Warmly},\n{{senderName}}"
   }
 ];
 
@@ -148,6 +157,11 @@ app.post('/api/variants', (req, res) => {
 app.post('/api/variants/reset', (req, res) => {
   saveVariantsToFile(DEFAULT_MESSAGE_VARIANTS);
   res.json({ success: true, variants: DEFAULT_MESSAGE_VARIANTS, message: 'Variants reset to defaults' });
+});
+
+// Get pre-built sample templates on-demand
+app.get('/api/variants/sample-templates', (req, res) => {
+  res.json({ success: true, templates: SAMPLE_OUTREACH_TEMPLATES });
 });
 
 // Save a single message variant by index (0-4)
@@ -203,6 +217,49 @@ app.post('/api/accounts/switch/:id', (req, res) => {
 app.delete('/api/accounts/:id', (req, res) => {
   const success = emailService.deleteAccount(req.params.id);
   res.json({ success, message: 'Account removed' });
+});
+
+// ---------------- GOOGLE POSTMASTER & DNS DELIVERABILITY AUDIT ----------------
+
+// Run DNS deliverability audit (SPF, DKIM, DMARC, MX, Postmaster compliance)
+app.get('/api/deliverability/audit', async (req, res) => {
+  const emailOrDomain = req.query.email || req.query.domain || 'gmail.com';
+  try {
+    const audit = await deliverabilityService.auditDomain(emailOrDomain);
+    res.json(audit);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/deliverability/audit', async (req, res) => {
+  const { email, domain } = req.body || {};
+  const target = email || domain || 'gmail.com';
+  try {
+    const audit = await deliverabilityService.auditDomain(target);
+    res.json(audit);
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Google Postmaster Tools & DNS Setup Guide
+app.get('/api/deliverability/postmaster-guide', (req, res) => {
+  const domain = req.query.domain || 'yourdomain.com';
+  res.json({
+    success: true,
+    domain,
+    googlePostmasterUrl: 'https://postmaster.google.com/',
+    mxToolboxUrl: `https://mxtoolbox.com/emailhealth/${domain}/`,
+    requirements: [
+      { name: 'SPF Authentication', status: 'Required', desc: 'Authorizes Google SMTP servers to dispatch from your domain.' },
+      { name: 'DKIM 2048-bit Key', status: 'Required', desc: 'Cryptographically signs outgoing emails against spoofing.' },
+      { name: 'DMARC Alignment', status: 'Required', desc: 'Specifies mailbox policy (p=none / p=quarantine / p=reject).' },
+      { name: 'Spam Rate < 0.10%', status: 'Mandatory', desc: 'Google blocks domains when spam rate exceeds 0.30%.' },
+      { name: 'One-Click Unsubscribe', status: 'Enforced', desc: 'MailFlow automatically injects RFC-8058 List-Unsubscribe headers.' },
+      { name: 'TLS 1.3 / SSL 465', status: 'Enforced', desc: 'All connections are encrypted over secure sockets.' }
+    ]
+  });
 });
 
 // ---------------- SMTP VERIFICATION & SOCKET DIAGNOSTICS ----------------

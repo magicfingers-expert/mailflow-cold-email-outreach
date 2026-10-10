@@ -319,7 +319,24 @@ class QueueService {
         }
       }
 
-      const personalizedMessage = targetTemplate.replace(/\{\{\s*email\s*\}\}/gi, rec.email);
+      const sName = creds.senderName || (creds.senderEmail ? creds.senderEmail.split('@')[0] : 'Team');
+      const sFirst = sName.split(' ')[0] || sName;
+      const rEmail = rec.email;
+      const rName = rEmail.split('@')[0].replace(/[._-]/g, ' ').replace(/\b\w/g, l => l.toUpperCase());
+
+      const personalizedMessage = targetTemplate
+        .replace(/\{\{\s*email\s*\}\}/gi, rEmail)
+        .replace(/\{\{\s*name\s*\}\}/gi, rName)
+        .replace(/\{\{\s*senderName\s*\}\}/gi, sName)
+        .replace(/\{\{\s*senderFirstName\s*\}\}/gi, sFirst)
+        .replace(/\{\{\s*sender\s*\}\}/gi, sName);
+
+      const personalizedSubject = targetSubject
+        .replace(/\{\{\s*email\s*\}\}/gi, rEmail)
+        .replace(/\{\{\s*name\s*\}\}/gi, rName)
+        .replace(/\{\{\s*senderName\s*\}\}/gi, sName)
+        .replace(/\{\{\s*senderFirstName\s*\}\}/gi, sFirst)
+        .replace(/\{\{\s*sender\s*\}\}/gi, sName);
 
       try {
         const result = await this.emailService.sendEmail({
@@ -327,7 +344,7 @@ class QueueService {
           senderPassword: creds.senderPassword,
           senderName: creds.senderName,
           to: rec.email,
-          subject: targetSubject,
+          subject: personalizedSubject,
           message: personalizedMessage,
           trackingId: rec.trackingId,
           baseUrl: creds.baseUrl,
