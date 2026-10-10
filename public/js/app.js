@@ -2094,6 +2094,7 @@ const app = {
       if (activeAcc) {
         if (lastPass && !activeAcc.password) activeAcc.password = lastPass;
         if (lastName && !activeAcc.name) activeAcc.name = lastName;
+        activeAcc.hasPassword = !!activeAcc.password;
         activeAcc.isDefault = true;
       } else {
         activeAcc = {
@@ -2118,14 +2119,14 @@ const app = {
           const existing = this.accounts.find(a => a.email.toLowerCase() === backendAcc.email.toLowerCase());
           if (existing) {
             existing.status = backendAcc.status || existing.status || 'Connected';
-            existing.hasPassword = !!backendAcc.hasPassword || !!existing.password;
+            existing.hasPassword = !!backendAcc.hasPassword || !!existing.password || !!existing.hasPassword;
             if (backendAcc.id) existing.id = backendAcc.id;
           } else {
             this.accounts.push({
               id: backendAcc.id,
               email: backendAcc.email,
               name: backendAcc.name || backendAcc.email.split('@')[0],
-              password: '',
+              password: (backendAcc.email.toLowerCase() === lastEmail ? lastPass : ''),
               hasPassword: !!backendAcc.hasPassword,
               isDefault: false,
               status: backendAcc.status || 'Connected'
@@ -2143,7 +2144,7 @@ const app = {
       const active = (this.activeAccountId && this.accounts.find(a => a.id === this.activeAccountId)) || 
                      this.accounts.find(a => a.isDefault) || 
                      this.accounts[0];
-      if (active && active.password && active.password.trim()) {
+      if (active) {
         this.selectActiveAccount(active.id);
       } else {
         this.resetAccountUI();
@@ -2352,6 +2353,9 @@ const app = {
 
     const helpBox = document.getElementById('authHelpBox');
     if (helpBox) helpBox.style.display = 'none';
+
+    const consoleDiv = document.getElementById('smtpDiagnosticConsole');
+    if (consoleDiv) consoleDiv.style.display = 'none';
 
     this.renderAccountSwitcherDropdown();
     this.renderAccountsManagerTable();
@@ -3323,6 +3327,9 @@ const app = {
     if (!password && activeAcc?.password) {
       password = activeAcc.password;
     }
+    if (!password) {
+      password = (localStorage.getItem('mailflow_last_active_password') || '').trim();
+    }
 
     const statusDiv = document.getElementById('smtpVerifyStatus');
     const helpBox = document.getElementById('authHelpBox');
@@ -3434,6 +3441,9 @@ const app = {
     const activeAcc = this.accounts.find(a => a.email.toLowerCase() === senderEmail.toLowerCase());
     if (!senderPassword && activeAcc?.password) {
       senderPassword = activeAcc.password;
+    }
+    if (!senderPassword) {
+      senderPassword = (localStorage.getItem('mailflow_last_active_password') || '').trim();
     }
 
     const senderName = document.getElementById('senderDisplayName')?.value.trim() || activeAcc?.name || senderEmail.split('@')[0];
@@ -3641,6 +3651,9 @@ lead10@businesspartner.com`;
     const activeAcc = this.accounts.find(a => a.email.toLowerCase() === senderEmail.toLowerCase());
     if (!senderPassword && activeAcc?.password) {
       senderPassword = activeAcc.password;
+    }
+    if (!senderPassword) {
+      senderPassword = (localStorage.getItem('mailflow_last_active_password') || '').trim();
     }
 
     const senderName = document.getElementById('senderDisplayName')?.value.trim() || activeAcc?.name || senderEmail.split('@')[0];
