@@ -67,6 +67,20 @@ const app = {
   autoSyncTimer: null,
 
   init() {
+    // Force clear inputs immediately on startup
+    const subjEl = document.getElementById('emailSubject');
+    const msgEl = document.getElementById('emailMessage');
+    if (subjEl) subjEl.value = '';
+    if (msgEl) msgEl.value = '';
+
+    this.messageVariants = [
+      { subject: '', message: '' },
+      { subject: '', message: '' },
+      { subject: '', message: '' },
+      { subject: '', message: '' },
+      { subject: '', message: '' }
+    ];
+
     this.bindEvents();
     this.loadSavedAccounts();
     this.loadSendingDelayPreference();
@@ -4432,6 +4446,12 @@ lead10@businesspartner.com`;
 };
 
 document.addEventListener('DOMContentLoaded', () => {
+  try {
+    const s = document.getElementById('emailSubject');
+    const m = document.getElementById('emailMessage');
+    if (s) s.value = '';
+    if (m) m.value = '';
+  } catch (e) {}
   app.init();
 });
 

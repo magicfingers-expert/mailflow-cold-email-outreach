@@ -17,6 +17,11 @@
   "routes": [
     {
       "src": "/(.*)",
+      "headers": {
+        "cache-control": "no-store, no-cache, must-revalidate, proxy-revalidate, max-age=0",
+        "pragma": "no-cache",
+        "expires": "0"
+      },
       "dest": "server.js"
     }
   ]
