@@ -2559,41 +2559,59 @@ const app = {
   },
 
   async loadMessageVariants() {
-    // 1. Check local storage first
+    // Aggressively purge ALL legacy localStorage keys that may hold old samples or templates
+    const legacyKeys = [
+      'mailflow_message_variants',
+      'mailflow_message_variants_user_saved',
+      'mailflow_variants',
+      'mailflow_variants_user_saved',
+      'mailflow_outreach_variants',
+      'mailflow_outreach_variants_v2',
+      'mailflow_outreach_variants_v3',
+      'mailflow_outreach_variants_v4',
+      'mailflow_variants_user_saved_v4',
+      'mailflow_draft',
+      'mailflow_subject',
+      'mailflow_message'
+    ];
+    legacyKeys.forEach(k => {
+      try { localStorage.removeItem(k); } catch (e) {}
+    });
+
+    // 1. Check v5 local storage (only restore if user explicitly saved custom content)
     try {
-      const local = localStorage.getItem('mailflow_message_variants');
-      if (local) {
+      const local = localStorage.getItem('mailflow_outreach_variants_v5');
+      const userSaved = localStorage.getItem('mailflow_variants_user_saved_v5') === 'true';
+      if (local && userSaved) {
         const parsed = JSON.parse(local);
-        // If it contains any pre-filled sample templates, purge it immediately
         if (this.isSampleOutreachTemplate(parsed)) {
-          localStorage.removeItem('mailflow_message_variants');
-          localStorage.removeItem('mailflow_message_variants_user_saved');
-        } else if (Array.isArray(parsed) && parsed.length >= 5 && localStorage.getItem('mailflow_message_variants_user_saved') === 'true') {
+          localStorage.removeItem('mailflow_outreach_variants_v5');
+          localStorage.removeItem('mailflow_variants_user_saved_v5');
+        } else if (Array.isArray(parsed) && parsed.length >= 5) {
           this.messageVariants = parsed;
-          this.switchVariantTab(this.activeVariantIndex || 0);
+          this.switchVariantTab(this.activeVariantIndex || 0, false);
           return;
         }
       }
     } catch (e) {}
 
-    // 2. Fetch from server (persisted variants)
+    // 2. Fetch from server (persisted custom variants if any)
     try {
       const res = await fetch('/api/variants');
       const data = await res.json();
       if (data.success && Array.isArray(data.variants)) {
         if (this.isSampleOutreachTemplate(data.variants)) {
-          // If server still has old samples, reset server to clean empty slots
           fetch('/api/variants/reset', { method: 'POST' }).catch(() => {});
-        } else if (data.variants.some(v => v.subject || v.message) && localStorage.getItem('mailflow_message_variants_user_saved') === 'true') {
+        } else if (data.variants.some(v => (v.subject && v.subject.trim()) || (v.message && v.message.trim())) && localStorage.getItem('mailflow_variants_user_saved_v5') === 'true') {
           this.messageVariants = data.variants;
           this.saveVariantsToLocalStorage();
-          this.switchVariantTab(this.activeVariantIndex || 0);
+          this.switchVariantTab(this.activeVariantIndex || 0, false);
           return;
         }
       }
     } catch (e) {}
 
-    // 3. Default: 5 Clean Empty Message Slots (blank slate as explicitly requested)
+    // 3. 100% Clean Blank Default (all 5 slots empty)
     this.messageVariants = [
       { subject: '', message: '' },
       { subject: '', message: '' },
@@ -2603,7 +2621,7 @@ const app = {
     ];
 
     this.saveVariantsToLocalStorage();
-    this.switchVariantTab(0);
+    this.switchVariantTab(0, false);
   },
 
   async _syncVariantsFromServer() {
@@ -2611,18 +2629,18 @@ const app = {
       const res = await fetch('/api/variants');
       const data = await res.json();
       if (data.success && Array.isArray(data.variants) && !this.isSampleOutreachTemplate(data.variants)) {
-        const localEmpty = !this.messageVariants.some(v => v.subject || v.message);
-        if (localEmpty && localStorage.getItem('mailflow_message_variants_user_saved') === 'true') {
+        const localEmpty = !this.messageVariants.some(v => (v.subject && v.subject.trim()) || (v.message && v.message.trim()));
+        if (localEmpty && localStorage.getItem('mailflow_variants_user_saved_v5') === 'true') {
           this.messageVariants = data.variants;
           this.saveVariantsToLocalStorage();
-          this.switchVariantTab(this.activeVariantIndex || 0);
+          this.switchVariantTab(this.activeVariantIndex || 0, false);
         }
       }
     } catch (e) {}
   },
 
   clearAllMessageVariants() {
-    if (!confirm('Are you sure you want to clear all 5 message subjects and bodies?')) return;
+    if (!confirm('Are you sure you want to reset all 5 message subjects and bodies to blank?')) return;
     this.messageVariants = [
       { subject: '', message: '' },
       { subject: '', message: '' },
@@ -2630,9 +2648,12 @@ const app = {
       { subject: '', message: '' },
       { subject: '', message: '' }
     ];
-    localStorage.removeItem('mailflow_message_variants_user_saved');
+    try {
+      localStorage.removeItem('mailflow_variants_user_saved_v5');
+      localStorage.removeItem('mailflow_outreach_variants_v5');
+    } catch (e) {}
     this.saveVariantsToLocalStorage();
-    this.switchVariantTab(this.activeVariantIndex || 0);
+    this.switchVariantTab(this.activeVariantIndex || 0, false);
     try {
       fetch('/api/variants', {
         method: 'POST',
@@ -2640,12 +2661,12 @@ const app = {
         body: JSON.stringify({ variants: this.messageVariants })
       });
     } catch (e) {}
-    this.showToast('✓ All 5 message variants cleared to empty state.');
+    this.showToast('✓ All 5 message slots reset to blank.');
   },
 
   saveVariantsToLocalStorage() {
     try {
-      localStorage.setItem('mailflow_message_variants', JSON.stringify(this.messageVariants));
+      localStorage.setItem('mailflow_outreach_variants_v5', JSON.stringify(this.messageVariants));
     } catch (e) {}
   },
 
@@ -2673,7 +2694,9 @@ const app = {
 
     this.messageVariants[idx].subject = subj;
     this.messageVariants[idx].message = msg;
-    localStorage.setItem('mailflow_message_variants_user_saved', 'true');
+    try {
+      localStorage.setItem('mailflow_variants_user_saved_v5', 'true');
+    } catch (e) {}
     this.saveVariantsToLocalStorage();
 
     this.setVariantSaveStatus('Saving...', 'inprogress');
@@ -2700,12 +2723,16 @@ const app = {
 
   async saveAllMessageVariants() {
     const idx = this.activeVariantIndex;
-    const curSubj = document.getElementById('emailSubject')?.value;
-    const curMsg = document.getElementById('emailMessage')?.value;
-    if (curSubj !== undefined && this.messageVariants[idx]) this.messageVariants[idx].subject = curSubj;
-    if (curMsg !== undefined && this.messageVariants[idx]) this.messageVariants[idx].message = curMsg;
+    const curSubj = document.getElementById('emailSubject')?.value || '';
+    const curMsg = document.getElementById('emailMessage')?.value || '';
+    if (this.messageVariants[idx]) {
+      this.messageVariants[idx].subject = curSubj;
+      this.messageVariants[idx].message = curMsg;
+    }
 
-    localStorage.setItem('mailflow_message_variants_user_saved', 'true');
+    try {
+      localStorage.setItem('mailflow_variants_user_saved_v5', 'true');
+    } catch (e) {}
     this.saveVariantsToLocalStorage();
     this.setVariantSaveStatus('Saving All...', 'inprogress');
 
@@ -2729,19 +2756,21 @@ const app = {
     }
   },
 
-  switchVariantTab(index) {
+  switchVariantTab(index, saveCurrent = true) {
     if (index < 0 || index >= this.messageVariants.length) return;
 
-    // Save current input before switching
-    const curSubj = document.getElementById('emailSubject')?.value;
-    const curMsg = document.getElementById('emailMessage')?.value;
-    if (curSubj !== undefined && this.messageVariants[this.activeVariantIndex]) {
-      this.messageVariants[this.activeVariantIndex].subject = curSubj;
+    // Save current input before switching only if explicitly requested and changing tabs
+    if (saveCurrent && this.activeVariantIndex !== index) {
+      const curSubj = document.getElementById('emailSubject')?.value;
+      const curMsg = document.getElementById('emailMessage')?.value;
+      if (curSubj !== undefined && this.messageVariants[this.activeVariantIndex]) {
+        this.messageVariants[this.activeVariantIndex].subject = curSubj;
+      }
+      if (curMsg !== undefined && this.messageVariants[this.activeVariantIndex]) {
+        this.messageVariants[this.activeVariantIndex].message = curMsg;
+      }
+      this.saveVariantsToLocalStorage();
     }
-    if (curMsg !== undefined && this.messageVariants[this.activeVariantIndex]) {
-      this.messageVariants[this.activeVariantIndex].message = curMsg;
-    }
-    this.saveVariantsToLocalStorage();
 
     this.activeVariantIndex = index;
 
