@@ -432,6 +432,26 @@ const app = {
     }
   },
 
+  validatePasswordFormatLive() {
+    const passInput = document.getElementById('senderPassword');
+    const hint = document.getElementById('passFormatHint');
+    if (!passInput || !hint) return;
+    const raw = passInput.value.trim();
+    if (!raw) {
+      hint.style.display = 'none';
+      return;
+    }
+    const clean = raw.replace(/[\s\-_]/g, '');
+    hint.style.display = 'block';
+    if (clean.length === 16 && /^[a-zA-Z]+$/.test(clean)) {
+      hint.innerHTML = '<span style="color: #059669; font-weight: 600;">✓ 16-Letter App Password format detected</span>';
+    } else if (clean.length < 16 && /^[a-zA-Z]+$/.test(clean)) {
+      hint.innerHTML = `<span style="color: #d97706; font-weight: 600;">⚠️ ${clean.length}/16 letters entered (Google App Passwords are 16 letters)</span>`;
+    } else {
+      hint.innerHTML = '<span style="color: #dc2626; font-weight: 600;">⚠️ Standard password detected. Google SMTP requires a 16-letter App Password from myaccount.google.com/apppasswords</span>';
+    }
+  },
+
   // ==========================================================
   // REAL-TIME EMAIL OPEN TRACKER & NOTIFICATION ENGINE
   // ==========================================================
@@ -2359,6 +2379,7 @@ const app = {
 
     this.renderAccountSwitcherDropdown();
     this.renderAccountsManagerTable();
+    this.validatePasswordFormatLive();
     this.updateDesktopLivePreview();
     this.runDeliverabilityAudit(acc.email);
   },
