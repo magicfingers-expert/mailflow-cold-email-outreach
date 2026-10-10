@@ -1,6 +1,5 @@
 const express = require('express');
 const cors = require('cors');
-const fs = require('fs');
 const path = require('path');
 require('dotenv').config();
 
@@ -10,6 +9,7 @@ const QueueService = require('./services/queueService');
 const InboxService = require('./services/inboxService');
 const bounceService = require('./services/bounceService');
 const deliverabilityService = require('./services/deliverabilityService');
+const storage = require('./services/storageService');
 
 // Global error handlers to prevent crashes from transient socket resets (e.g. ECONNRESET)
 process.on('uncaughtException', (err) => {
@@ -34,6 +34,7 @@ const queueService = new QueueService(emailService);
 const inboxService = new InboxService(emailService, queueService);
 
 const DRAFTS_FILE = path.join(__dirname, 'data', 'drafts.json');
+const VARIANTS_FILE = path.join(__dirname, 'data', 'saved_variants.json');
 
 // Transparent 1x1 GIF Buffer for Open Tracking
 const PIXEL_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAAAIBRAA7', 'base64');
@@ -82,9 +83,7 @@ app.post('/api/track/simulate-open', (req, res) => {
   res.json({ success: true, openEvent: event });
 });
 
-// ---------------- OUTREACH MESSAGE VARIANTS & TEMPLATES (1-5) ----------------
-
-const VARIANTS_FILE = path.join(__dirname, 'data', 'saved_variants.json');
+// ---------------- OUTREACH MESSAGE VARIANTS (1-5 BLANK SLATE) ----------------
 
 const DEFAULT_MESSAGE_VARIANTS = [
   { subject: "", message: "" },
@@ -94,50 +93,23 @@ const DEFAULT_MESSAGE_VARIANTS = [
   { subject: "", message: "" }
 ];
 
-const SAMPLE_OUTREACH_TEMPLATES = [
-  {
-    subject: "{quick question|quick thought|intro|hey}",
-    message: "{Hi|Hey|Hello} {{name}},\n\n{Quick question for you — wanted to reach out regarding your recent work.|I came across your profile and wanted to reach out with a quick note.|Just wanted to reach out directly with a brief question.}\n\n{Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be free for a brief chat this week.}\n\n{Best|Thanks|Best regards},\n{{senderName}}"
-  },
-  {
-    subject: "{question regarding your workflow|quick inquiry for {{name}}|workflow question}",
-    message: "{Hi|Hello|Hey} {{name}},\n\n{I was exploring your work recently and wanted to see how you are currently handling your workflows this quarter.|Hope you are having a productive week — wanted to ask a quick question about your current operations.}\n\n{We recently built a simple workflow system that helps save several hours each week. Would you be open to seeing a 1-minute breakdown?|If you're interested, happy to share a brief note on how we help similar teams.}\n\n{Cheers|Warmly|Regards},\n{{senderName}}"
-  },
-  {
-    subject: "{quick intro|connecting briefly|reaching out to {{name}}}",
-    message: "{Hey|Hi} {{name}},\n\n{Are you currently taking on new projects or clients this month?|Just checking in to see if you have any availability for new collaboration this month.}\n\n{If so, let me know when might be a convenient time to connect briefly.|Let me know if you'd be open to a brief exchange.}\n\n{Best|Thanks|All the best},\n{{senderName}}"
-  },
-  {
-    subject: "{quick question for {{name}}|seeking your perspective|brief question}",
-    message: "{Hi|Hello} {{name}},\n\n{I came across your recent work and really admired what you and the team are building.|I've been following your work and wanted to ask a quick question.}\n\n{Would you be open to a quick 2-minute exchange to share perspectives sometime this week?|Are you open to exploring new ways to streamline your communication?}\n\n{Best regards|Thanks|Warm regards},\n{{senderName}}"
-  },
-  {
-    subject: "{hello from {{senderFirstName}}|checking in with {{name}}|quick hello}",
-    message: "{Hey|Hi|Hello} {{name}},\n\n{Hope everything is going smoothly with you.|Wanted to drop a quick personal note to see how things are going this quarter.}\n\n{If you're open to a brief discussion, let me know what day works best for you.|Feel free to let me know if you'd like to chat briefly.}\n\n{Have a great week|Best|Warmly},\n{{senderName}}"
-  }
-];
-
 function getSavedVariants() {
-  if (fs.existsSync(VARIANTS_FILE)) {
-    try {
-      const data = JSON.parse(fs.readFileSync(VARIANTS_FILE, 'utf8'));
-      if (Array.isArray(data) && data.length > 0) return data;
-    } catch (e) {}
+  const data = storage.readJSON(VARIANTS_FILE, null);
+  if (Array.isArray(data) && data.length >= 5) {
+    const hasOldSample = data.some(v => 
+      (v?.subject && v.subject.includes('{quick question')) ||
+      (v?.message && (v.message.includes('discussing new opportunities') || v.message.includes('Quick question for you')))
+    );
+    if (!hasOldSample) return data;
   }
   return DEFAULT_MESSAGE_VARIANTS;
 }
 
 function saveVariantsToFile(variants) {
-  try {
-    fs.writeFileSync(VARIANTS_FILE, JSON.stringify(variants, null, 2), 'utf8');
-    return true;
-  } catch (e) {
-    console.error('Error saving variants file:', e.message);
-    return false;
-  }
+  return storage.writeJSON(VARIANTS_FILE, variants);
 }
 
-// Get saved message variants
+// Get saved message variants (clean blank by default)
 app.get('/api/variants', (req, res) => {
   const variants = getSavedVariants();
   res.json({ success: true, variants });
@@ -153,15 +125,15 @@ app.post('/api/variants', (req, res) => {
   res.status(400).json({ success: false, error: 'Invalid variants data' });
 });
 
-// Reset variants to default
+// Reset variants to clean blank state
 app.post('/api/variants/reset', (req, res) => {
   saveVariantsToFile(DEFAULT_MESSAGE_VARIANTS);
-  res.json({ success: true, variants: DEFAULT_MESSAGE_VARIANTS, message: 'Variants reset to defaults' });
+  res.json({ success: true, variants: DEFAULT_MESSAGE_VARIANTS, message: 'Variants reset to blank slots' });
 });
 
-// Get pre-built sample templates on-demand
+// Deprecated templates endpoint - returns empty array
 app.get('/api/variants/sample-templates', (req, res) => {
-  res.json({ success: true, templates: SAMPLE_OUTREACH_TEMPLATES });
+  res.json({ success: true, templates: [] });
 });
 
 // Save a single message variant by index (0-4)
@@ -180,11 +152,7 @@ app.post('/api/variants/:index', (req, res) => {
   res.status(400).json({ success: false, error: 'Invalid variant index' });
 });
 
-// Compatibility route for /api/draft
-app.get('/api/draft', (req, res) => {
-  const variants = getSavedVariants();
-  res.json({ success: true, draft: variants[0] });
-});
+// Compatibility route for /api/draft - handled in the DRAFTS section below
 
 // ---------------- ACCOUNTS & MULTI-SENDER MANAGEMENT ----------------
 
@@ -644,24 +612,17 @@ app.post('/api/inbox/reply', async (req, res) => {
 // ---------------- DRAFTS ----------------
 
 app.get('/api/draft', (req, res) => {
-  let draft = {
-    subject: 'Partnership Opportunity',
-    message: 'Hi,\n\nI noticed your recent work and wanted to reach out regarding a potential collaboration.\nI would love to discuss how we can work together.\n\nBest regards'
-  };
-  if (fs.existsSync(DRAFTS_FILE)) {
-    try { draft = JSON.parse(fs.readFileSync(DRAFTS_FILE, 'utf8')); } catch (e) {}
-  }
-  res.json({ success: true, draft });
+  const variants = getSavedVariants();
+  const draft = storage.readJSON(DRAFTS_FILE, null);
+  if (draft && draft.subject) return res.json({ success: true, draft });
+  res.json({ success: true, draft: variants[0] || { subject: '', message: '' } });
 });
 
 app.post('/api/draft', (req, res) => {
   const { subject, message } = req.body;
-  try {
-    fs.writeFileSync(DRAFTS_FILE, JSON.stringify({ subject, message, updatedAt: new Date().toISOString() }, null, 2));
-    res.json({ success: true, message: 'Draft saved' });
-  } catch (e) {
-    res.status(500).json({ success: false, error: 'Failed to save draft' });
-  }
+  const draftData = { subject, message, updatedAt: new Date().toISOString() };
+  storage.writeJSON(DRAFTS_FILE, draftData);
+  res.json({ success: true, message: 'Draft saved' });
 });
 
 if (!process.env.VERCEL) {

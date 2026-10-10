@@ -1,9 +1,8 @@
 const nodemailer = require('nodemailer');
-const fs = require('fs');
 const path = require('path');
-const crypto = require('crypto');
 const securityService = require('./securityService');
 const deliverabilityService = require('./deliverabilityService');
+const storage = require('./storageService');
 
 const ACCOUNTS_FILE = path.join(__dirname, '..', 'data', 'accounts.json');
 
@@ -14,15 +13,10 @@ class EmailService {
   }
 
   loadAccounts() {
-    if (fs.existsSync(ACCOUNTS_FILE)) {
-      try {
-        this.accounts = JSON.parse(fs.readFileSync(ACCOUNTS_FILE, 'utf8'));
-      } catch (e) {
-        this.accounts = [];
-      }
-    }
-    
-    // Automatically encrypt any unencrypted plaintext passwords on disk
+    const data = storage.readJSON(ACCOUNTS_FILE, []);
+    this.accounts = Array.isArray(data) ? data : [];
+
+    // Automatically encrypt any unencrypted plaintext passwords
     let needsSave = false;
     this.accounts.forEach(acc => {
       if (acc.password && !acc.password.startsWith('enc:')) {
@@ -37,11 +31,7 @@ class EmailService {
   }
 
   saveAccounts() {
-    try {
-      fs.writeFileSync(ACCOUNTS_FILE, JSON.stringify(this.accounts, null, 2), 'utf8');
-    } catch (e) {
-      console.error('Error saving accounts.json:', e.message);
-    }
+    storage.writeJSON(ACCOUNTS_FILE, this.accounts);
   }
 
   // Safe accounts for frontend client consumption - NEVER exposes passwords
@@ -69,6 +59,10 @@ class EmailService {
     let email = String(raw).trim().toLowerCase();
     if (email.endsWith('@gmail')) {
       email = email + '.com';
+    }
+    // If username is entered without domain, default to gmail.com
+    if (!email.includes('@')) {
+      email = email + '@gmail.com';
     }
     return email;
   }
@@ -143,12 +137,16 @@ class EmailService {
 
   cleanPassword(rawPass) {
     if (!rawPass) return '';
-    const str = String(rawPass)
-      .replace(/[\s\u200B-\u200D\uFEFF\r\n\t]/g, '')
+    let str = String(rawPass)
+      .replace(/[\s\u200B-\u200D\uFEFF\r\n\t\-]/g, '') // remove whitespace, zero-width chars, hyphens
       .replace(/^["']|["']$/g, '')
       .trim();
     if (str.includes('•') || str.includes('*') || /^(\u2022|\*)+$/.test(str)) {
       return '';
+    }
+    // Google App Passwords are 16 lowercase ASCII letters
+    if (str.length === 16 && /^[a-zA-Z]+$/.test(str)) {
+      str = str.toLowerCase();
     }
     return str;
   }
@@ -280,7 +278,7 @@ class EmailService {
       
       let cause = 'Google rejected credentials';
       if (errMsg.includes('535') || errMsg.includes('BadCredentials') || errMsg.includes('Username and Password not accepted')) {
-        cause = 'Google BadCredentials: App Password not recognized. Ensure 2-Step Verification is active on this specific account at myaccount.google.com/security and generate a 16-letter App Password at myaccount.google.com/apppasswords.';
+        cause = 'Google BadCredentials (535): App Password rejected. Check: 1) Verify the App Password was generated for ' + cleanEmail + ' (not another Google account in Chrome), 2) Check Gmail for a "Sign-in attempt blocked" alert and approve it, 3) Visit https://accounts.google.com/DisplayUnlockCaptcha to unblock, 4) Ensure IMAP is enabled in Gmail settings.';
       } else if (errMsg.includes('ECONNREFUSED') || errMsg.includes('ETIMEDOUT') || errMsg.includes('ENOTFOUND')) {
         cause = `Connection to ${targetHost} timed out or was blocked by firewall.`;
       }
@@ -432,7 +430,7 @@ class EmailService {
       throw new Error(`Invalid recipient address: ${to}`);
     }
 
-    const cleanSender = (senderEmail || '').trim().toLowerCase();
+    const cleanSender = this.cleanEmail(senderEmail);
     let cleanPass = this.cleanPassword(senderPassword);
 
     if (!cleanPass) {

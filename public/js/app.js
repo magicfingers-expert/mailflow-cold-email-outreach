@@ -56,26 +56,11 @@ const app = {
 
   activeVariantIndex: 0,
   messageVariants: [
-    {
-      subject: "{quick question|quick thought|intro|hey}",
-      message: "{Hi|Hey|Hello} {{email}},\n\n{Quick question for you — are you open to discussing new opportunities this month?|I came across your profile and wanted to reach out with a brief question.|Just wanted to reach out directly with a quick note.}\n\n{Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be free for a brief 2-minute call this week.}\n\n{Best|Thanks|Best regards},\nTeam"
-    },
-    {
-      subject: "{question regarding your workflow|quick inquiry for {{email}}|partnership inquiry}",
-      message: "{Hi|Hello|Hey} {{email}},\n\n{I was exploring your work recently and wanted to see how you are currently handling client acquisition this quarter.|Hope you are having a productive week — wanted to ask a quick question about your current operations.}\n\n{We recently built a system that helps streamline outreach seamlessly. Would you be open to seeing a 1-minute breakdown?|If you're interested, happy to share a brief note on how we help similar teams.}\n\n{Cheers|Warmly|Regards},\nTeam"
-    },
-    {
-      subject: "{quick intro|connecting briefly|reaching out to {{email}}}",
-      message: "{Hey|Hi} {{email}},\n\n{Are you currently taking on new projects or clients this month?|Just checking in to see if you have any availability for new collaboration this month.}\n\n{If so, let me know when might be a convenient time to connect briefly.|Let me know if you'd be open to a brief exchange.}\n\n{Best|Thanks|All the best},\nTeam"
-    },
-    {
-      subject: "{quick question for {{email}}|seeking your perspective|brief question}",
-      message: "{Hi|Hello} {{email}},\n\n{I came across your recent work and really admired what you are building.|I've been following your progress and wanted to ask a quick question.}\n\n{Are you open to exploring fresh ways to scale your outreach without ending up in spam?|Would you be open to a 2-minute chat to share perspectives?}\n\n{Best regards|Thanks|Warm regards},\nTeam"
-    },
-    {
-      subject: "{quick hello|checking in with {{email}}|brief intro}",
-      message: "{Hey|Hi|Hello} {{email}},\n\n{Hope everything is going smoothly with you.|Wanted to drop a quick personal note to see if you are exploring new growth channels this quarter.}\n\n{If you're open to a 2-minute discussion, let me know what day works best for you.|Feel free to let me know if you'd like to chat briefly.}\n\n{Have a great week|Best|Warmly},\nTeam"
-    }
+    { subject: "", message: "" },
+    { subject: "", message: "" },
+    { subject: "", message: "" },
+    { subject: "", message: "" },
+    { subject: "", message: "" }
   ],
 
   deliverabilityAudit: null,
@@ -1424,9 +1409,11 @@ const app = {
           type: 'campaign',
           id: c.id,
           senderEmail: c.senderEmail || 'Sender',
-          toText: `${c.stats ? c.stats.totalLeads : (c.recipients ? c.recipients.length : 0)} Leads`,
+          toText: `${c.totalRecipients || (c.recipients ? c.recipients.length : 0)} Leads`,
           subject: c.subject || 'Outreach Campaign',
-          opens: c.stats ? (c.stats.opened || 0) : 0,
+          opens: c.openCount || 0,
+          sentCount: c.sentCount || 0,
+          failedCount: c.failedCount || 0,
           status: c.status || 'Completed',
           date: c.createdAt || new Date().toISOString(),
           raw: c
@@ -1454,8 +1441,8 @@ const app = {
       let totalLeads = 0;
       let totalOpens = 0;
       campaigns.forEach(c => {
-        totalLeads += (c.stats ? c.stats.totalLeads : (c.recipients ? c.recipients.length : 0));
-        totalOpens += (c.stats ? (c.stats.opened || 0) : 0);
+        totalLeads += c.totalRecipients || (c.recipients ? c.recipients.length : 0);
+        totalOpens += c.openCount || 0;
       });
       totalLeads += directSent.length;
 
@@ -2553,13 +2540,35 @@ const app = {
 
   variantAutoSaveTimer: null,
 
+  isSampleOutreachTemplate(variants) {
+    if (!Array.isArray(variants)) return false;
+    const sampleSnippets = [
+      'quick question', 'quick thought', 'quick inquiry',
+      'workflow question', 'quick intro', 'connecting briefly',
+      'seeking your perspective', 'hello from', 'checking in with',
+      'quick question for you', 'discussing new opportunities',
+      'handling your workflows', 'taking on new projects',
+      'streamline your communication', 'drop a quick personal note',
+      'would you be open to a quick', 'save several hours each week'
+    ];
+    return variants.some(v => {
+      const s = (v?.subject || '').toLowerCase();
+      const m = (v?.message || '').toLowerCase();
+      return sampleSnippets.some(snip => s.includes(snip) || m.includes(snip));
+    });
+  },
+
   async loadMessageVariants() {
-    // 1. Check local storage first - NEVER overwrite user's saved outreach on browser restart
+    // 1. Check local storage first
     try {
       const local = localStorage.getItem('mailflow_message_variants');
       if (local) {
         const parsed = JSON.parse(local);
-        if (Array.isArray(parsed) && parsed.length >= 5) {
+        // If it contains any pre-filled sample templates, purge it immediately
+        if (this.isSampleOutreachTemplate(parsed)) {
+          localStorage.removeItem('mailflow_message_variants');
+          localStorage.removeItem('mailflow_message_variants_user_saved');
+        } else if (Array.isArray(parsed) && parsed.length >= 5 && localStorage.getItem('mailflow_message_variants_user_saved') === 'true') {
           this.messageVariants = parsed;
           this.switchVariantTab(this.activeVariantIndex || 0);
           return;
@@ -2567,7 +2576,24 @@ const app = {
       }
     } catch (e) {}
 
-    // 2. Default: 5 Clean Empty Message Slots (blank slate as requested)
+    // 2. Fetch from server (persisted variants)
+    try {
+      const res = await fetch('/api/variants');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.variants)) {
+        if (this.isSampleOutreachTemplate(data.variants)) {
+          // If server still has old samples, reset server to clean empty slots
+          fetch('/api/variants/reset', { method: 'POST' }).catch(() => {});
+        } else if (data.variants.some(v => v.subject || v.message) && localStorage.getItem('mailflow_message_variants_user_saved') === 'true') {
+          this.messageVariants = data.variants;
+          this.saveVariantsToLocalStorage();
+          this.switchVariantTab(this.activeVariantIndex || 0);
+          return;
+        }
+      }
+    } catch (e) {}
+
+    // 3. Default: 5 Clean Empty Message Slots (blank slate as explicitly requested)
     this.messageVariants = [
       { subject: '', message: '' },
       { subject: '', message: '' },
@@ -2580,6 +2606,21 @@ const app = {
     this.switchVariantTab(0);
   },
 
+  async _syncVariantsFromServer() {
+    try {
+      const res = await fetch('/api/variants');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.variants) && !this.isSampleOutreachTemplate(data.variants)) {
+        const localEmpty = !this.messageVariants.some(v => v.subject || v.message);
+        if (localEmpty && localStorage.getItem('mailflow_message_variants_user_saved') === 'true') {
+          this.messageVariants = data.variants;
+          this.saveVariantsToLocalStorage();
+          this.switchVariantTab(this.activeVariantIndex || 0);
+        }
+      }
+    } catch (e) {}
+  },
+
   clearAllMessageVariants() {
     if (!confirm('Are you sure you want to clear all 5 message subjects and bodies?')) return;
     this.messageVariants = [
@@ -2589,9 +2630,17 @@ const app = {
       { subject: '', message: '' },
       { subject: '', message: '' }
     ];
+    localStorage.removeItem('mailflow_message_variants_user_saved');
     this.saveVariantsToLocalStorage();
     this.switchVariantTab(this.activeVariantIndex || 0);
-    this.showToast('✓ All 5 message variants cleared.');
+    try {
+      fetch('/api/variants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ variants: this.messageVariants })
+      });
+    } catch (e) {}
+    this.showToast('✓ All 5 message variants cleared to empty state.');
   },
 
   saveVariantsToLocalStorage() {
@@ -2624,6 +2673,7 @@ const app = {
 
     this.messageVariants[idx].subject = subj;
     this.messageVariants[idx].message = msg;
+    localStorage.setItem('mailflow_message_variants_user_saved', 'true');
     this.saveVariantsToLocalStorage();
 
     this.setVariantSaveStatus('Saving...', 'inprogress');
@@ -2655,6 +2705,7 @@ const app = {
     if (curSubj !== undefined && this.messageVariants[idx]) this.messageVariants[idx].subject = curSubj;
     if (curMsg !== undefined && this.messageVariants[idx]) this.messageVariants[idx].message = curMsg;
 
+    localStorage.setItem('mailflow_message_variants_user_saved', 'true');
     this.saveVariantsToLocalStorage();
     this.setVariantSaveStatus('Saving All...', 'inprogress');
 
@@ -2750,39 +2801,7 @@ const app = {
     this.updateDesktopLivePreview();
   },
 
-  async populateAll5MessageVariants() {
-    this.messageVariants = [
-      {
-        subject: "{quick question|quick thought|intro|hey}",
-        message: `{Hi|Hey|Hello} {{name}},\n\n{Quick question for you — wanted to reach out regarding your recent work.|I came across your profile and wanted to reach out with a quick note.|Just wanted to reach out directly with a brief question.}\n\n{Would you be open to a quick 2-minute chat sometime this week?|Let me know if you might be free for a brief chat this week.}\n\n{Best|Thanks|Best regards},\n{{senderName}}`
-      },
-      {
-        subject: "{question regarding your workflow|quick inquiry for {{name}}|workflow question}",
-        message: `{Hi|Hello|Hey} {{name}},\n\n{I was exploring your work recently and wanted to see how you are currently handling your workflows this quarter.|Hope you are having a productive week — wanted to ask a quick question about your current operations.}\n\n{We recently built a simple workflow system that helps save several hours each week. Would you be open to seeing a 1-minute breakdown?|If you're interested, happy to share a brief note on how we help similar teams.}\n\n{Cheers|Warmly|Regards},\n{{senderName}}`
-      },
-      {
-        subject: "{quick intro|connecting briefly|reaching out to {{name}}}",
-        message: `{Hey|Hi} {{name}},\n\n{Are you currently taking on new projects or clients this month?|Just checking in to see if you have any availability for new collaboration this month.}\n\n{If so, let me know when might be a convenient time to connect briefly.|Let me know if you'd be open to a brief exchange.}\n\n{Best|Thanks|All the best},\n{{senderName}}`
-      },
-      {
-        subject: "{quick question for {{name}}|seeking your perspective|brief question}",
-        message: `{Hi|Hello} {{name}},\n\n{I came across your recent work and really admired what you and the team are building.|I've been following your work and wanted to ask a quick question.}\n\n{Would you be open to a quick 2-minute exchange to share perspectives sometime this week?|Are you open to exploring new ways to streamline your communication?}\n\n{Best regards|Thanks|Warm regards},\n{{senderName}}`
-      },
-      {
-        subject: "{hello from {{senderFirstName}}|checking in with {{name}}|quick hello}",
-        message: `{Hey|Hi|Hello} {{name}},\n\n{Hope everything is going smoothly with you.|Wanted to drop a quick personal note to see how things are going this quarter.}\n\n{If you're open to a brief discussion, let me know what day works best for you.|Feel free to let me know if you'd like to chat briefly.}\n\n{Have a great week|Best|Warmly},\n{{senderName}}`
-      }
-    ];
-
-    await this.saveAllMessageVariants();
-    this.switchVariantTab(this.activeVariantIndex || 0);
-    this.analyzeSpamScoreLive();
-    this.updateDesktopLivePreview();
-    this.showToast('🎲 5 Sample Outreach Templates Populated!');
-  },
-
   autoOptimizeSpamDeliverability() {
-    this.populateAll5MessageVariants();
     const chkStealth = document.getElementById('chkStealthMode');
     const chkJitter = document.getElementById('chkJitterDelay');
     const delaySelect = document.getElementById('sendingDelaySelect');
@@ -2795,7 +2814,7 @@ const app = {
     this.runDeliverabilityAudit();
     this.analyzeSpamScoreLive();
     this.updateDesktopLivePreview();
-    this.showToast('✨ 100% Primary Inbox Shield Activated! Stealth Mode, Jitter Pacing & 5 Variants Active.');
+    this.showToast('✨ 100% Primary Inbox Shield Activated! Stealth Mode & Jitter Pacing Active.');
   },
 
   insertSpintaxSample() {
@@ -2920,11 +2939,11 @@ const app = {
       }
     }
 
-    const curSubj = document.getElementById('emailSubject')?.value || (this.messageVariants[this.activeVariantIndex]?.subject) || '{quick question|intro}';
-    const curMsg = document.getElementById('emailMessage')?.value || (this.messageVariants[this.activeVariantIndex]?.message) || 'Hi {{email}},\n\nWanted to connect.\n\nBest,\nTeam';
+    const curSubj = document.getElementById('emailSubject')?.value || (this.messageVariants[this.activeVariantIndex]?.subject) || '';
+    const curMsg = document.getElementById('emailMessage')?.value || (this.messageVariants[this.activeVariantIndex]?.message) || '';
 
-    const processedSubject = this.processSpintax(curSubj, targetRecipient);
-    const processedBody = this.processSpintax(curMsg, targetRecipient);
+    const processedSubject = curSubj ? this.processSpintax(curSubj, targetRecipient) : '';
+    const processedBody = curMsg ? this.processSpintax(curMsg, targetRecipient) : '';
 
     const fromValEl = document.getElementById('previewFromVal');
     const toValEl = document.getElementById('previewToVal');
@@ -2936,8 +2955,8 @@ const app = {
 
     if (fromValEl) fromValEl.innerText = `${senderName} <${senderEmail}>`;
     if (toValEl) toValEl.innerText = targetRecipient;
-    if (subjValEl) subjValEl.innerText = processedSubject;
-    if (bodyValEl) bodyValEl.innerText = processedBody;
+    if (subjValEl) subjValEl.innerText = processedSubject || '(No subject entered)';
+    if (bodyValEl) bodyValEl.innerText = processedBody || '(No message body entered yet)';
     if (variantTagEl) variantTagEl.innerText = `Message ${this.activeVariantIndex + 1} Active`;
 
     const leadCount = this.parsedValidation?.allowedCount || 0;
@@ -3371,8 +3390,8 @@ const app = {
 
     const senderName = document.getElementById('senderDisplayName')?.value.trim() || activeAcc?.name || senderEmail.split('@')[0];
     const testRecipient = document.getElementById('testRecipientEmail')?.value.trim();
-    const subject = document.getElementById('emailSubject')?.value.trim() || '{quick question|intro}';
-    const message = document.getElementById('emailMessage')?.value.trim() || 'Hi,\n\nWanted to reach out with a quick question.\n\nBest,\nTeam';
+    const subject = document.getElementById('emailSubject')?.value.trim() || 'Test Outreach Dispatch';
+    const message = document.getElementById('emailMessage')?.value.trim() || 'Hi,\n\nThis is a direct test outreach message from MailFlow.\n\nBest,\n' + senderName;
     const plainTextOnly = document.getElementById('chkStealthMode') ? document.getElementById('chkStealthMode').checked : true;
     const btn = document.getElementById('btnExecuteTestSend');
 
@@ -3698,6 +3717,10 @@ lead10@businesspartner.com`;
         this.activeCampaignId = data.campaignId;
         this.showSendingView(data);
         this.startStatusPolling(data.campaignId);
+        // Show Vercel serverless notice if returned from backend
+        if (data.serverlessWarning) {
+          setTimeout(() => this.showToast('ℹ️ ' + data.serverlessWarning, 'info'), 1500);
+        }
       } else {
         alert(data.error || 'Failed to start campaign');
       }
@@ -4294,8 +4317,24 @@ lead10@businesspartner.com`;
       'deliverability': 'Google Postmaster & DNS Deliverability Shield'
     };
 
+    const breadcrumbTitles = {
+      'composer': 'Campaign Studio',
+      'all-inbox': 'All Inbox Engine',
+      'primary-inbox': 'Primary Active Inbox',
+      'sent': 'Sent Outreach Log',
+      'spam': 'Spam Rescue Center',
+      'bounces': 'Bounced Leads & Shield',
+      'tracker': 'Live Open Telemetry Feed',
+      'accounts': 'Sender Mailboxes',
+      'guide': 'App Password Assistant',
+      'deliverability': 'DNS & Postmaster Shield'
+    };
+
     const titleEl = document.getElementById('pageTitle');
     if (titleEl && titles[tabId]) titleEl.innerText = titles[tabId];
+
+    const breadcrumbEl = document.getElementById('pageBreadcrumb');
+    if (breadcrumbEl && breadcrumbTitles[tabId]) breadcrumbEl.innerText = breadcrumbTitles[tabId];
 
     const sidebar = document.getElementById('sidebar');
     const backdrop = document.getElementById('mobileBackdrop');
@@ -4343,12 +4382,14 @@ lead10@businesspartner.com`;
     if (!toast) return;
     toast.innerText = message;
     if (type === 'danger') toast.style.background = '#dc2626';
+    else if (type === 'info') toast.style.background = '#1d4ed8';
     else toast.style.background = '#1c1917';
     toast.style.display = 'block';
 
+    const duration = type === 'info' ? 5000 : 3500;
     setTimeout(() => {
       toast.style.display = 'none';
-    }, 3500);
+    }, duration);
   },
 
   escapeHtml(str) {

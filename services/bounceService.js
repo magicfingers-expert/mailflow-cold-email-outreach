@@ -1,5 +1,5 @@
-const fs = require('fs');
 const path = require('path');
+const storage = require('./storageService');
 
 const BOUNCES_FILE = path.join(__dirname, '..', 'data', 'bounces.json');
 const SUPPRESSION_FILE = path.join(__dirname, '..', 'data', 'suppression.json');
@@ -13,42 +13,23 @@ class BounceService {
   }
 
   loadBounces() {
-    if (fs.existsSync(BOUNCES_FILE)) {
-      try {
-        this.bounces = JSON.parse(fs.readFileSync(BOUNCES_FILE, 'utf8'));
-      } catch (e) {
-        this.bounces = [];
-      }
-    }
+    const data = storage.readJSON(BOUNCES_FILE, []);
+    this.bounces = Array.isArray(data) ? data : [];
   }
 
   saveBounces() {
-    try {
-      fs.writeFileSync(BOUNCES_FILE, JSON.stringify(this.bounces, null, 2), 'utf8');
-    } catch (e) {
-      console.error('Error saving bounces.json:', e.message);
-    }
+    storage.writeJSON(BOUNCES_FILE, this.bounces);
   }
 
   loadSuppression() {
-    if (fs.existsSync(SUPPRESSION_FILE)) {
-      try {
-        const list = JSON.parse(fs.readFileSync(SUPPRESSION_FILE, 'utf8'));
-        if (Array.isArray(list)) {
-          list.forEach(em => this.suppressionList.add(em.toLowerCase().trim()));
-        }
-      } catch (e) {
-        this.suppressionList = new Set();
-      }
+    const list = storage.readJSON(SUPPRESSION_FILE, []);
+    if (Array.isArray(list)) {
+      list.forEach(em => this.suppressionList.add(em.toLowerCase().trim()));
     }
   }
 
   saveSuppression() {
-    try {
-      fs.writeFileSync(SUPPRESSION_FILE, JSON.stringify(Array.from(this.suppressionList), null, 2), 'utf8');
-    } catch (e) {
-      console.error('Error saving suppression.json:', e.message);
-    }
+    storage.writeJSON(SUPPRESSION_FILE, Array.from(this.suppressionList));
   }
 
   isSuppressed(email) {

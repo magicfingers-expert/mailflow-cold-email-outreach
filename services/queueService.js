@@ -1,7 +1,7 @@
-const fs = require('fs');
 const path = require('path');
 const EmailValidator = require('./emailValidator');
 const bounceService = require('./bounceService');
+const storage = require('./storageService');
 
 const CAMPAIGNS_FILE = path.join(__dirname, '..', 'data', 'campaigns.json');
 const OPEN_EVENTS_FILE = path.join(__dirname, '..', 'data', 'open_events.json');
@@ -17,39 +17,21 @@ class QueueService {
   }
 
   loadCampaigns() {
-    if (fs.existsSync(CAMPAIGNS_FILE)) {
-      try {
-        this.campaigns = JSON.parse(fs.readFileSync(CAMPAIGNS_FILE, 'utf8'));
-      } catch (e) {
-        this.campaigns = [];
-      }
-    }
+    const data = storage.readJSON(CAMPAIGNS_FILE, []);
+    this.campaigns = Array.isArray(data) ? data : [];
   }
 
   saveCampaigns() {
-    try {
-      fs.writeFileSync(CAMPAIGNS_FILE, JSON.stringify(this.campaigns, null, 2), 'utf8');
-    } catch (e) {
-      console.error('Error saving campaigns.json:', e.message);
-    }
+    storage.writeJSON(CAMPAIGNS_FILE, this.campaigns);
   }
 
   loadOpenEvents() {
-    if (fs.existsSync(OPEN_EVENTS_FILE)) {
-      try {
-        this.recentOpens = JSON.parse(fs.readFileSync(OPEN_EVENTS_FILE, 'utf8'));
-      } catch (e) {
-        this.recentOpens = [];
-      }
-    }
+    const data = storage.readJSON(OPEN_EVENTS_FILE, []);
+    this.recentOpens = Array.isArray(data) ? data : [];
   }
 
   saveOpenEvents() {
-    try {
-      fs.writeFileSync(OPEN_EVENTS_FILE, JSON.stringify(this.recentOpens.slice(0, 150), null, 2), 'utf8');
-    } catch (e) {
-      console.error('Error saving open_events.json:', e.message);
-    }
+    storage.writeJSON(OPEN_EVENTS_FILE, this.recentOpens.slice(0, 150));
   }
 
   // Register a test send tracking ID so it can trigger live open alerts
@@ -272,7 +254,11 @@ class QueueService {
       totalRecipients: recipientCount,
       senderEmail: campaign.senderEmail,
       delaySeconds: effectiveDelaySec,
-      variantCount: campaign.messageVariants.length
+      variantCount: campaign.messageVariants.length,
+      // Inform the client if running on Vercel where long campaigns may be interrupted
+      serverlessWarning: process.env.VERCEL
+        ? 'Running on Vercel serverless — the campaign processes directly. For best results with 10+ leads, send in smaller batches of 5-10 leads at a time.'
+        : null
     };
   }
 

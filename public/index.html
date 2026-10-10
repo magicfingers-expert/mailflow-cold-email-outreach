@@ -137,6 +137,7 @@
     <main class="main-content">
       
       <!-- Top Navigation Command Bar -->
+      <!-- Top Navigation Command Bar -->
       <header class="top-bar">
         <div class="top-bar-left">
           <button type="button" class="mobile-menu-btn mobile-only" onclick="app.toggleMobileMenu()" aria-label="Open navigation menu">
@@ -148,32 +149,32 @@
             <span class="mobile-brand-name">MailFlow</span>
           </div>
 
-          <!-- Desktop Breadcrumbs Navigation -->
-          <div class="desktop-breadcrumbs desktop-only">
-            <span class="bc-root" onclick="app.switchTab('composer')">MailFlow</span>
-            <span class="bc-sep">/</span>
-            <span class="bc-current" id="pageBreadcrumb">Campaign Studio</span>
+          <!-- Desktop Executive Breadcrumbs Navigation -->
+          <div class="top-nav-breadcrumbs desktop-only">
+            <span class="top-nav-brand-pill" onclick="app.switchTab('composer')">
+              <span class="top-nav-brand-dot"></span>
+              <span>MailFlow</span>
+            </span>
+            <span class="top-nav-slash">/</span>
+            <span class="top-nav-current" id="pageBreadcrumb">Campaign Studio</span>
+            <span class="top-nav-badge">PRO v3.2</span>
           </div>
         </div>
 
         <div class="top-bar-right">
-          <!-- Desktop Quick Test Action -->
-          <button type="button" class="btn btn-sm btn-secondary desktop-only" onclick="app.openTestSendModal()" style="font-size: 12.5px; font-weight: 600; padding: 6px 14px; display: flex; align-items: center; gap: 6px; border-radius: 20px;">
-            <span>✉️</span> Send Test Email
+          <!-- Unified Executive Telemetry Badge (Desktop) -->
+          <div class="top-telemetry-badge desktop-only" onclick="app.switchTab('deliverability')" title="Click to inspect Google Postmaster & DNS Deliverability audit">
+            <span class="telemetry-pulse-dot"></span>
+            <span class="telemetry-item">SYNC: <strong class="telemetry-accent" id="headerAutoSyncStatus">ACTIVE (8s)</strong></span>
+            <span class="telemetry-sep">•</span>
+            <span class="telemetry-item">🛡️ <strong class="telemetry-shield-status" id="headerDeliverabilityStatus">100% POSTMASTER</strong></span>
+          </div>
+
+          <!-- Quick Test Dispatch Action Button -->
+          <button type="button" class="top-btn-quick-test desktop-only" onclick="app.openTestSendModal()" title="Send quick test email to verify inbox arrival">
+            <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+            <span>Send Test Email</span>
           </button>
-
-          <!-- Real-Time Auto-Sync Background Status Indicator (Desktop) -->
-          <div class="header-badge-pill desktop-only" style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); background: #f0fdf4; padding: 5px 12px; border-radius: 20px; border: 1px solid #bbf7d0;">
-            <span class="live-stream-pulse" style="width: 8px; height: 8px; background: #10b981;" title="Auto-Sync Engine Continuously Running"></span>
-            <span style="font-weight: 600; color: #065f46;">Auto-Sync:</span>
-            <strong style="color: #059669;" id="headerAutoSyncStatus">Active (8s)</strong>
-          </div>
-
-          <!-- Live Deliverability Status Indicator (Desktop) -->
-          <div class="header-badge-pill desktop-only" onclick="app.switchTab('deliverability')" style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: var(--text-dim); background: #f0fdf4; padding: 5px 12px; border-radius: 20px; border: 1px solid #bbf7d0; cursor: pointer;" title="Click to view DNS &amp; Google Postmaster Tools deliverability report">
-            <span>🛡️ Postmaster Shield:</span>
-            <strong style="color: var(--status-success);" id="headerDeliverabilityStatus">100% Safe</strong>
-          </div>
 
           <!-- Mobile Deliverability Shield Icon Button -->
           <button type="button" class="mobile-shield-btn mobile-only" title="Click to view Postmaster &amp; DNS Deliverability" onclick="app.switchTab('deliverability')">
@@ -184,7 +185,7 @@
           <!-- Real-Time Top Notification Bell Icon with Dropdown -->
           <div class="header-notification-wrapper" style="position: relative;">
             <button type="button" class="header-notif-btn" id="btnTopNotifBell" onclick="app.toggleTopNotifDropdown()" title="Click to view leads who opened emails">
-              <span style="font-size: 18px; line-height: 1;">🔔</span>
+              <span style="font-size: 17px; line-height: 1;">🔔</span>
               <span class="header-notif-badge" id="topNotifCountBadge" style="display: none;">0</span>
             </button>
 
@@ -219,11 +220,14 @@
             </div>
           </div>
 
-          <!-- Top-right Account Quick Switcher Pill (Desktop) -->
-          <div class="header-connected-email desktop-only" id="headerMailboxWidget" onclick="app.openAddAccountModal()" style="cursor: pointer;" title="Click to manage sender accounts">
+          <!-- Top-right Account Quick Switcher Widget (Desktop) -->
+          <div class="top-account-widget desktop-only" id="headerMailboxWidget" onclick="app.openAddAccountModal()" style="cursor: pointer;" title="Click to manage sender accounts">
+            <div class="top-acc-avatar-wrap">👤</div>
+            <div class="top-acc-text-wrap">
+              <span class="top-acc-email-label" id="headerSenderEmail">Connect Sender Account</span>
+              <span class="top-acc-status-sub" id="headerSmtpBadge">○ Disconnected</span>
+            </div>
             <span class="status-dot disconnected" id="headerStatusDot"></span>
-            <span id="headerSenderEmail" style="font-weight: 600;">Connect Sender Account</span>
-            <span id="headerSmtpBadge" style="font-size: 11px; color: var(--text-dim); font-weight: 600;">○ Disconnected</span>
           </div>
 
           <!-- Mobile Sleek User Account Avatar Icon Button -->
@@ -362,6 +366,82 @@
 
           <!-- OUTREACH COMPOSER 2-COLUMN STUDIO -->
           <div class="new-campaign-container" id="composerContainer">
+
+            <!-- EXECUTIVE CAMPAIGN STUDIO HEADER (DESKTOP) -->
+            <div class="executive-studio-header desktop-only">
+              <div class="studio-header-top">
+                <div class="studio-header-meta">
+                  <span class="studio-live-beacon"></span>
+                  <span class="studio-kicker">ENTERPRISE OUTREACH PIPELINE</span>
+                  <span class="studio-kicker-dot">•</span>
+                  <span class="studio-kicker-spec">TLS 1.3 / 465 SSL</span>
+                  <span class="studio-kicker-dot">•</span>
+                  <span class="studio-kicker-spec">ORGANIC JITTER PACING</span>
+                </div>
+                <div class="studio-action-cluster">
+                  <button type="button" class="btn-studio-action btn-studio-opt" onclick="app.autoOptimizeSpamDeliverability()" title="Auto-tune deliverability settings for zero spam">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
+                    <span>Auto-Tune Zero Spam</span>
+                  </button>
+                  <button type="button" class="btn-studio-action btn-studio-test" onclick="app.openTestSendModal()" title="Send quick test email to verify delivery">
+                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                    <span>Quick Test Send</span>
+                  </button>
+                </div>
+              </div>
+
+              <div class="studio-title-area">
+                <h1 class="studio-title">Campaign Studio</h1>
+                <p class="studio-subtitle">
+                  Orchestrate multi-variant cold email sequences with stealth plain-text deliverability, anti-spam pacing, and real-time open alerts.
+                </p>
+              </div>
+
+              <!-- Telemetry HUD Cards -->
+              <div class="studio-hud-grid">
+                <div class="studio-hud-card">
+                  <div class="hud-icon-wrap hud-emerald">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  </div>
+                  <div class="hud-details">
+                    <div class="hud-label">POSTMASTER SHIELD</div>
+                    <div class="hud-val text-emerald">100% Primary Inbox Ready</div>
+                    <div class="hud-caption">SPF • DKIM • DMARC Enforced</div>
+                  </div>
+                </div>
+                <div class="studio-hud-card">
+                  <div class="hud-icon-wrap hud-green">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
+                  </div>
+                  <div class="hud-details">
+                    <div class="hud-label">ANTI-SPAM PACING</div>
+                    <div class="hud-val">15s–60s Organic Jitter</div>
+                    <div class="hud-caption">Human Sending Rhythm</div>
+                  </div>
+                </div>
+                <div class="studio-hud-card">
+                  <div class="hud-icon-wrap hud-sky">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
+                  </div>
+                  <div class="hud-details">
+                    <div class="hud-label">OPEN TELEMETRY</div>
+                    <div class="hud-val text-sky">Live Pixel &amp; Audio Chimes</div>
+                    <div class="hud-caption">Instant Read Notification</div>
+                  </div>
+                </div>
+                <div class="studio-hud-card">
+                  <div class="hud-icon-wrap hud-purple">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                  </div>
+                  <div class="hud-details">
+                    <div class="hud-label">MESSAGE ROTATION</div>
+                    <div class="hud-val text-purple">5 Blank Slots (Customizable)</div>
+                    <div class="hud-caption">Auto-Shuffled Per Lead</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
             <div class="desktop-studio-grid">
               
               <!-- LEFT MAIN WORKBENCH (Steps 1, 2, 3) -->
@@ -440,18 +520,20 @@
                     </div>
 
                     <!-- Inline Helpful Diagnostic Box -->
-                    <div id="authHelpBox" style="display: none; margin-top: 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 14px; font-size: 12.5px; color: #92400e; line-height: 1.6;">
-                      <div style="font-weight: 700; margin-bottom: 4px; font-size: 13px;">⚠️ Google App Password Troubleshooting</div>
-                      <p style="margin-bottom: 8px;">
-                        Google rejected credentials for this account.
-                      </p>
-                      <ol style="margin-left: 18px; margin-bottom: 12px;">
-                        <li>Ensure <strong>IMAP is Enabled</strong> at <a href="https://mail.google.com/mail/u/0/#settings/fwdandpop" target="_blank" style="color: var(--primary); font-weight: 600;">Gmail Settings &gt; POP/IMAP</a>.</li>
-                        <li>Ensure <strong>2-Step Verification</strong> is ON for <strong id="helpSenderEmail">your email</strong> at <a href="https://myaccount.google.com/security" target="_blank" style="color: var(--primary); font-weight: 600;">myaccount.google.com/security</a>.</li>
-                        <li>Generate an App Password at <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: var(--primary); font-weight: 600; text-decoration: underline;">myaccount.google.com/apppasswords</a>.</li>
+                    <div id="authHelpBox" style="display: none; margin-top: 14px; background: #fffbeb; border: 1px solid #fde68a; border-radius: var(--radius-sm); padding: 16px; font-size: 12.5px; color: #92400e; line-height: 1.6;">
+                      <div style="font-weight: 700; margin-bottom: 6px; font-size: 13.5px; display: flex; align-items: center; gap: 6px;">
+                        <span>⚠️</span> Google Rejected Credentials (535 BadCredentials) — Fix Checklist:
+                      </div>
+                      <ol style="margin-left: 18px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;">
+                        <li><strong>Account Mismatch Trap:</strong> If signed into multiple Google accounts in your browser, verify the avatar at top-right of <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: #b45309; font-weight: 700; text-decoration: underline;">App Passwords</a> matches <strong id="helpSenderEmail" style="color: #78350f;">your exact email</strong>.</li>
+                        <li><strong>Check Gmail for Blocked Login Alert:</strong> Open your Gmail inbox and look for <em>"Security alert: Sign-in attempt blocked"</em>. Tap <strong>"Yes, it was me"</strong> to whitelist this server.</li>
+                        <li><strong>Clear Google Security Hold:</strong> Visit <a href="https://accounts.google.com/DisplayUnlockCaptcha" target="_blank" style="color: #b45309; font-weight: 700; text-decoration: underline;">accounts.google.com/DisplayUnlockCaptcha</a> and click <strong>"Continue"</strong> to unlock access for 10 minutes.</li>
+                        <li><strong>Ensure IMAP is Enabled:</strong> In Gmail Settings &gt; Forwarding and POP/IMAP, select <strong>Enable IMAP</strong> and save changes.</li>
+                        <li><strong>Ensure 2-Step Verification is Active:</strong> App Passwords cannot authenticate if 2-Step Verification is turned off at <a href="https://myaccount.google.com/security" target="_blank" style="color: #b45309; font-weight: 600;">myaccount.google.com/security</a>.</li>
                       </ol>
-                      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap;">
-                        <a href="https://myaccount.google.com/apppasswords" target="_blank" class="btn btn-sm btn-primary">Generate Google App Password ↗</a>
+                      <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #fde68a;">
+                        <a href="https://accounts.google.com/DisplayUnlockCaptcha" target="_blank" class="btn btn-sm btn-primary" style="background: #d97706; border-color: #b45309;">🔓 Unlock Google Captcha (Instant Fix) ↗</a>
+                        <a href="https://myaccount.google.com/apppasswords" target="_blank" class="btn btn-sm btn-secondary">Generate App Password ↗</a>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="app.switchTab('guide')">View Guide &amp; FAQ</button>
                       </div>
                     </div>
@@ -531,17 +613,14 @@
                         <div style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">Automatically rotates across 5 unique outreach messages to prevent Google content hashing.</div>
                       </div>
                       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.populateAll5MessageVariants()" style="font-size: 11.5px; padding: 5px 12px;" title="Load 5 pre-built high-converting outreach templates">
-                          🎲 Auto-Fill Sample Templates
-                        </button>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.clearAllMessageVariants()" style="font-size: 11.5px; padding: 5px 12px; color: #dc2626;" title="Clear all 5 message subjects and bodies">
-                          🗑️ Clear All 5
-                        </button>
-                        <button type="button" class="btn btn-sm btn-primary" onclick="app.saveAllMessageVariants()" style="font-size: 11.5px; padding: 5px 12px; background: #059669; border-color: #059669; color: #ffffff;">
+                        <button type="button" class="btn btn-sm btn-primary" onclick="app.saveAllMessageVariants()" style="font-size: 11.5px; padding: 5px 14px; background: #059669; border-color: #059669; color: #ffffff; font-weight: 700;">
                           💾 Save All 5 Messages
                         </button>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.clearAllMessageVariants()" style="font-size: 11.5px; padding: 5px 12px; color: #dc2626;" title="Reset all 5 message subjects and bodies to blank">
+                          🗑️ Reset All to Blank
+                        </button>
                         <button type="button" class="btn btn-sm btn-secondary" onclick="app.autoOptimizeSpamDeliverability()" style="font-size: 11.5px; padding: 5px 12px;">
-                          ✨ 1-Click Anti-Spam Optimizer
+                          ✨ Anti-Spam Check
                         </button>
                       </div>
                     </div>
@@ -672,19 +751,12 @@
                     </div>
                     <div class="preview-meta-row">
                       <span class="preview-meta-label">Subject:</span>
-                      <span class="preview-meta-val bold-subject" id="previewSubjectVal">quick question</span>
+                      <span class="preview-meta-val bold-subject" id="previewSubjectVal" style="color: var(--text-dim); font-weight: 500;">(No subject entered)</span>
                     </div>
                   </div>
 
-                  <div class="preview-mockup-body" id="previewBodyVal">
-                    Hi lead1@example.com,
-
-Quick question for you — are you open to discussing new opportunities this month?
-
-Would you be open to a quick 2-minute chat sometime this week?
-
-Best,
-Team
+                  <div class="preview-mockup-body" id="previewBodyVal" style="color: var(--text-dim); font-style: italic;">
+                    (Your outreach message preview will appear here in real-time as you type in Step 3...)
                   </div>
 
                   <div class="preview-mockup-footer">

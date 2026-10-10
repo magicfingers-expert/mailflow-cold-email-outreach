@@ -1,8 +1,8 @@
 const { ImapFlow } = require('imapflow');
 const { simpleParser } = require('mailparser');
-const fs = require('fs');
 const path = require('path');
 const bounceService = require('./bounceService');
+const storage = require('./storageService');
 
 const INBOX_CACHE_FILE = path.join(__dirname, '..', 'data', 'inbox_cache.json');
 
@@ -15,7 +15,13 @@ class InboxService {
     this.lastSyncTime = null;
     this.autoSyncTimer = null;
     this.loadCache();
-    this.startBackgroundAutoSync(20000); // Automatically sync every 20 seconds
+
+    // Background auto-sync only makes sense in persistent server environments (local dev).
+    // On Vercel serverless, the process is frozen/terminated between requests, so
+    // setInterval never fires reliably. Skip it to avoid wasted connection attempts.
+    if (!process.env.VERCEL) {
+      this.startBackgroundAutoSync(20000);
+    }
   }
 
   startBackgroundAutoSync(intervalMs = 20000) {
@@ -37,21 +43,12 @@ class InboxService {
   }
 
   loadCache() {
-    if (fs.existsSync(INBOX_CACHE_FILE)) {
-      try {
-        this.messages = JSON.parse(fs.readFileSync(INBOX_CACHE_FILE, 'utf8'));
-      } catch (e) {
-        this.messages = [];
-      }
-    }
+    const data = storage.readJSON(INBOX_CACHE_FILE, []);
+    this.messages = Array.isArray(data) ? data : [];
   }
 
   saveCache() {
-    try {
-      fs.writeFileSync(INBOX_CACHE_FILE, JSON.stringify(this.messages, null, 2), 'utf8');
-    } catch (e) {
-      console.error('Error saving inbox_cache.json:', e.message);
-    }
+    storage.writeJSON(INBOX_CACHE_FILE, this.messages);
   }
 
   // Get filtered messages (by folder: INBOX, SPAM, SENT, or ALL; by account; by search)
