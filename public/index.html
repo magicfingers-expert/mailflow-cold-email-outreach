@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=5.6.0">
+  <link rel="stylesheet" href="css/style.css?v=5.7.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✉️</text></svg>">
 </head>
 <body>
@@ -477,16 +477,15 @@
                         <span>⚠️</span> Google Rejected Credentials (535 BadCredentials) — Fix Checklist:
                       </div>
                       <ol style="margin-left: 18px; margin-bottom: 12px; display: flex; flex-direction: column; gap: 6px;">
-                        <li><strong>Account Mismatch Trap:</strong> If signed into multiple Google accounts in your browser, verify the avatar at top-right of <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: #b45309; font-weight: 700; text-decoration: underline;">App Passwords</a> matches <strong id="helpSenderEmail" style="color: #78350f;">your exact email</strong>.</li>
-                        <li><strong>Check Gmail for Blocked Login Alert:</strong> Open your Gmail inbox and look for <em>"Security alert: Sign-in attempt blocked"</em>. Tap <strong>"Yes, it was me"</strong> to whitelist this server.</li>
-                        <li><strong>Clear Google Security Hold:</strong> Visit <a href="https://accounts.google.com/DisplayUnlockCaptcha" target="_blank" style="color: #b45309; font-weight: 700; text-decoration: underline;">accounts.google.com/DisplayUnlockCaptcha</a> and click <strong>"Continue"</strong> to unlock access for 10 minutes.</li>
-                        <li><strong>Ensure IMAP is Enabled:</strong> In Gmail Settings &gt; Forwarding and POP/IMAP, select <strong>Enable IMAP</strong> and save changes.</li>
-                        <li><strong>Ensure 2-Step Verification is Active:</strong> App Passwords cannot authenticate if 2-Step Verification is turned off at <a href="https://myaccount.google.com/security" target="_blank" style="color: #b45309; font-weight: 600;">myaccount.google.com/security</a>.</li>
+                        <li><strong>Account Mismatch Trap (Most Common):</strong> When opening <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: #b45309; font-weight: 700; text-decoration: underline;">App Passwords</a>, check the round profile avatar at the top-right of Google to ensure you are logged into <strong id="helpSenderEmail" style="color: #78350f;">your exact sender email</strong> (not your personal Gmail account).</li>
+                        <li><strong>16-Letter App Password:</strong> In <a href="https://myaccount.google.com/apppasswords" target="_blank" style="color: #b45309; font-weight: 700; text-decoration: underline;">Google App Passwords</a>, type "MailFlow" under app name, click <strong>Create</strong>, and copy the yellow 16-letter code. (Normal account passwords will NOT work because Google disabled basic authentication).</li>
+                        <li><strong>Enable IMAP in Gmail Settings:</strong> In Gmail, click ⚙️ Settings &gt; <em>See all settings</em> &gt; <strong>Forwarding and POP/IMAP</strong>, select <strong>Enable IMAP</strong>, and click <em>Save Changes</em>.</li>
+                        <li><strong>Ensure 2-Step Verification is Active:</strong> Google requires 2-Step Verification to be turned ON at <a href="https://myaccount.google.com/security" target="_blank" style="color: #b45309; font-weight: 600;">myaccount.google.com/security</a> before App Passwords can authenticate.</li>
                       </ol>
                       <div style="display: flex; gap: 10px; align-items: center; flex-wrap: wrap; margin-top: 10px; padding-top: 10px; border-top: 1px dashed #fde68a;">
-                        <a href="https://accounts.google.com/DisplayUnlockCaptcha" target="_blank" class="btn btn-sm btn-primary" style="background: #d97706; border-color: #b45309;">🔓 Unlock Google Captcha (Instant Fix) ↗</a>
-                        <a href="https://myaccount.google.com/apppasswords" target="_blank" class="btn btn-sm btn-secondary">Generate App Password ↗</a>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.switchTab('guide')">View Guide &amp; FAQ</button>
+                        <a href="https://myaccount.google.com/apppasswords" target="_blank" class="btn btn-sm btn-primary" style="background: #059669; border-color: #059669;">🔑 Open Google App Passwords ↗</a>
+                        <a href="https://myaccount.google.com/security" target="_blank" class="btn btn-sm btn-secondary">Check 2-Step Verification ↗</a>
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.switchTab('guide')">View Step-by-Step Guide</button>
                       </div>
                     </div>
 
@@ -1835,6 +1834,6 @@
   <!-- Toast Notification -->
   <div class="toast-box" id="toastBox">Notification message</div>
 
-  <script src="js/app.js?v=5.6.0"></script>
+  <script src="js/app.js?v=5.7.0"></script>
 </body>
 </html>

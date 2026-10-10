@@ -278,7 +278,7 @@ class EmailService {
       
       let cause = 'Google rejected credentials';
       if (errMsg.includes('535') || errMsg.includes('BadCredentials') || errMsg.includes('Username and Password not accepted')) {
-        cause = 'Google BadCredentials (535): App Password rejected. Check: 1) Verify the App Password was generated for ' + cleanEmail + ' (not another Google account in Chrome), 2) Check Gmail for a "Sign-in attempt blocked" alert and approve it, 3) Visit https://accounts.google.com/DisplayUnlockCaptcha to unblock, 4) Ensure IMAP is enabled in Gmail settings.';
+        cause = 'Google BadCredentials (535): App Password rejected. Check: 1) Verify the App Password was generated for ' + cleanEmail + ' (not another Google account in Chrome), 2) Check Gmail Settings > Forwarding and POP/IMAP > Enable IMAP, 3) Verify 2-Step Verification is active at myaccount.google.com/security.';
       } else if (errMsg.includes('ECONNREFUSED') || errMsg.includes('ETIMEDOUT') || errMsg.includes('ENOTFOUND')) {
         cause = `Connection to ${targetHost} timed out or was blocked by firewall.`;
       }
