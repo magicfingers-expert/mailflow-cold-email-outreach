@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=5.3.0">
+  <link rel="stylesheet" href="css/style.css?v=5.5.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✉️</text></svg>">
 </head>
 <body>
@@ -370,78 +370,27 @@
           <!-- OUTREACH COMPOSER 2-COLUMN STUDIO -->
           <div class="new-campaign-container" id="composerContainer">
 
-            <!-- EXECUTIVE CAMPAIGN STUDIO HEADER (DESKTOP) -->
-            <div class="executive-studio-header desktop-only">
-              <div class="studio-header-top">
-                <div class="studio-header-meta">
-                  <span class="studio-live-beacon"></span>
-                  <span class="studio-kicker">ENTERPRISE OUTREACH PIPELINE</span>
-                  <span class="studio-kicker-dot">•</span>
-                  <span class="studio-kicker-spec">TLS 1.3 / 465 SSL</span>
-                  <span class="studio-kicker-dot">•</span>
-                  <span class="studio-kicker-spec">ORGANIC JITTER PACING</span>
+            <!-- SLEEK MODERN HEADER (DESKTOP) -->
+            <div class="studio-header-clean desktop-only">
+              <div class="studio-header-left">
+                <div class="studio-badge-row">
+                  <span class="studio-status-dot"></span>
+                  <span class="studio-badge-title">Direct Outreach Engine</span>
+                  <span class="studio-badge-divider">•</span>
+                  <span class="studio-badge-spec">Anti-Spam Shuffler Active</span>
                 </div>
-                <div class="studio-action-cluster">
-                  <button type="button" class="btn-studio-action btn-studio-opt" onclick="app.autoOptimizeSpamDeliverability()" title="Auto-tune deliverability settings for zero spam">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83"/></svg>
-                    <span>Auto-Tune Zero Spam</span>
-                  </button>
-                  <button type="button" class="btn-studio-action btn-studio-test" onclick="app.openTestSendModal()" title="Send quick test email to verify delivery">
-                    <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
-                    <span>Quick Test Send</span>
-                  </button>
-                </div>
+                <h1 class="studio-page-title">Campaign Studio</h1>
+                <p class="studio-page-desc">Compose and dispatch high-deliverability cold outreach with automated 5-message rotation and live open tracking.</p>
               </div>
-
-              <div class="studio-title-area">
-                <h1 class="studio-title">Campaign Studio</h1>
-                <p class="studio-subtitle">
-                  Orchestrate multi-variant cold email sequences with stealth plain-text deliverability, anti-spam pacing, and real-time open alerts.
-                </p>
-              </div>
-
-              <!-- Telemetry HUD Cards -->
-              <div class="studio-hud-grid">
-                <div class="studio-hud-card">
-                  <div class="hud-icon-wrap hud-emerald">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-                  </div>
-                  <div class="hud-details">
-                    <div class="hud-label">POSTMASTER SHIELD</div>
-                    <div class="hud-val text-emerald">100% Primary Inbox Ready</div>
-                    <div class="hud-caption">SPF • DKIM • DMARC Enforced</div>
-                  </div>
-                </div>
-                <div class="studio-hud-card">
-                  <div class="hud-icon-wrap hud-green">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polygon points="13 2 3 14 12 14 11 22 21 10 12 10 13 2"/></svg>
-                  </div>
-                  <div class="hud-details">
-                    <div class="hud-label">ANTI-SPAM PACING</div>
-                    <div class="hud-val">15s–60s Organic Jitter</div>
-                    <div class="hud-caption">Human Sending Rhythm</div>
-                  </div>
-                </div>
-                <div class="studio-hud-card">
-                  <div class="hud-icon-wrap hud-sky">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-                  </div>
-                  <div class="hud-details">
-                    <div class="hud-label">OPEN TELEMETRY</div>
-                    <div class="hud-val text-sky">Live Pixel &amp; Audio Chimes</div>
-                    <div class="hud-caption">Instant Read Notification</div>
-                  </div>
-                </div>
-                <div class="studio-hud-card">
-                  <div class="hud-icon-wrap hud-purple">
-                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="23 4 23 10 17 10"/><polyline points="1 20 1 14 7 14"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
-                  </div>
-                  <div class="hud-details">
-                    <div class="hud-label">MESSAGE ROTATION</div>
-                    <div class="hud-val text-purple">5 Blank Slots (Customizable)</div>
-                    <div class="hud-caption">Auto-Shuffled Per Lead</div>
-                  </div>
-                </div>
+              <div class="studio-header-actions">
+                <button type="button" class="btn btn-secondary btn-sm" onclick="app.openTestSendModal()">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
+                  <span>Quick Test</span>
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" onclick="app.autoOptimizeSpamDeliverability()">
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <span>Auto-Tune Zero Spam</span>
+                </button>
               </div>
             </div>
 
@@ -610,26 +559,23 @@
                 <!-- STEP 3: OUTREACH MESSAGE & 5-VARIANT AUTO-SHUFFLER -->
                 <div class="campaign-card">
                   <div class="form-step" style="padding: 0;">
-                    <div class="step-label-row" style="margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                    <div class="step-label-row" style="margin-bottom: 12px; flex-wrap: wrap; gap: 8px;">
                       <div>
-                        <label class="step-label" style="font-size: 14px; font-weight: 700; color: var(--text-main);">3. 5-Message Auto-Shuffle Rotation &amp; Spintax Studio</label>
-                        <div style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">Automatically rotates across 5 unique outreach messages to prevent Google content hashing.</div>
+                        <label class="step-label" style="font-size: 14px; font-weight: 700; color: var(--text-main);">3. Outreach Message &amp; 5-Variant Shuffler</label>
+                        <div style="font-size: 12px; color: var(--text-dim); margin-top: 2px;">Compose up to 5 variations to automatically rotate and bypass repetitive content filters.</div>
                       </div>
                       <div style="display: flex; gap: 8px; flex-wrap: wrap;">
-                        <button type="button" class="btn btn-sm btn-primary" onclick="app.saveAllMessageVariants()" style="font-size: 11.5px; padding: 5px 14px; background: #059669; border-color: #059669; color: #ffffff; font-weight: 700;">
-                          💾 Save All 5 Messages
+                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.clearAllMessageVariants()" style="font-size: 11.5px; padding: 4px 10px; color: #dc2626;" title="Reset all 5 messages to blank">
+                          🗑️ Reset to Blank
                         </button>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.clearAllMessageVariants()" style="font-size: 11.5px; padding: 5px 12px; color: #dc2626;" title="Reset all 5 message subjects and bodies to blank">
-                          🗑️ Reset All to Blank
-                        </button>
-                        <button type="button" class="btn btn-sm btn-secondary" onclick="app.autoOptimizeSpamDeliverability()" style="font-size: 11.5px; padding: 5px 12px;">
-                          ✨ Anti-Spam Check
+                        <button type="button" class="btn btn-sm btn-primary" onclick="app.saveAllMessageVariants()" style="font-size: 11.5px; padding: 4px 12px; background: #059669; border-color: #059669; color: #ffffff; font-weight: 600;">
+                          💾 Save All 5
                         </button>
                       </div>
                     </div>
 
                     <!-- 5-VARIANT SWITCHER TABS -->
-                    <div class="variant-tabs-carousel" style="display: flex; gap: 6px; margin-bottom: 12px; background: #f0fdf4; padding: 6px; border-radius: 8px; border: 1px solid #d1fae5;">
+                    <div class="variant-tabs-carousel" style="display: flex; gap: 6px; margin-bottom: 12px; background: #f8fafc; padding: 6px; border-radius: 8px; border: 1px solid #e2e8f0;">
                       <button type="button" class="variant-tab-btn active" id="btnVarTab-0" onclick="app.switchVariantTab(0)">
                         ✉️ Message 1 <span class="pill-rate">Active</span>
                       </button>
@@ -648,21 +594,16 @@
                     </div>
 
                     <!-- IN-BUILT COMPOSER CONTAINER -->
-                    <div class="inbuilt-template-container" style="border: 1px solid var(--border-emerald); background: #ffffff; border-radius: var(--radius-md);">
+                    <div class="inbuilt-template-container" style="border: 1px solid #e2e8f0; background: #ffffff; border-radius: var(--radius-md); box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);">
                       
-                      <!-- Deliverability Health Bar & Active Variant Actions -->
-                      <div class="inbuilt-meter-row" id="deliverabilityMeter" style="background: #f0fdf4; border-bottom: 1px solid #d1fae5; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
-                        <div class="meter-info-group">
-                          <span style="font-size: 16px;">🛡️</span>
-                          <span class="meter-score-text" id="meterTitle" style="color: #065f46; font-weight: 700;">Primary Inbox Placement: 99.8%</span>
-                          <span class="meter-badge-pill" id="meterBadge" style="background: #059669; color: #ffffff;">● Shuffler Protected</span>
+                      <!-- Composer Header Status -->
+                      <div class="inbuilt-meter-row" id="deliverabilityMeter" style="background: #f8fafc; border-bottom: 1px solid #e2e8f0; display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; flex-wrap: wrap; gap: 8px;">
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <span style="font-size: 13px; font-weight: 700; color: #0f172a;" id="activeVariantIndicator">Editing Message 1 of 5</span>
+                          <span class="status-badge status-completed" id="variantSaveStatusBadge" style="font-size: 10.5px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">● Blank Slot</span>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                          <span style="font-size: 12px; color: #047857; font-weight: 600;" id="activeVariantIndicator">Editing Message 1 of 5</span>
-                          <span class="status-badge status-completed" id="variantSaveStatusBadge" style="font-size: 10.5px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">● Saved</span>
-                          <button type="button" class="btn btn-sm btn-primary" id="btnSaveCurrentVariant" onclick="app.saveCurrentActiveVariant()" style="font-size: 11.5px; padding: 3px 10px; background: #059669; border-color: #059669; color: #ffffff;" title="Save this message variant">
-                            💾 Save Message 1
-                          </button>
+                        <div style="display: flex; align-items: center; gap: 8px;">
+                          <span style="font-size: 11.5px; color: #059669; font-weight: 600;">🛡️ 100% Primary Inbox Shield</span>
                         </div>
                       </div>
 
@@ -672,8 +613,8 @@
                       <!-- Subject Input -->
                       <div style="padding: 14px 16px 6px;">
                         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-                          <label class="step-label" for="emailSubject" style="font-size: 12px; color: var(--text-main);" id="variantSubjectLabel">Email Subject for Message 1 *</label>
-                          <span style="font-size: 11px; color: var(--primary); font-weight: 600;">Supports Spintax {A|B|C}</span>
+                          <label class="step-label" for="emailSubject" style="font-size: 12px; font-weight: 600; color: var(--text-main);" id="variantSubjectLabel">Email Subject for Message 1 *</label>
+                          <span style="font-size: 11px; color: #059669; font-weight: 600;">Supports Spintax {A|B}</span>
                         </div>
                         <input 
                           type="text" 
@@ -695,13 +636,13 @@
                       <!-- Message Textarea -->
                       <div style="padding: 6px 16px 16px;">
                         <div class="step-label-row" style="margin-bottom: 4px;">
-                          <label class="step-label" for="emailMessage" style="font-size: 12px; color: var(--text-main);" id="variantMessageLabel">Message Body for Message 1 *</label>
+                          <label class="step-label" for="emailMessage" style="font-size: 12px; font-weight: 600; color: var(--text-main);" id="variantMessageLabel">Message Body for Message 1 *</label>
                           <span class="step-helper" style="font-size: 11.5px; color: var(--status-success); font-weight: 600;">✓ Natural 1-on-1 human format</span>
                         </div>
                         <textarea 
                           id="emailMessage" 
                           class="form-control composer-textarea" 
-                          placeholder="Write your custom outreach message here..."
+                          placeholder="Write your custom outreach message here... (supports {{name}}, {{email}}, {{senderName}})"
                           autocomplete="off"
                           autocorrect="off"
                           autocapitalize="off"
@@ -709,24 +650,21 @@
                           data-lpignore="true"
                           data-form-type="other"
                           oninput="app.onCurrentVariantInput()"
-                          style="min-height: 140px; border-color: #cbd5e1;"
+                          style="min-height: 150px; border-color: #cbd5e1;"
                         ></textarea>
 
-                        <div class="personalization-hint" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                        <div class="personalization-hint" style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
                           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
-                            <span style="font-weight: 600; color: var(--text-dim); font-size: 12px;">Tags:</span>
+                            <span style="font-weight: 600; color: var(--text-dim); font-size: 12px;">Insert Tag:</span>
                             <button type="button" class="tag-btn" onclick="app.insertTag('{{email}}')">{{email}}</button>
                             <button type="button" class="tag-btn" onclick="app.insertTag('{{name}}')">{{name}}</button>
                             <button type="button" class="tag-btn" onclick="app.insertTag('{{senderName}}')">{{senderName}}</button>
-                            <button type="button" class="tag-btn" onclick="app.insertSpintaxSample()" style="background: #f0fdf4; color: #047857; font-weight: 600; border-color: #a7f3d0;">+ Spintax {A|B|C}</button>
+                            <button type="button" class="tag-btn" onclick="app.insertSpintaxSample()" style="background: #f0fdf4; color: #047857; font-weight: 600; border-color: #a7f3d0;">+ Spintax {A|B}</button>
                           </div>
 
                           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
-                            <button type="button" class="btn btn-sm btn-secondary" onclick="app.saveCurrentActiveVariant()" id="btnSaveCurrentVariantBottom" style="font-size: 11.5px; padding: 4px 10px; font-weight: 600;">
+                            <button type="button" class="btn btn-sm btn-primary" onclick="app.saveCurrentActiveVariant()" id="btnSaveCurrentVariant" style="font-size: 12px; padding: 5px 14px; font-weight: 600; background: #059669; border-color: #059669; color: #ffffff;">
                               💾 Save Message 1
-                            </button>
-                            <button type="button" class="btn btn-sm btn-primary" onclick="app.saveAllMessageVariants()" style="font-size: 11.5px; padding: 4px 12px; font-weight: 600; background: #059669; border-color: #059669; color: #ffffff;">
-                              💾 Save All 5
                             </button>
                           </div>
                         </div>
@@ -1897,6 +1835,6 @@
   <!-- Toast Notification -->
   <div class="toast-box" id="toastBox">Notification message</div>
 
-  <script src="js/app.js?v=5.3.0"></script>
+  <script src="js/app.js?v=5.5.0"></script>
 </body>
 </html>

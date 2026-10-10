@@ -552,245 +552,82 @@ body {
 }
 
 /* ==========================================================
-   LUXURY EXECUTIVE CAMPAIGN STUDIO HERO HEADER (LINEAR/STRIPE/APPLE STYLE)
+   SLEEK PROFESSIONAL STUDIO HEADER (LINEAR / STRIPE STYLE)
    ========================================================== */
-.executive-studio-header {
-  background: linear-gradient(135deg, #051a14 0%, #06281e 50%, #073527 100%);
-  border: 1px solid rgba(52, 211, 153, 0.22);
-  border-radius: 18px;
-  padding: 26px 30px;
-  margin-bottom: 24px;
-  color: #ffffff;
-  box-shadow: 0 20px 45px -12px rgba(6, 46, 34, 0.35), 0 0 0 1px rgba(255, 255, 255, 0.06) inset;
-  position: relative;
-  overflow: hidden;
-}
-
-.executive-studio-header::before {
-  content: '';
-  position: absolute;
-  top: -80px;
-  right: -80px;
-  width: 340px;
-  height: 340px;
-  background: radial-gradient(circle, rgba(16, 185, 129, 0.22) 0%, transparent 70%);
-  border-radius: 50%;
-  pointer-events: none;
-}
-
-.studio-header-top {
+.studio-header-clean {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 16px;
+  padding: 16px 22px;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: var(--radius-md);
+  margin-bottom: 20px;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+  gap: 16px;
   flex-wrap: wrap;
-  gap: 12px;
 }
 
-.studio-header-meta {
+.studio-header-left {
+  flex: 1;
+  min-width: 260px;
+}
+
+.studio-badge-row {
   display: inline-flex;
   align-items: center;
-  gap: 8px;
-  padding: 4px 12px;
-  background: rgba(255, 255, 255, 0.06);
-  border: 1px solid rgba(110, 231, 183, 0.2);
-  border-radius: 20px;
-  font-size: 10.5px;
+  gap: 6px;
+  font-size: 11px;
   font-weight: 700;
-  color: #6ee7b7;
-  letter-spacing: 0.6px;
+  color: #059669;
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  padding: 2px 8px;
+  border-radius: 12px;
+  margin-bottom: 6px;
+  letter-spacing: 0.3px;
   text-transform: uppercase;
-  backdrop-filter: blur(8px);
 }
 
-.studio-live-beacon {
-  width: 6.5px;
-  height: 6.5px;
+.studio-status-dot {
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
   background: #10b981;
-  box-shadow: 0 0 8px #10b981;
-  animation: studioDotPulse 2s infinite ease-in-out;
+  box-shadow: 0 0 6px #10b981;
 }
 
-.studio-kicker {
-  font-weight: 800;
+.studio-badge-divider {
   color: #a7f3d0;
 }
 
-.studio-kicker-dot {
-  color: rgba(255, 255, 255, 0.3);
-}
-
-.studio-kicker-spec {
-  font-size: 10px;
+.studio-badge-spec {
+  color: #047857;
   font-weight: 600;
-  color: #6ee7b7;
-  font-family: ui-monospace, SFMono-Regular, monospace;
 }
 
-.studio-action-cluster {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-}
-
-.btn-studio-action {
-  display: inline-flex;
-  align-items: center;
-  gap: 7px;
-  padding: 8px 15px;
-  border-radius: 8px;
-  font-size: 12px;
-  font-weight: 700;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-family: inherit;
-}
-
-.btn-studio-opt {
-  background: linear-gradient(135deg, #10b981 0%, #059669 100%);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  box-shadow: 0 4px 14px rgba(16, 185, 129, 0.4);
-}
-
-.btn-studio-opt:hover {
-  background: linear-gradient(135deg, #34d399 0%, #059669 100%);
-  transform: translateY(-1px);
-  box-shadow: 0 6px 18px rgba(16, 185, 129, 0.55);
-}
-
-.btn-studio-test {
-  background: rgba(255, 255, 255, 0.08);
-  color: #ffffff;
-  border: 1px solid rgba(255, 255, 255, 0.18);
-  backdrop-filter: blur(8px);
-  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.15);
-}
-
-.btn-studio-test:hover {
-  background: rgba(255, 255, 255, 0.15);
-  border-color: #34d399;
-  transform: translateY(-1px);
-}
-
-.studio-title-area {
-  margin-bottom: 22px;
-}
-
-.studio-title {
+.studio-page-title {
   font-family: 'Outfit', sans-serif;
-  font-size: 28px;
-  font-weight: 800;
-  background: linear-gradient(180deg, #ffffff 0%, #d1fae5 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -0.6px;
-  margin: 0 0 6px 0;
-  line-height: 1.15;
+  font-size: 22px;
+  font-weight: 700;
+  color: #0f172a;
+  letter-spacing: -0.4px;
+  margin: 0 0 4px 0;
+  line-height: 1.2;
 }
 
-.studio-subtitle {
-  font-size: 13.5px;
-  color: #a7f3d0;
-  max-width: 680px;
-  line-height: 1.55;
+.studio-page-desc {
+  font-size: 13px;
+  color: #64748b;
   margin: 0;
-  font-weight: 400;
+  line-height: 1.45;
 }
 
-/* Studio HUD Telemetry Grid */
-.studio-hud-grid {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  gap: 12px;
-}
-
-@media (max-width: 1024px) {
-  .studio-hud-grid {
-    grid-template-columns: repeat(2, 1fr);
-  }
-}
-
-.studio-hud-card {
-  background: rgba(255, 255, 255, 0.05);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-  backdrop-filter: blur(12px);
-  border-radius: 12px;
-  padding: 12px 14px;
+.studio-header-actions {
   display: flex;
   align-items: center;
-  gap: 12px;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.12);
-}
-
-.studio-hud-card:hover {
-  background: rgba(255, 255, 255, 0.08);
-  border-color: rgba(52, 211, 153, 0.45);
-  transform: translateY(-2px);
-  box-shadow: 0 8px 22px rgba(0, 0, 0, 0.25);
-}
-
-.hud-icon-wrap {
-  width: 36px;
-  height: 36px;
-  border-radius: 9px;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  flex-shrink: 0;
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(52, 211, 153, 0.25);
-  color: #34d399;
-}
-
-.hud-emerald, .hud-green, .hud-sky, .hud-purple {
-  background: rgba(16, 185, 129, 0.15);
-  border: 1px solid rgba(52, 211, 153, 0.25);
-  color: #34d399;
-}
-
-.hud-details {
-  flex: 1;
-  min-width: 0;
-}
-
-.hud-label {
-  font-size: 10px;
-  font-weight: 700;
-  color: #6ee7b7;
-  letter-spacing: 0.5px;
-  text-transform: uppercase;
-  margin-bottom: 2px;
-}
-
-.hud-val {
-  font-size: 12.5px;
-  font-weight: 700;
-  color: #ffffff;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.hud-val.text-emerald {
-  color: #34d399;
-}
-
-.hud-val.text-sky {
-  color: #93c5fd;
-}
-
-.hud-val.text-purple {
-  color: #c4b5fd;
-}
-
-.hud-caption {
-  font-size: 10px;
-  font-weight: 500;
-  color: #a7f3d0;
-  margin-top: 1px;
+  gap: 8px;
+  flex-wrap: wrap;
 }
 
 .top-bar-right {

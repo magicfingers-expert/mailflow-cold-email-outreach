@@ -2820,7 +2820,12 @@ const app = {
     if (btnSaveCurrent) btnSaveCurrent.innerText = `💾 Save Message ${index + 1}`;
     if (btnSaveCurrentBottom) btnSaveCurrentBottom.innerText = `💾 Save Message ${index + 1}`;
 
-    this.setVariantSaveStatus('Saved', 'completed');
+    const isSlotEmpty = !targetVar?.subject?.trim() && !targetVar?.message?.trim();
+    if (isSlotEmpty) {
+      this.setVariantSaveStatus('Blank Slot', 'completed');
+    } else {
+      this.setVariantSaveStatus('Saved', 'completed');
+    }
     this.analyzeSpamScoreLive();
     this.updateDesktopLivePreview();
   },
