@@ -99,6 +99,17 @@ const app = {
     this.renderTopNotifDropdown();
     this.updateDesktopLivePreview();
     this.runDeliverabilityAudit();
+
+    // Restore collapsed preview mockup state if saved
+    try {
+      const isCollapsed = localStorage.getItem('mailflow_preview_collapsed') === 'true';
+      const body = document.getElementById('previewMockupCollapsibleBody');
+      const icon = document.getElementById('previewMockupToggleIcon');
+      if (isCollapsed && body) {
+        body.style.display = 'none';
+        if (icon) icon.innerText = '▸';
+      }
+    } catch (e) {}
   },
 
   updateAllInboxBadge(count) {
@@ -2917,8 +2928,16 @@ const app = {
       }
     });
 
+    // Check for deceptive ticket numbers or fake references in cold outreach
+    const ticketPattern = /(ticket\s*(irn|#|\bid\b)|case\s*#|ref\s*#|order\s*#|support\s*ticket)/i;
+    const hasTicketPattern = ticketPattern.test(subject);
+    if (hasTicketPattern) {
+      flaggedWords.push('Fake Support Ticket reference');
+    }
+
     let score = 99;
     score -= (flaggedWords.length * 15);
+    if (hasTicketPattern) score -= 25;
 
     const subjectLetters = subject.replace(/[^a-zA-Z]/g, '');
     if (subjectLetters.length > 5) {
@@ -2958,13 +2977,78 @@ const app = {
     }
 
     if (alertBox) {
-      if (flaggedWords.length > 0) {
+      if (hasTicketPattern) {
         alertBox.style.display = 'block';
-        alertBox.innerHTML = `⚠️ <strong>Deliverability Alert:</strong> Remove trigger words like <strong>${flaggedWords.map(w => `"${w}"`).join(', ')}</strong> to guarantee inbox arrival.`;
+        alertBox.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div style="flex: 1; min-width: 260px;">
+              ⚠️ <strong>High Spam Risk Detected:</strong> Google and Outlook flag fake support ticket references (like <em>"Ticket IRN #"</em>) as deceptive phishing and route them to Spam. Use simple human subjects like <em>"quick question"</em> or <em>"question for {{name}}"</em>.
+            </div>
+            <div style="display: flex; gap: 6px; align-items: center;">
+              <button type="button" class="btn btn-sm" onclick="app.fixSubjectForPrimaryInbox()" style="background: #059669; color: #fff; border: none; padding: 4px 10px; font-size: 11.5px; border-radius: 6px; font-weight: 600; cursor: pointer;">
+                ✨ Auto-Fix Subject
+              </button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="app.openSpamGuideModal()" style="font-size: 11.5px; padding: 4px 8px; border-radius: 6px;">
+                💡 Why Spam?
+              </button>
+            </div>
+          </div>`;
+      } else if (flaggedWords.length > 0) {
+        alertBox.style.display = 'block';
+        alertBox.innerHTML = `
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
+            <div>
+              ⚠️ <strong>Deliverability Alert:</strong> Remove trigger words like <strong>${flaggedWords.map(w => `"${w}"`).join(', ')}</strong> to guarantee inbox arrival.
+            </div>
+            <button type="button" class="btn btn-sm btn-secondary" onclick="app.openSpamGuideModal()" style="font-size: 11.5px; padding: 4px 8px; border-radius: 6px;">
+              💡 Deliverability Guide
+            </button>
+          </div>`;
       } else {
         alertBox.style.display = 'none';
       }
     }
+  },
+
+  togglePreviewMockup() {
+    const body = document.getElementById('previewMockupCollapsibleBody');
+    const icon = document.getElementById('previewMockupToggleIcon');
+    if (!body) return;
+    const isHidden = body.style.display === 'none';
+    body.style.display = isHidden ? 'block' : 'none';
+    if (icon) icon.innerText = isHidden ? '▾' : '▸';
+    try {
+      localStorage.setItem('mailflow_preview_collapsed', isHidden ? 'false' : 'true');
+    } catch (e) {}
+  },
+
+  openSpamGuideModal() {
+    this.openModal('modalSpamGuide');
+  },
+
+  fixSubjectForPrimaryInbox() {
+    const subjInput = document.getElementById('emailSubject');
+    if (!subjInput) return;
+    let current = subjInput.value.trim();
+    // Strip ticket / case prefix if present (e.g. "Ticket IRN #1240530: Wix website enhancement..." -> "Wix website enhancement..." or "question for {{name}}")
+    let fixed = current.replace(/^(ticket\s*(irn|#|\bid\b)|case\s*#|ref\s*#|order\s*#|support\s*ticket)[\s\d#:-]*/i, '').trim();
+    if (!fixed || fixed.length < 3) {
+      fixed = 'quick question for {{name}}';
+    } else {
+      fixed = fixed.replace(/^[:\s\-]+/, '');
+      if (fixed.length > 0) {
+        fixed = fixed.charAt(0).toLowerCase() + fixed.slice(1);
+      }
+      if (!fixed.includes('question') && !fixed.includes('feedback')) {
+        fixed = `question about ${fixed}`;
+      }
+    }
+    subjInput.value = fixed;
+    if (this.messageVariants && this.messageVariants[this.activeVariantIndex]) {
+      this.messageVariants[this.activeVariantIndex].subject = fixed;
+    }
+    this.onCurrentVariantInput();
+    this.showToast('✨ Subject optimized for 100% Primary Inbox placement!');
   },
 
   // ==========================================================
@@ -3490,6 +3574,21 @@ const app = {
       if (!proceed) return;
     }
 
+    const ticketPattern = /(ticket\s*(irn|#|\bid\b)|case\s*#|ref\s*#|order\s*#|support\s*ticket)/i;
+    if (ticketPattern.test(subject)) {
+      const fixPrompt = confirm(
+        `⚠️ High Spam Risk Detected:\n\n` +
+        `Your subject "${subject}" contains a fake support ticket reference ("Ticket IRN #").\n\n` +
+        `Google and Outlook automatically detect this as deceptive phishing and route the email to Spam.\n\n` +
+        `Click OK to auto-fix the subject for 100% Primary Inbox delivery before sending.\n` +
+        `Click Cancel to send with your current subject anyway.`
+      );
+      if (fixPrompt) {
+        this.fixSubjectForPrimaryInbox();
+        return this.executeTestSend();
+      }
+    }
+
     if (!senderPassword && (!activeAcc || !activeAcc.hasPassword)) {
       alert('Please enter your 16-character Google App Password in Step 1 first.');
       return;
@@ -3718,6 +3817,32 @@ lead10@businesspartner.com`;
       alert('Please write your outreach message in Step 3.');
       document.getElementById('emailMessage').focus();
       return;
+    }
+
+    const selfRecipient = val.allowedRecipients.find(r => r.toLowerCase() === senderEmail.toLowerCase());
+    if (selfRecipient) {
+      const proceed = confirm(
+        `⚠️ Self-Sending Deliverability Warning:\n\n` +
+        `Your lead list contains your own sender email address (${senderEmail}).\n\n` +
+        `Google's incoming security gateway automatically treats emails sent to oneself via external SMTP as spoofing, and routes them to Spam.\n\n` +
+        `For accurate inbox verification, test by sending to a secondary email address (Outlook, Yahoo, or alternative Gmail).\n\n` +
+        `Do you still want to proceed with sending?`
+      );
+      if (!proceed) return;
+    }
+
+    const ticketPattern = /(ticket\s*(irn|#|\bid\b)|case\s*#|ref\s*#|order\s*#|support\s*ticket)/i;
+    if (ticketPattern.test(subject)) {
+      const fixPrompt = confirm(
+        `⚠️ High Spam Risk Detected:\n\n` +
+        `Your subject "${subject}" contains a fake support ticket reference ("Ticket IRN #").\n\n` +
+        `Google and Outlook automatically detect this as deceptive phishing and route the email to Spam.\n\n` +
+        `Click OK to auto-fix the subject for 100% Primary Inbox placement before sending.\n` +
+        `Click Cancel to proceed with your current subject anyway.`
+      );
+      if (fixPrompt) {
+        this.fixSubjectForPrimaryInbox();
+      }
     }
 
     this.saveCurrentAccountToStorage();

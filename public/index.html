@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=5.8.0">
+  <link rel="stylesheet" href="css/style.css?v=5.9.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✉️</text></svg>">
 </head>
 <body>
@@ -177,6 +177,11 @@
           <button type="button" class="top-btn-quick-test desktop-only" onclick="app.openTestSendModal()" title="Send quick test email to verify inbox arrival">
             <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><path d="M22 2L11 13M22 2l-7 20-4-9-9-4 20-7z"/></svg>
             <span>Send Test Email</span>
+          </button>
+
+          <!-- Anti-Spam Advisor Button -->
+          <button type="button" class="top-btn-quick-test desktop-only" onclick="app.openSpamGuideModal()" title="Why cold emails go to spam and how to reach Primary Inbox" style="background: rgba(16, 185, 129, 0.08); border-color: rgba(16, 185, 129, 0.25); color: #047857;">
+            <span>🛡️ Anti-Spam Guide</span>
           </button>
 
           <!-- Mobile Deliverability Shield Icon Button -->
@@ -603,7 +608,10 @@
                           <span class="status-badge status-completed" id="variantSaveStatusBadge" style="font-size: 10.5px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">● Blank Slot</span>
                         </div>
                         <div style="display: flex; align-items: center; gap: 8px;">
-                          <span style="font-size: 11.5px; color: #059669; font-weight: 600;">🛡️ 100% Primary Inbox Shield</span>
+                          <button type="button" onclick="app.openSpamGuideModal()" style="background: none; border: none; font-size: 11.5px; color: #059669; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Click to view why emails land in spam and how to reach Primary Inbox">
+                            <span>🛡️ 100% Primary Inbox Shield</span>
+                            <span style="text-decoration: underline; font-size: 11px;">(Tips ↗)</span>
+                          </button>
                         </div>
                       </div>
 
@@ -679,44 +687,51 @@
               <!-- RIGHT SIDECAR COMMAND STATION (Preview, Anti-Spam, Launch Station) -->
               <div class="desktop-sidecar-panel">
                 
-                <!-- CARD 1: LIVE STEALTH RECIPIENT INBOX PREVIEW MOCKUP -->
-                <div class="desktop-preview-card">
-                  <div class="preview-mockup-header">
-                    <div class="preview-window-dots">
-                      <span class="dot-red"></span>
-                      <span class="dot-yellow"></span>
-                      <span class="dot-green"></span>
+                <!-- CARD 1: LIVE STEALTH RECIPIENT INBOX PREVIEW MOCKUP (COLLAPSIBLE) -->
+                <div class="desktop-preview-card" id="desktopPreviewCardWrapper" style="margin-bottom: 20px;">
+                  <div class="preview-mockup-header" onclick="app.togglePreviewMockup()" style="cursor: pointer; user-select: none;">
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <div class="preview-window-dots">
+                        <span class="dot-red"></span>
+                        <span class="dot-yellow"></span>
+                        <span class="dot-green"></span>
+                      </div>
+                      <div class="preview-mockup-title">Recipient Inbox Simulator</div>
                     </div>
-                    <div class="preview-mockup-title">Stealth Recipient Inbox View</div>
-                    <button type="button" class="preview-spin-btn" onclick="app.spinSpintaxLivePreview()" title="Simulate a new Spintax spin">
-                      🎲 Spin Preview
-                    </button>
-                  </div>
-
-                  <div class="preview-mockup-meta">
-                    <div class="preview-meta-row">
-                      <span class="preview-meta-label">From:</span>
-                      <span class="preview-meta-val" id="previewFromVal">Your Name &lt;user@gmail.com&gt;</span>
-                    </div>
-                    <div class="preview-meta-row">
-                      <span class="preview-meta-label">To:</span>
-                      <span class="preview-meta-val highlight-recipient" id="previewToVal">lead1@example.com</span>
-                    </div>
-                    <div class="preview-meta-row">
-                      <span class="preview-meta-label">Subject:</span>
-                      <span class="preview-meta-val bold-subject" id="previewSubjectVal" style="color: var(--text-dim); font-weight: 500;">(No subject entered)</span>
+                    <div style="display: flex; align-items: center; gap: 8px;">
+                      <button type="button" class="preview-spin-btn" onclick="event.stopPropagation(); app.spinSpintaxLivePreview()" title="Simulate a new Spintax spin" id="btnPreviewSpin">
+                        🎲 Spin
+                      </button>
+                      <span id="previewMockupToggleIcon" style="font-size: 11px; font-weight: 700; color: var(--text-dim); padding: 0 4px;">▾</span>
                     </div>
                   </div>
 
-                  <div class="preview-mockup-body" id="previewBodyVal" style="color: var(--text-dim); font-style: italic;">
-                    (Your outreach message preview will appear here in real-time as you type in Step 3...)
-                  </div>
+                  <div id="previewMockupCollapsibleBody">
+                    <div class="preview-mockup-meta">
+                      <div class="preview-meta-row">
+                        <span class="preview-meta-label">From:</span>
+                        <span class="preview-meta-val" id="previewFromVal">Your Name &lt;user@gmail.com&gt;</span>
+                      </div>
+                      <div class="preview-meta-row">
+                        <span class="preview-meta-label">To:</span>
+                        <span class="preview-meta-val highlight-recipient" id="previewToVal">lead1@example.com</span>
+                      </div>
+                      <div class="preview-meta-row">
+                        <span class="preview-meta-label">Subject:</span>
+                        <span class="preview-meta-val bold-subject" id="previewSubjectVal" style="color: var(--text-dim); font-weight: 500;">(No subject entered)</span>
+                      </div>
+                    </div>
 
-                  <div class="preview-mockup-footer">
-                    <span class="status-badge status-completed" id="previewVariantTag" style="font-size: 10px;">Message 1 Active</span>
-                    <span style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 4px;">
-                      <span>🛡️</span> 100% Plain-Text Bypasses Promo Tab
-                    </span>
+                    <div class="preview-mockup-body" id="previewBodyVal" style="color: var(--text-dim); font-style: italic;">
+                      (Your outreach message preview will appear here in real-time as you type in Step 3...)
+                    </div>
+
+                    <div class="preview-mockup-footer">
+                      <span class="status-badge status-completed" id="previewVariantTag" style="font-size: 10px;">Message 1 Active</span>
+                      <span style="font-size: 11px; color: var(--text-dim); display: flex; align-items: center; gap: 4px;">
+                        <span>🛡️</span> 100% Plain-Text Bypasses Promo Tab
+                      </span>
+                    </div>
                   </div>
                 </div>
 
@@ -1832,9 +1847,107 @@
     </a>
   </nav>
 
+  <!-- MODAL: ANTI-SPAM & PRIMARY INBOX GUIDE -->
+  <div class="modal-backdrop" id="modalSpamGuide">
+    <div class="modal-card" style="max-width: 680px; max-height: 90vh; overflow-y: auto;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 14px;">
+        <div>
+          <div class="modal-title" style="margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+            <span>🛡️ Why Cold Emails Land in Spam &amp; How to Fix It</span>
+          </div>
+          <div style="font-size: 13px; color: var(--text-dim);">
+            The 5 Critical Rules to Guarantee 99%+ Primary Inbox Placement on Gmail &amp; Outlook
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="app.closeModal('modalSpamGuide')" style="font-size: 14px; padding: 2px 8px; border-radius: 6px;">✕</button>
+      </div>
+
+      <div style="display: flex; flex-direction: column; gap: 12px; margin-bottom: 20px;">
+        
+        <!-- CARD 1: FAKE TICKET NUMBERS -->
+        <div style="background: #fef2f2; border: 1px solid #fecaca; border-radius: 8px; padding: 14px; font-size: 12.5px; color: #991b1b;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <strong style="font-size: 13px; color: #b91c1c;">🚫 Trap 1: Fake Support Ticket Numbers (Critical Spam Trigger)</strong>
+            <span class="status-badge" style="background: #dc2626; color: #fff; font-size: 10px;">Highest Risk</span>
+          </div>
+          <p style="margin: 0 0 8px 0; line-height: 1.5; color: #7f1d1d;">
+            <strong>What triggers it:</strong> Subjects like <code>Ticket IRN #1240530: Wix website enhancement...</code> or <code>Ticket #4928</code>.<br>
+            <strong>Why it goes to Spam:</strong> Google and Outlook use machine learning to detect unsolicited emails pretending to be existing customer support tickets or invoices. Because your free <code>@gmail.com</code> address has no authenticated Zendesk/Freshdesk records and no prior email thread history, Google flags it as <strong>Deceptive Phishing</strong> and dumps it into Spam immediately!
+          </p>
+          <div style="background: #ffffff; border-radius: 6px; padding: 8px 10px; border: 1px dashed #fca5a5; font-size: 12px; color: #0f172a;">
+            <strong style="color: #059669;">✓ The Fix:</strong> Use short, conversational human subjects such as:
+            <ul style="margin: 4px 0 0 16px; padding: 0; line-height: 1.6;">
+              <li><code>quick question</code></li>
+              <li><code>quick question for {{name}}</code></li>
+              <li><code>website feedback</code></li>
+              <li><code>idea for your business</code></li>
+            </ul>
+          </div>
+        </div>
+
+        <!-- CARD 2: SELF-SENDING TRAP -->
+        <div style="background: #fffbeb; border: 1px solid #fde68a; border-radius: 8px; padding: 14px; font-size: 12.5px; color: #92400e;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <strong style="font-size: 13px; color: #b45309;">⚠️ Trap 2: Testing to Your Own Email Address</strong>
+            <span class="status-badge" style="background: #d97706; color: #fff; font-size: 10px;">Common Mistake</span>
+          </div>
+          <p style="margin: 0 0 8px 0; line-height: 1.5; color: #78350f;">
+            <strong>What happens:</strong> You send a test email from <code>yourname@gmail.com</code> to <code>yourname@gmail.com</code>.<br>
+            <strong>Why it goes to Spam:</strong> Google's incoming mail server treats emails sent from an external SMTP client to the exact same account as spoofing/internal forgery, placing it in Spam with the warning: <em>"Be careful with this message... Google couldn't verify that it was actually sent by you."</em>
+          </p>
+          <div style="background: #ffffff; border-radius: 6px; padding: 8px 10px; border: 1px dashed #fcd34d; font-size: 12px; color: #0f172a;">
+            <strong style="color: #059669;">✓ The Fix:</strong> When testing, always send to a <strong>different recipient email address</strong> (e.g. your secondary email, Yahoo, Outlook, or test on <a href="https://www.mail-tester.com" target="_blank" style="color: #0284c7; text-decoration: underline;">mail-tester.com</a>).
+          </div>
+        </div>
+
+        <!-- CARD 3: BRAND IMPERSONATION -->
+        <div style="background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 8px; padding: 14px; font-size: 12.5px; color: #334155;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <strong style="font-size: 13px; color: #0f172a;">🏷️ Trap 3: Claiming Brand Affiliation from @gmail.com</strong>
+            <span class="status-badge" style="background: #64748b; color: #fff; font-size: 10px;">Reputation Rule</span>
+          </div>
+          <p style="margin: 0 0 8px 0; line-height: 1.5; color: #475569;">
+            <strong>Why it triggers filters:</strong> Sending from a free <code>@gmail.com</code> while using names like "Wix Partner" or "Google Specialist" triggers brand protection heuristics.
+          </p>
+          <div style="background: #ffffff; border-radius: 6px; padding: 8px 10px; border: 1px dashed #cbd5e1; font-size: 12px; color: #0f172a;">
+            <strong style="color: #059669;">✓ The Fix:</strong> Use your real human name or company name in Display Name (e.g. <code>Alexa Smith</code> or <code>Alexa | Web Consultant</code>).
+          </div>
+        </div>
+
+        <!-- CARD 4: STEALTH PLAIN-TEXT MODE -->
+        <div style="background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 8px; padding: 14px; font-size: 12.5px; color: #065f46;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <strong style="font-size: 13px; color: #047857;">🛡️ Secret 4: Pure Stealth Plain-Text Mode</strong>
+            <span class="status-badge status-completed" style="font-size: 10px;">Active by Default</span>
+          </div>
+          <p style="margin: 0 0 0 0; line-height: 1.5; color: #064e3b;">
+            MailFlow sends in <strong>Stealth Plain-Text Mode</strong> by default. This strips all HTML containers, tables, and tracking pixels. The recipient's email provider sees a 100% authentic personal email sent from a human inbox, bypassing both Spam and the Promotions tab directly into <strong>Primary Inbox</strong>.
+          </p>
+        </div>
+
+        <!-- CARD 5: PACING & SPINTAX -->
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: 8px; padding: 14px; font-size: 12.5px; color: #166534;">
+          <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 6px;">
+            <strong style="font-size: 13px; color: #15803d;">⏱️ Secret 5: Humanized Jitter Delay &amp; Spintax Rotation</strong>
+            <span class="status-badge status-completed" style="font-size: 10px;">Active by Default</span>
+          </div>
+          <p style="margin: 0 0 0 0; line-height: 1.5; color: #14532d;">
+            Keep the <strong>15s–20s interval</strong> and use <strong>Spintax</strong> (<code>{Hello|Hi|Hey}</code>) across your 5 message variants. This ensures no two emails share identical hashes, completely avoiding Google's bulk pattern filters.
+          </p>
+        </div>
+
+      </div>
+
+      <div class="modal-actions" style="display: flex; justify-content: space-between; align-items: center;">
+        <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalSpamGuide')">Got It, Close</button>
+        <button type="button" class="btn btn-primary" onclick="app.closeModal('modalSpamGuide'); app.fixSubjectForPrimaryInbox();" style="background: #059669; border-color: #059669;">✨ 1-Click Optimize Subject Now</button>
+      </div>
+    </div>
+  </div>
+
   <!-- Toast Notification -->
   <div class="toast-box" id="toastBox">Notification message</div>
 
-  <script src="js/app.js?v=5.8.0"></script>
+  <script src="js/app.js?v=5.9.0"></script>
 </body>
 </html>

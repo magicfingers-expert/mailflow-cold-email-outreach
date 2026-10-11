@@ -422,7 +422,7 @@ class EmailService {
     trackingId = null,
     baseUrl = '',
     enableTracking = false,
-    plainTextOnly = false,
+    plainTextOnly = true,
     inReplyTo = null,
     references = null
   }) {
