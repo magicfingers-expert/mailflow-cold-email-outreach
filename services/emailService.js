@@ -475,11 +475,12 @@ class EmailService {
     const cleanSubject = this.sanitizeSubject(randomizedSubject);
     const sanitizedBody = this.sanitizeOutreachContent(randomizedMessage);
 
-    // Only inject tracking pixel if explicitly enabled and baseUrl is a valid public domain
+    // Inject 1x1 transparent tracking pixel when tracking is enabled and trackingId is provided
     let trackingPixelHtml = '';
-    if (enableTracking && !plainTextOnly && trackingId && baseUrl && !baseUrl.includes('localhost') && !baseUrl.includes('127.0.0.1')) {
-      const trackingPixelUrl = `${baseUrl}/api/track/open/${trackingId}`;
-      trackingPixelHtml = `<div style="opacity:0.01;line-height:1px;font-size:1px;max-height:1px;overflow:hidden;"><img src="${trackingPixelUrl}" width="1" height="1" style="width:1px!important;height:1px!important;border:none!important;" alt="" /></div>`;
+    if (enableTracking && trackingId) {
+      const origin = (baseUrl || process.env.BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+      const trackingPixelUrl = `${origin}/api/track/open/${encodeURIComponent(trackingId)}`;
+      trackingPixelHtml = `<div style="display:none;font-size:0;line-height:0;max-height:0;mso-hide:all;opacity:0.01;overflow:hidden;"><img src="${trackingPixelUrl}" width="1" height="1" style="width:1px!important;height:1px!important;border:none!important;" alt="" /></div>`;
     }
 
     // Authentic 1-on-1 human Gmail web composer HTML structure (no bulky DOCTYPE/viewport boilerplate)
@@ -518,8 +519,8 @@ class EmailService {
           date: new Date()
         };
 
-        // If not pure plain-text, attach simple human Gmail HTML
-        if (!plainTextOnly) {
+        // Attach human Gmail HTML multipart when tracking is enabled or not pure plain-text
+        if (enableTracking || !plainTextOnly) {
           mailOptions.html = formattedHtml;
         }
 
@@ -585,6 +586,22 @@ class EmailService {
     }
 
     throw new Error('Missing sender credentials. Please provide your Gmail address and 16-character App Password in Step 1.');
+  }
+
+  // Direct sender-bound dispatch helper
+  async sendEmailWithSender(sender, options = {}) {
+    return this.sendEmail({
+      senderEmail: sender.email,
+      senderPassword: sender.password,
+      senderName: sender.name,
+      to: options.to,
+      subject: options.subject,
+      message: options.message || options.text,
+      trackingId: options.trackingId,
+      baseUrl: options.baseUrl,
+      enableTracking: options.enableTracking !== false,
+      plainTextOnly: options.plainTextOnly
+    });
   }
 }
 

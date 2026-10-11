@@ -206,14 +206,16 @@ app.get('/api/track/open/:trackingId', (req, res) => {
 app.get('/api/track/recent-opens', (req, res) => {
   const since = parseInt(req.query.since || 0);
   const opens = req.tenantServices.queueService.getRecentOpens(since);
-  res.json({ success: true, opens, tenantId: req.tenantId });
+  res.json({ success: true, opens, serverTime: Date.now(), tenantId: req.tenantId });
 });
 
 // Simulate / Test Open API - Allows instant verification of live notification & audio chime
 app.post('/api/track/simulate-open', (req, res) => {
-  const { email, subject, trackingId } = req.body;
+  const { email, subject, trackingId, campaignId } = req.body;
   const event = req.tenantServices.queueService.recordEmailOpen(trackingId || `test_${req.tenantId}_${Date.now()}`, {
     email: email || 'lead.recipient@example.com',
+    subject: subject || 'Outreach Email',
+    campaignId: campaignId || 'general',
     userAgent: 'Web Browser / Test Simulation',
     ip: req.ip || '127.0.0.1'
   });
@@ -423,12 +425,12 @@ app.post('/api/recipients/parse', (req, res) => {
 // Direct Single Test Send to verify inbox receipt in 5 seconds
 app.post('/api/campaigns/test-send', async (req, res) => {
   try {
-    const { senderEmail, senderPassword, senderName, testRecipient, subject, message, plainTextOnly = true, enableTracking = false } = req.body;
+    const { senderEmail, senderPassword, senderName, testRecipient, subject, message, plainTextOnly = true, enableTracking = true } = req.body;
     if (!testRecipient || !testRecipient.includes('@')) {
       return res.status(400).json({ success: false, error: 'Valid test recipient email is required.' });
     }
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
     const trackingId = `test_${req.tenantId}_${Date.now()}`;
 
     // Register test tracking ID in tenant queueService
@@ -448,7 +450,7 @@ app.post('/api/campaigns/test-send', async (req, res) => {
       message: message || 'Hi,\n\nI came across your work recently and wanted to connect.\n\nBest regards',
       trackingId,
       baseUrl,
-      enableTracking: !!enableTracking,
+      enableTracking: enableTracking !== false,
       plainTextOnly: plainTextOnly !== false
     });
 
@@ -486,7 +488,7 @@ app.post('/api/campaigns/send-direct', async (req, res) => {
       rawRecipients,
       delaySeconds = 60,
       plainTextOnly = true,
-      enableTracking = false
+      enableTracking = true
     } = req.body;
 
     if (senderEmail && senderPassword) {
@@ -498,7 +500,7 @@ app.post('/api/campaigns/send-direct', async (req, res) => {
       });
     }
 
-    const baseUrl = `${req.protocol}://${req.get('host')}`;
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
 
     const result = await req.tenantServices.queueService.startDirectCampaign({
       senderEmail,
@@ -510,7 +512,7 @@ app.post('/api/campaigns/send-direct', async (req, res) => {
       rawRecipients,
       delaySeconds: parseInt(delaySeconds) || 60,
       plainTextOnly: plainTextOnly !== false,
-      enableTracking: !!enableTracking,
+      enableTracking: enableTracking !== false,
       baseUrl
     });
 

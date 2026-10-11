@@ -124,8 +124,8 @@ class QueueService {
     // 3. Standalone tracking ID (direct hit or test simulation)
     const openEvent = {
       id: 'open-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
-      campaignId: 'general',
-      subject: 'Outreach Email',
+      campaignId: meta.campaignId || 'general',
+      subject: meta.subject || 'Outreach Email',
       email: meta.email || 'Lead Recipient',
       openedAt: now,
       openCount: 1,
@@ -156,7 +156,7 @@ class QueueService {
     messageVariants = [],
     rawRecipients,
     delaySeconds = 15,
-    enableTracking = false,
+    enableTracking = true,
     plainTextOnly = true,
     baseUrl = 'http://localhost:3000',
     smtpHost = null,
@@ -217,7 +217,7 @@ class QueueService {
       openCount: 0,
       delaySeconds: effectiveDelaySec,
       plainTextOnly: !!plainTextOnly,
-      enableTracking: !!enableTracking,
+      enableTracking: enableTracking !== false,
       status: 'In Progress',
       createdAt: new Date().toISOString(),
       completedAt: null,
@@ -248,8 +248,8 @@ class QueueService {
       smtpPort,
       delaySeconds: effectiveDelaySec,
       plainTextOnly: !!plainTextOnly,
-      enableTracking: !!enableTracking,
-      baseUrl
+      enableTracking: enableTracking !== false,
+      baseUrl: baseUrl || 'http://localhost:3000'
     }, jobState);
 
     return {
@@ -337,8 +337,8 @@ class QueueService {
           subject: personalizedSubject,
           message: personalizedMessage,
           trackingId: rec.trackingId,
-          baseUrl: creds.baseUrl,
-          enableTracking: creds.enableTracking,
+          baseUrl: creds.baseUrl || 'http://localhost:3000',
+          enableTracking: creds.enableTracking !== false,
           plainTextOnly: creds.plainTextOnly,
           host: creds.smtpHost,
           port: creds.smtpPort

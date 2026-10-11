@@ -227,20 +227,47 @@ class TenantManager {
       if (parts.length >= 3) {
         targetTenantId = parts[1];
       }
-    } else {
-      // Search all loaded tenant instances for matching recipient trackingId
-      for (const [tId, bundle] of this.instances.entries()) {
-        const found = bundle.queueService.campaigns.some(c =>
-          c.recipients && c.recipients.some(r => r.trackingId === trackingId)
-        ) || (bundle.queueService.testTrackings && bundle.queueService.testTrackings.has(trackingId));
-        if (found) {
-          targetTenantId = tId;
-          break;
+    }
+
+    // Verify candidate tenant services
+    let services = this.getTenantServices(targetTenantId);
+    let matched = services.queueService.campaigns.some(c =>
+      c.recipients && c.recipients.some(r => r.trackingId === trackingId)
+    ) || (services.queueService.testTrackings && services.queueService.testTrackings.has(trackingId));
+
+    // If not matched in candidate tenant, search across all existing tenants
+    if (!matched) {
+      try {
+        const allTenants = db.getAllTenants();
+        for (const t of allTenants) {
+          if (t.id === targetTenantId) continue;
+          const s = this.getTenantServices(t.id);
+          const found = s.queueService.campaigns.some(c =>
+            c.recipients && c.recipients.some(r => r.trackingId === trackingId)
+          ) || (s.queueService.testTrackings && s.queueService.testTrackings.has(trackingId));
+          if (found) {
+            targetTenantId = t.id;
+            services = s;
+            matched = true;
+            break;
+          }
+        }
+      } catch (e) {
+        // Fallback to loaded instances
+        for (const [tId, bundle] of this.instances.entries()) {
+          if (tId === targetTenantId) continue;
+          const found = bundle.queueService.campaigns.some(c =>
+            c.recipients && c.recipients.some(r => r.trackingId === trackingId)
+          ) || (bundle.queueService.testTrackings && bundle.queueService.testTrackings.has(trackingId));
+          if (found) {
+            targetTenantId = tId;
+            services = bundle;
+            break;
+          }
         }
       }
     }
 
-    const services = this.getTenantServices(targetTenantId);
     return services.queueService.recordEmailOpen(trackingId, meta);
   }
 

@@ -123,6 +123,7 @@ const app = {
     this.loadSavedAccounts();
     this.loadSendingDelayPreference();
     this.loadOpenEventsFromStorage();
+    this.loadOpenEvents();
     this.loadMessageVariants();
     this.loadCampaigns();
     this.loadAllInbox();
@@ -322,6 +323,24 @@ const app = {
     try {
       localStorage.setItem('mailflow_open_events', JSON.stringify(this.allOpenEvents.slice(0, 100)));
     } catch (e) {}
+  },
+
+  async loadOpenEvents() {
+    try {
+      const res = await fetch('/api/track/recent-opens?since=0');
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.opens)) {
+        this.allOpenEvents = data.opens;
+        this.seenOpenEventIds = new Set(data.opens.map(o => o.id));
+        this.saveOpenEventsToStorage();
+        this.updateTrackerViewUI();
+        this.updateTopNotifBadge();
+        this.renderTopNotifDropdown();
+        this.renderBannerOpenItems();
+      }
+    } catch (e) {
+      console.warn('Failed to fetch open events:', e.message);
+    }
   },
 
   bindEvents() {
@@ -596,6 +615,8 @@ const app = {
       });
       const data = await res.json();
       if (data.success && data.openEvent) {
+        if (!this.seenOpenEventIds) this.seenOpenEventIds = new Set();
+        this.seenOpenEventIds.add(data.openEvent.id);
         this.handleLiveOpenNotification(data.openEvent);
       }
     } catch (e) {
@@ -614,16 +635,22 @@ const app = {
 
   startRealtimeOpenTracker() {
     if (this.openTrackerTimer) clearInterval(this.openTrackerTimer);
+    if (!this.seenOpenEventIds) {
+      this.seenOpenEventIds = new Set((this.allOpenEvents || []).map(o => o.id));
+    }
 
     this.openTrackerTimer = setInterval(async () => {
       try {
-        const res = await fetch(`/api/track/recent-opens?since=${this.lastOpenCheckTimestamp}`);
+        const res = await fetch('/api/track/recent-opens');
         const data = await res.json();
         if (data.success && Array.isArray(data.opens) && data.opens.length > 0) {
-          this.lastOpenCheckTimestamp = Date.now();
-          data.opens.forEach(openEvent => {
-            this.handleLiveOpenNotification(openEvent);
-          });
+          const newEvents = data.opens.filter(evt => !this.seenOpenEventIds.has(evt.id));
+          if (newEvents.length > 0) {
+            newEvents.forEach(openEvent => {
+              this.seenOpenEventIds.add(openEvent.id);
+              this.handleLiveOpenNotification(openEvent);
+            });
+          }
         }
       } catch (e) {}
     }, 2000);
@@ -811,7 +838,7 @@ const app = {
     const campaignsCountEl = document.getElementById('trackerStatActiveCampaigns');
 
     if (totalOpensEl) totalOpensEl.innerText = this.allOpenEvents.length;
-    if (campaignsCountEl) campaignsCountEl.innerText = this.accounts.length;
+    if (campaignsCountEl) campaignsCountEl.innerText = (this.campaigns && this.campaigns.length > 0) ? this.campaigns.length : (this.accounts ? this.accounts.length : 0);
     if (lastOpenEl && this.allOpenEvents.length > 0) {
       lastOpenEl.innerText = new Date(this.allOpenEvents[0].openedAt).toLocaleTimeString();
     }
@@ -3666,6 +3693,8 @@ const app = {
       return;
     }
 
+    const enableTracking = document.getElementById('testSendEnableTracking') ? document.getElementById('testSendEnableTracking').checked : true;
+
     btn.disabled = true;
     btn.innerText = 'Sending Test Email...';
 
@@ -3681,7 +3710,7 @@ const app = {
           subject,
           message,
           plainTextOnly,
-          enableTracking: false
+          enableTracking
         })
       });
 
@@ -3691,7 +3720,11 @@ const app = {
 
       if (data.success) {
         this.closeModal('modalTestSend');
-        this.showToast(`✓ Test email delivered to ${testRecipient}!`);
+        let msg = `✓ Test email delivered to ${testRecipient}!`;
+        if (data.trackingId) {
+          msg += ` Open tracking active 👁️`;
+        }
+        this.showToast(msg);
       } else {
         alert('Test send failed: ' + (data.error || 'Check your sender credentials'));
       }
@@ -3972,6 +4005,7 @@ lead10@businesspartner.com`;
     const message = document.getElementById('emailMessage')?.value.trim() || '';
     const delaySeconds = parseInt(document.getElementById('sendingDelaySelect')?.value) || 15;
     const plainTextOnly = document.getElementById('chkStealthMode') ? document.getElementById('chkStealthMode').checked : true;
+    const enableTracking = document.getElementById('chkOpenTracking') ? document.getElementById('chkOpenTracking').checked : true;
 
     // STEP 1 VALIDATION (Visual pulse + instant toast, no frozen alert)
     if (!senderEmail || !senderEmail.includes('@')) {
@@ -4059,7 +4093,7 @@ lead10@businesspartner.com`;
           rawRecipients,
           delaySeconds,
           plainTextOnly,
-          enableTracking: false
+          enableTracking
         })
       });
 
@@ -4933,7 +4967,8 @@ lead10@businesspartner.com`;
       this.loadPrimaryInbox(),
       this.loadSent(),
       this.loadSpam(),
-      this.loadBounces()
+      this.loadBounces(),
+      this.loadOpenEvents()
     ]);
     this.showToast('✓ Workspace loaded.');
   },

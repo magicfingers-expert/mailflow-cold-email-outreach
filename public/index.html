@@ -777,6 +777,14 @@
 
                   <div style="display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px;">
                     <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 12.5px; color: var(--text-muted); background: var(--bg-subtle); padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+                      <input type="checkbox" id="chkOpenTracking" checked style="margin-top: 3px;">
+                      <div>
+                        <strong style="color: var(--text-main);">👁️ Real-Time Open Tracking</strong>
+                        <div style="color: var(--text-dim); font-size: 11px;">Embeds 1x1 transparent pixel with instant sound chime &amp; live alerts.</div>
+                      </div>
+                    </label>
+
+                    <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 12.5px; color: var(--text-muted); background: var(--bg-subtle); padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
                       <input type="checkbox" id="chkStealthMode" checked style="margin-top: 3px;">
                       <div>
                         <strong style="color: var(--text-main);">🛡️ Stealth Plain-Text Mode</strong>
@@ -1725,9 +1733,19 @@
         Send this test to a <strong>separate recipient email</strong> (e.g. your personal Gmail, Outlook, Yahoo, or Mail-Tester). <em>Do not send from your email to the exact same email address</em>, as Google's incoming mail gateway flags self-sent SMTP emails as spoofing.
       </div>
 
-      <div class="form-step" style="margin-bottom: 14px;">
+      <div class="form-step" style="margin-bottom: 12px;">
         <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Recipient Test Email Address *</label>
         <input type="email" id="testRecipientEmail" class="form-control" placeholder="your-other-email@gmail.com" value="" required>
+      </div>
+
+      <div style="margin-bottom: 14px;">
+        <label style="display: flex; align-items: flex-start; gap: 8px; cursor: pointer; font-size: 12.5px; color: var(--text-muted); background: var(--bg-subtle); padding: 9px 12px; border-radius: 6px; border: 1px solid var(--border-subtle);">
+          <input type="checkbox" id="testSendEnableTracking" checked style="margin-top: 3px;">
+          <div>
+            <strong style="color: var(--text-main);">👁️ Embed Live Open Tracking Pixel</strong>
+            <div style="color: var(--text-dim); font-size: 11px;">Triggers sound chime &amp; live notification when opened.</div>
+          </div>
+        </label>
       </div>
 
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; font-size: 12px; color: var(--text-muted);">
