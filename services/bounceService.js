@@ -5,7 +5,16 @@ const BOUNCES_FILE = path.join(__dirname, '..', 'data', 'bounces.json');
 const SUPPRESSION_FILE = path.join(__dirname, '..', 'data', 'suppression.json');
 
 class BounceService {
-  constructor() {
+  constructor(options = {}) {
+    if (typeof options === 'string') {
+      this.bouncesFile = options;
+      this.suppressionFile = SUPPRESSION_FILE;
+      this.tenantId = 'default';
+    } else {
+      this.bouncesFile = options.bouncesFile || BOUNCES_FILE;
+      this.suppressionFile = options.suppressionFile || SUPPRESSION_FILE;
+      this.tenantId = options.tenantId || 'default';
+    }
     this.bounces = [];
     this.suppressionList = new Set();
     this.loadBounces();
@@ -13,23 +22,23 @@ class BounceService {
   }
 
   loadBounces() {
-    const data = storage.readJSON(BOUNCES_FILE, []);
+    const data = storage.readJSON(this.bouncesFile, []);
     this.bounces = Array.isArray(data) ? data : [];
   }
 
   saveBounces() {
-    storage.writeJSON(BOUNCES_FILE, this.bounces);
+    storage.writeJSON(this.bouncesFile, this.bounces);
   }
 
   loadSuppression() {
-    const list = storage.readJSON(SUPPRESSION_FILE, []);
+    const list = storage.readJSON(this.suppressionFile, []);
     if (Array.isArray(list)) {
       list.forEach(em => this.suppressionList.add(em.toLowerCase().trim()));
     }
   }
 
   saveSuppression() {
-    storage.writeJSON(SUPPRESSION_FILE, Array.from(this.suppressionList));
+    storage.writeJSON(this.suppressionFile, Array.from(this.suppressionList));
   }
 
   isSuppressed(email) {
@@ -256,4 +265,6 @@ class BounceService {
   }
 }
 
-module.exports = new BounceService();
+const defaultInstance = new BounceService();
+defaultInstance.BounceService = BounceService;
+module.exports = defaultInstance;

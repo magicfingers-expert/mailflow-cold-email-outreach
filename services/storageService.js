@@ -15,18 +15,33 @@ const path = require('path');
 
 const os = require('os');
 const TMP_DIR = path.join(os.tmpdir(), 'mailflow_data');
+const DATA_DIR = path.resolve(__dirname, '..', 'data');
 
 function isVercel() {
   return !!process.env.VERCEL;
 }
 
-// Ensure temp directory exists
-function ensureTmpDir() {
+// Ensure temp directory exists for a given file
+function ensureTmpDir(targetTmpPath) {
   try {
-    if (!fs.existsSync(TMP_DIR)) {
-      fs.mkdirSync(TMP_DIR, { recursive: true });
+    const dir = targetTmpPath ? path.dirname(targetTmpPath) : TMP_DIR;
+    if (!fs.existsSync(dir)) {
+      fs.mkdirSync(dir, { recursive: true });
     }
   } catch (e) {}
+}
+
+function getTmpPath(dataFilePath) {
+  try {
+    const resolved = path.resolve(dataFilePath);
+    let rel = path.relative(DATA_DIR, resolved);
+    if (rel.startsWith('..') || path.isAbsolute(rel)) {
+      rel = path.basename(dataFilePath);
+    }
+    return path.join(TMP_DIR, rel);
+  } catch (e) {
+    return path.join(TMP_DIR, path.basename(dataFilePath));
+  }
 }
 
 /**
@@ -35,8 +50,7 @@ function ensureTmpDir() {
  * - Locally: direct data/ file first, then /tmp
  */
 function readJSON(dataFilePath, defaultValue = null) {
-  const fileName = path.basename(dataFilePath);
-  const tmpPath = path.join(TMP_DIR, fileName);
+  const tmpPath = getTmpPath(dataFilePath);
 
   if (isVercel()) {
     // 1. Try /tmp first on Vercel (where runtime writes happen)
@@ -78,11 +92,10 @@ function readJSON(dataFilePath, defaultValue = null) {
 /**
  * Write JSON data.
  * Tries local dataFilePath first (for local dev persistence).
- * If on Vercel or read-only filesystem (EROFS), writes to TMP_DIR.
+ * If on Vercel or read-only filesystem (EROFS), writes to TMP_DIR preserving subdirectories.
  */
 function writeJSON(dataFilePath, data) {
-  const fileName = path.basename(dataFilePath);
-  const tmpPath = path.join(TMP_DIR, fileName);
+  const tmpPath = getTmpPath(dataFilePath);
 
   // If NOT on Vercel, attempt direct write to local data/ folder first
   if (!isVercel()) {
@@ -95,17 +108,17 @@ function writeJSON(dataFilePath, data) {
       return true;
     } catch (e) {
       // If direct write fails (permissions/read-only), fall through to tmp
-      console.warn(`[storageService] Local write to ${fileName} failed, falling back to temp: ${e.message}`);
+      console.warn(`[storageService] Local write to ${dataFilePath} failed, falling back to temp: ${e.message}`);
     }
   }
 
   // On Vercel or read-only environments, write to temp directory
-  ensureTmpDir();
+  ensureTmpDir(tmpPath);
   try {
     fs.writeFileSync(tmpPath, JSON.stringify(data, null, 2), 'utf8');
     return true;
   } catch (e) {
-    console.warn(`[storageService] Could not write ${fileName}: ${e.message}`);
+    console.warn(`[storageService] Could not write ${tmpPath}: ${e.message}`);
     return false;
   }
 }
@@ -114,9 +127,9 @@ function writeJSON(dataFilePath, data) {
  * Check if a data file exists in /tmp or the bundle.
  */
 function exists(dataFilePath) {
-  const fileName = path.basename(dataFilePath);
-  const tmpPath = path.join(TMP_DIR, fileName);
+  const tmpPath = getTmpPath(dataFilePath);
   return fs.existsSync(tmpPath) || fs.existsSync(dataFilePath);
 }
 
-module.exports = { readJSON, writeJSON, exists };
+module.exports = { readJSON, writeJSON, exists, TMP_DIR, DATA_DIR };
+

@@ -29,8 +29,14 @@
    * **Auto-Suppression Engine**: Automatically isolates bounced leads so future campaigns skip them, protecting your domain reputation.
    * Full SMTP diagnostic transcripts and diagnostic error code viewer.
 
-5. **🔐 AES-256-GCM Military-Grade Password Vault**:
-   * Stored credentials in `data/accounts.json` are encrypted using AES-256-GCM with a dedicated hardware-bound vault key (`data/.app_vault_key`).
+5. **🏢 Multi-Tenant Architecture & Strict Data Isolation**:
+   * **Physical Partitioning**: Each tenant/workspace stores its data in dedicated isolated directories (`data/tenants/<tenantId>/`), physically separating sender accounts, campaigns, inboxes, templates, and suppression lists.
+   * **Logical & In-Memory Isolation**: Each tenant operates dedicated, isolated service instances. Cross-tenant queries are blocked with 403 Forbidden.
+   * **Workspace Switcher & Team Roles (RBAC)**: Switch between workspaces (e.g. Personal, Agency, Real Estate Outbound) with 1 click; invite team members with `owner`, `admin`, or `member` permissions.
+   * **Smart Tracking Auto-Routing**: Email open tracking pixels automatically route to the sender's originating tenant, recording alerts only for that workspace's dashboard.
+
+6. **🔐 AES-256-GCM Military-Grade Password Vault**:
+   * Stored credentials in tenant accounts are encrypted using AES-256-GCM with a dedicated hardware-bound vault key (`data/.app_vault_key`).
    * Zero plain-text credentials exposed to client APIs or browser `localStorage`.
    * UI shoulder-surfing protection with masked password indicators.
 

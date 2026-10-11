@@ -1,7 +1,25 @@
 {
   "users": [],
+  "tenants": [
+    {
+      "id": "default",
+      "name": "Primary Workspace",
+      "slug": "default",
+      "owner_id": "usr-default",
+      "plan": "pro",
+      "settings": {
+        "daily_limit": 500,
+        "delay_seconds": 60,
+        "plain_text_only": true,
+        "enable_tracking": false
+      },
+      "created_at": "2026-10-11T00:00:00.000Z",
+      "updated_at": "2026-10-11T00:00:00.000Z"
+    }
+  ],
+  "tenant_members": [],
+  "sessions": [],
   "email_connections": [],
   "campaigns": [],
-  "campaign_recipients": [],
-  "sessions": []
+  "campaign_recipients": []
 }

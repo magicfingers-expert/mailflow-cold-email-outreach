@@ -7,13 +7,20 @@ const storage = require('./storageService');
 const ACCOUNTS_FILE = path.join(__dirname, '..', 'data', 'accounts.json');
 
 class EmailService {
-  constructor() {
+  constructor(options = {}) {
+    if (typeof options === 'string') {
+      this.accountsFile = options;
+      this.tenantId = 'default';
+    } else {
+      this.accountsFile = options.accountsFile || ACCOUNTS_FILE;
+      this.tenantId = options.tenantId || 'default';
+    }
     this.accounts = [];
     this.loadAccounts();
   }
 
   loadAccounts() {
-    const data = storage.readJSON(ACCOUNTS_FILE, []);
+    const data = storage.readJSON(this.accountsFile, []);
     this.accounts = Array.isArray(data) ? data : [];
 
     // Automatically encrypt any unencrypted plaintext passwords
@@ -31,7 +38,7 @@ class EmailService {
   }
 
   saveAccounts() {
-    storage.writeJSON(ACCOUNTS_FILE, this.accounts);
+    storage.writeJSON(this.accountsFile, this.accounts);
   }
 
   // Safe accounts for frontend client consumption - NEVER exposes passwords

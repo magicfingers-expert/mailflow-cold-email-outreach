@@ -7,9 +7,12 @@ const storage = require('./storageService');
 const INBOX_CACHE_FILE = path.join(__dirname, '..', 'data', 'inbox_cache.json');
 
 class InboxService {
-  constructor(emailService, queueService) {
+  constructor(emailService, queueService, options = {}) {
     this.emailService = emailService;
     this.queueService = queueService;
+    this.cacheFile = options.cacheFile || INBOX_CACHE_FILE;
+    this.tenantId = options.tenantId || 'default';
+    this.bounceService = options.bounceService || bounceService;
     this.messages = [];
     this.isSyncing = false;
     this.lastSyncTime = null;
@@ -19,7 +22,7 @@ class InboxService {
     // Background auto-sync only makes sense in persistent server environments (local dev).
     // On Vercel serverless, the process is frozen/terminated between requests, so
     // setInterval never fires reliably. Skip it to avoid wasted connection attempts.
-    if (!process.env.VERCEL) {
+    if (!process.env.VERCEL && options.autoSync !== false) {
       this.startBackgroundAutoSync(20000);
     }
   }
@@ -43,12 +46,12 @@ class InboxService {
   }
 
   loadCache() {
-    const data = storage.readJSON(INBOX_CACHE_FILE, []);
+    const data = storage.readJSON(this.cacheFile, []);
     this.messages = Array.isArray(data) ? data : [];
   }
 
   saveCache() {
-    storage.writeJSON(INBOX_CACHE_FILE, this.messages);
+    storage.writeJSON(this.cacheFile, this.messages);
   }
 
   // Get filtered messages (by folder: INBOX, SPAM, SENT, or ALL; by account; by search)
@@ -252,7 +255,7 @@ class InboxService {
               const isLeadReply = this.checkIfLeadReply(fromAddr);
 
               // Automated Bounce Detection & Extraction
-              const bounceResult = bounceService.parseBounceMessage({
+              const bounceResult = this.bounceService.parseBounceMessage({
                 from: fromAddr,
                 fromName: fromName,
                 subject: parsed.subject || '',

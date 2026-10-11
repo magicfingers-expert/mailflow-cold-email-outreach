@@ -1,6 +1,43 @@
 // MailFlow - Multi-Account Direct Outreach, Unified Inbox & Live Open Tracker Controller
 
+// Multi-Tenant Session & API Client Interceptor
+(function() {
+  const originalFetch = window.fetch;
+  window.fetch = function(url, options = {}) {
+    options = options || {};
+    options.headers = options.headers || {};
+
+    const token = localStorage.getItem('mailflow_auth_token');
+    if (token) {
+      if (options.headers instanceof Headers) {
+        if (!options.headers.has('Authorization')) options.headers.set('Authorization', `Bearer ${token}`);
+      } else {
+        if (!options.headers['Authorization'] && !options.headers['authorization']) {
+          options.headers['Authorization'] = `Bearer ${token}`;
+        }
+      }
+    }
+
+    const activeTenantId = localStorage.getItem('mailflow_active_tenant') || 'default';
+    if (options.headers instanceof Headers) {
+      if (!options.headers.has('X-Tenant-Id')) options.headers.set('X-Tenant-Id', activeTenantId);
+    } else {
+      if (!options.headers['X-Tenant-Id'] && !options.headers['x-tenant-id']) {
+        options.headers['X-Tenant-Id'] = activeTenantId;
+      }
+    }
+
+    return originalFetch.call(this, url, options);
+  };
+})();
+
 const app = {
+  authToken: localStorage.getItem('mailflow_auth_token') || null,
+  activeTenantId: localStorage.getItem('mailflow_active_tenant') || 'default',
+  currentWorkspace: null,
+  userWorkspaces: [],
+  currentUser: null,
+
   accounts: [],
   activeAccountId: null,
   activeCampaignId: null,
@@ -82,6 +119,7 @@ const app = {
     ];
 
     this.bindEvents();
+    this.initTenantAuth();
     this.loadSavedAccounts();
     this.loadSendingDelayPreference();
     this.loadOpenEventsFromStorage();
@@ -4747,6 +4785,409 @@ lead10@businesspartner.com`;
       .replace(/</g, '&lt;')
       .replace(/>/g, '&gt;')
       .replace(/"/g, '&quot;');
+  },
+
+  // ---------------- MULTI-TENANT WORKSPACE & RBAC CONTROLLER ----------------
+
+  async initTenantAuth() {
+    try {
+      const res = await fetch('/api/auth/me');
+      const data = await res.json();
+      if (data && data.success) {
+        this.currentUser = data.user || null;
+        this.currentWorkspace = data.activeTenant || null;
+        if (data.activeTenant && data.activeTenant.id) {
+          this.activeTenantId = data.activeTenant.id;
+          localStorage.setItem('mailflow_active_tenant', this.activeTenantId);
+        }
+        if (Array.isArray(data.tenants)) {
+          this.userWorkspaces = data.tenants;
+        }
+      }
+    } catch (e) {
+      console.warn('Tenant auth init error:', e.message);
+    }
+    this.renderWorkspaceUI();
+    this.loadWorkspacesList();
+  },
+
+  async loadWorkspacesList() {
+    try {
+      const res = await fetch('/api/tenants');
+      const data = await res.json();
+      if (data && data.success && Array.isArray(data.tenants)) {
+        this.userWorkspaces = data.tenants;
+        this.renderWorkspaceDropdown();
+      }
+    } catch (e) {}
+  },
+
+  renderWorkspaceUI() {
+    const nameEl = document.getElementById('currentWorkspaceName');
+    const roleEl = document.getElementById('currentWorkspaceRole');
+    const authTextEl = document.getElementById('wsCurrentUserText');
+    const authBtnEl = document.getElementById('btnWsAuthToggle');
+
+    const ws = this.currentWorkspace || this.userWorkspaces.find(w => w.id === this.activeTenantId) || { name: 'Primary Workspace', role: 'Owner' };
+
+    if (nameEl) nameEl.innerText = ws.name || 'Primary Workspace';
+    if (roleEl) roleEl.innerText = (ws.role || 'Owner').toUpperCase();
+
+    if (this.currentUser) {
+      if (authTextEl) authTextEl.innerText = this.currentUser.email;
+      if (authBtnEl) {
+        authBtnEl.innerText = 'Sign Out';
+        authBtnEl.onclick = () => this.handleSignOut();
+      }
+    } else {
+      if (authTextEl) authTextEl.innerText = 'Guest Mode';
+      if (authBtnEl) {
+        authBtnEl.innerText = 'Sign In';
+        authBtnEl.onclick = () => this.openAuthModal();
+      }
+    }
+  },
+
+  toggleWorkspaceDropdown() {
+    const menu = document.getElementById('workspaceDropdownMenu');
+    if (!menu) return;
+    const isShowing = menu.style.display === 'block';
+    menu.style.display = isShowing ? 'none' : 'block';
+    if (!isShowing) {
+      this.loadWorkspacesList();
+    }
+  },
+
+  closeWorkspaceDropdown() {
+    const menu = document.getElementById('workspaceDropdownMenu');
+    if (menu) menu.style.display = 'none';
+  },
+
+  renderWorkspaceDropdown() {
+    const container = document.getElementById('workspaceListItems');
+    const badge = document.getElementById('workspaceCountBadge');
+    if (badge) badge.innerText = `${this.userWorkspaces.length || 1} Available`;
+    if (!container) return;
+
+    if (!this.userWorkspaces || this.userWorkspaces.length === 0) {
+      container.innerHTML = `
+        <div class="ws-item active" onclick="app.closeWorkspaceDropdown()">
+          <div>
+            <div class="ws-item-title">Primary Workspace</div>
+            <div style="font-size: 11px; color: var(--text-dim);">Default Organization</div>
+          </div>
+          <span style="font-size: 12px; color: #059669; font-weight: 700;">✓</span>
+        </div>
+      `;
+      return;
+    }
+
+    container.innerHTML = this.userWorkspaces.map(ws => {
+      const isActive = (ws.id === this.activeTenantId);
+      return `
+        <div class="ws-item ${isActive ? 'active' : ''}" onclick="app.switchWorkspace('${ws.id}')">
+          <div>
+            <div class="ws-item-title">${this.escapeHtml(ws.name || 'Workspace')}</div>
+            <div style="font-size: 10.5px; color: var(--text-dim); text-transform: uppercase;">Role: ${ws.role || 'member'}</div>
+          </div>
+          ${isActive ? '<span style="font-size: 12px; color: #059669; font-weight: 700;">✓</span>' : ''}
+        </div>
+      `;
+    }).join('');
+  },
+
+  async switchWorkspace(tenantId) {
+    if (!tenantId) return;
+    this.closeWorkspaceDropdown();
+
+    try {
+      const res = await fetch(`/api/tenants/switch/${tenantId}`, { method: 'POST' });
+      const data = await res.json();
+      if (data && data.success) {
+        this.activeTenantId = tenantId;
+        localStorage.setItem('mailflow_active_tenant', tenantId);
+        this.currentWorkspace = data.activeTenant;
+        this.renderWorkspaceUI();
+        this.showToast(`✓ Switched to workspace: ${data.activeTenant.name}`);
+        await this.reloadAllWorkspaceData();
+        return;
+      }
+    } catch (e) {
+      console.warn('Switch workspace API failed:', e.message);
+    }
+
+    this.activeTenantId = tenantId;
+    localStorage.setItem('mailflow_active_tenant', tenantId);
+    this.renderWorkspaceUI();
+    this.showToast(`✓ Switched workspace`);
+    await this.reloadAllWorkspaceData();
+  },
+
+  async reloadAllWorkspaceData() {
+    this.showToast('Refreshing workspace data...', 'info');
+    await Promise.allSettled([
+      this.loadSavedAccounts(),
+      this.loadMessageVariants(),
+      this.loadCampaigns(),
+      this.loadAllInbox(),
+      this.loadPrimaryInbox(),
+      this.loadSent(),
+      this.loadSpam(),
+      this.loadBounces()
+    ]);
+    this.showToast('✓ Workspace loaded.');
+  },
+
+  openNewWorkspaceModal() {
+    this.closeWorkspaceDropdown();
+    const input = document.getElementById('newWorkspaceNameInput');
+    if (input) input.value = '';
+    this.openModal('modalNewWorkspace');
+  },
+
+  async handleCreateWorkspace(e) {
+    if (e) e.preventDefault();
+    const input = document.getElementById('newWorkspaceNameInput');
+    const name = input ? input.value.trim() : '';
+    if (!name) return;
+
+    try {
+      const res = await fetch('/api/tenants', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name })
+      });
+      const data = await res.json();
+      if (data.success && data.tenant) {
+        this.closeModal('modalNewWorkspace');
+        await this.loadWorkspacesList();
+        await this.switchWorkspace(data.tenant.id);
+        this.showToast(`✓ Created and switched to workspace "${data.tenant.name}"`);
+      } else {
+        this.showToast(data.error || 'Failed to create workspace', 'danger');
+      }
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  async openTeamModal() {
+    this.closeWorkspaceDropdown();
+    this.openModal('modalTeamMembers');
+
+    const sub = document.getElementById('teamModalWorkspaceNameSub');
+    if (sub) sub.innerText = `Active Workspace: ${this.currentWorkspace?.name || 'Primary Workspace'}`;
+
+    await this.loadTeamMembers();
+  },
+
+  async loadTeamMembers() {
+    const listEl = document.getElementById('teamMembersList');
+    const countEl = document.getElementById('teamMembersCount');
+    if (!listEl) return;
+    listEl.innerHTML = '<div style="padding: 12px; color: var(--text-dim); text-align: center;">Loading members...</div>';
+
+    try {
+      const res = await fetch('/api/tenants/current');
+      const data = await res.json();
+      if (data.success && Array.isArray(data.members)) {
+        if (countEl) countEl.innerText = data.members.length;
+        if (data.members.length === 0) {
+          listEl.innerHTML = `
+            <div class="team-member-row">
+              <div>
+                <strong>${this.currentUser ? this.currentUser.name : 'Primary Account'}</strong>
+                <div style="font-size: 11px; color: var(--text-dim);">${this.currentUser ? this.currentUser.email : 'owner@workspace.com'}</div>
+              </div>
+              <span class="status-badge status-completed" style="font-size: 10px;">Owner</span>
+            </div>
+          `;
+          return;
+        }
+
+        listEl.innerHTML = data.members.map(m => `
+          <div class="team-member-row">
+            <div>
+              <strong>${this.escapeHtml(m.name || m.email.split('@')[0])}</strong>
+              <div style="font-size: 11px; color: var(--text-dim);">${this.escapeHtml(m.email)}</div>
+            </div>
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="status-badge ${m.role === 'owner' ? 'status-completed' : 'status-inprogress'}" style="font-size: 10px; text-transform: uppercase;">
+                ${m.role}
+              </span>
+              ${(m.role !== 'owner' && data.role === 'owner') ? `
+                <button type="button" class="btn btn-sm btn-secondary" style="font-size: 11px; color: #dc2626; padding: 2px 7px;" onclick="app.handleRemoveMember('${m.userId}')">Remove</button>
+              ` : ''}
+            </div>
+          </div>
+        `).join('');
+      }
+    } catch (err) {
+      listEl.innerHTML = `<div style="padding: 12px; color: #dc2626;">Error loading members: ${err.message}</div>`;
+    }
+  },
+
+  async handleInviteMember(e) {
+    if (e) e.preventDefault();
+    const emailInput = document.getElementById('inviteMemberEmailInput');
+    const roleSelect = document.getElementById('inviteMemberRoleSelect');
+    const email = emailInput ? emailInput.value.trim() : '';
+    const role = roleSelect ? roleSelect.value : 'member';
+
+    if (!email) return;
+
+    try {
+      const res = await fetch('/api/tenants/members', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, role })
+      });
+      const data = await res.json();
+      if (data.success) {
+        if (emailInput) emailInput.value = '';
+        this.showToast(`✓ Invited ${email} as ${role}`);
+        await this.loadTeamMembers();
+      } else {
+        this.showToast(data.error || 'Failed to invite member', 'danger');
+      }
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  async handleRemoveMember(userId) {
+    if (!confirm('Are you sure you want to remove this member from the workspace?')) return;
+    try {
+      const res = await fetch(`/api/tenants/members/${userId}`, { method: 'DELETE' });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast('✓ Member removed');
+        await this.loadTeamMembers();
+      } else {
+        this.showToast(data.error || 'Failed to remove member', 'danger');
+      }
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  openAuthModal() {
+    this.closeWorkspaceDropdown();
+    this.openModal('modalAuth');
+  },
+
+  switchAuthTab(tab) {
+    const btnIn = document.getElementById('tabBtnSignIn');
+    const btnUp = document.getElementById('tabBtnSignUp');
+    const formIn = document.getElementById('formSignIn');
+    const formUp = document.getElementById('formSignUp');
+
+    if (tab === 'signup') {
+      if (btnIn) btnIn.classList.remove('active');
+      if (btnUp) btnUp.classList.add('active');
+      if (formIn) formIn.style.display = 'none';
+      if (formUp) formUp.style.display = 'block';
+    } else {
+      if (btnIn) btnIn.classList.add('active');
+      if (btnUp) btnUp.classList.remove('active');
+      if (formIn) formIn.style.display = 'block';
+      if (formUp) formUp.style.display = 'none';
+    }
+  },
+
+  async handleSignIn(e) {
+    if (e) e.preventDefault();
+    const email = document.getElementById('authSignInEmail')?.value.trim();
+    const password = document.getElementById('authSignInPassword')?.value;
+
+    if (!email || !password) return;
+
+    try {
+      const res = await fetch('/api/auth/login', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email, password })
+      });
+      const data = await res.json();
+      if (data.success && data.token) {
+        localStorage.setItem('mailflow_auth_token', data.token);
+        this.authToken = data.token;
+        this.currentUser = data.user;
+        if (data.activeTenant) {
+          this.activeTenantId = data.activeTenant.id;
+          localStorage.setItem('mailflow_active_tenant', data.activeTenant.id);
+          this.currentWorkspace = data.activeTenant;
+        }
+        if (data.tenants) this.userWorkspaces = data.tenants;
+
+        this.closeModal('modalAuth');
+        this.renderWorkspaceUI();
+        this.showToast(`✓ Welcome back, ${data.user.name}!`);
+        await this.reloadAllWorkspaceData();
+      } else {
+        this.showToast(data.error || 'Sign in failed', 'danger');
+      }
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  async handleSignUp(e) {
+    if (e) e.preventDefault();
+    const name = document.getElementById('authSignUpName')?.value.trim();
+    const email = document.getElementById('authSignUpEmail')?.value.trim();
+    const workspaceName = document.getElementById('authSignUpWorkspace')?.value.trim();
+    const password = document.getElementById('authSignUpPassword')?.value;
+
+    if (!name || !email || !password) return;
+
+    try {
+      const res = await fetch('/api/auth/register', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ name, email, password, workspaceName })
+      });
+      const data = await res.json();
+      if (data.success && data.token) {
+        localStorage.setItem('mailflow_auth_token', data.token);
+        this.authToken = data.token;
+        this.currentUser = data.user;
+        if (data.tenant) {
+          this.activeTenantId = data.tenant.id;
+          localStorage.setItem('mailflow_active_tenant', data.tenant.id);
+          this.currentWorkspace = data.tenant;
+        }
+        if (data.tenants) this.userWorkspaces = data.tenants;
+
+        this.closeModal('modalAuth');
+        this.renderWorkspaceUI();
+        this.showToast(`✓ Workspace "${data.tenant?.name}" created!`);
+        await this.reloadAllWorkspaceData();
+      } else {
+        this.showToast(data.error || 'Registration failed', 'danger');
+      }
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  async handleSignOut() {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+    } catch (e) {}
+
+    localStorage.removeItem('mailflow_auth_token');
+    localStorage.removeItem('mailflow_active_tenant');
+    this.authToken = null;
+    this.currentUser = null;
+    this.activeTenantId = 'default';
+    this.currentWorkspace = null;
+    this.userWorkspaces = [];
+
+    this.renderWorkspaceUI();
+    this.closeWorkspaceDropdown();
+    this.showToast('✓ Signed out. Switched to Default Workspace.');
+    await this.reloadAllWorkspaceData();
   }
 };
 
@@ -4766,6 +5207,14 @@ document.addEventListener('click', (e) => {
   if (dropdown && dropdown.style.display === 'block') {
     if (!dropdown.contains(e.target) && !btn?.contains(e.target)) {
       dropdown.style.display = 'none';
+    }
+  }
+
+  const wsDropdown = document.getElementById('workspaceDropdownMenu');
+  const wsBtn = document.getElementById('btnWorkspaceDropdown');
+  if (wsDropdown && wsDropdown.style.display === 'block') {
+    if (!wsDropdown.contains(e.target) && !wsBtn?.contains(e.target)) {
+      wsDropdown.style.display = 'none';
     }
   }
 });

@@ -180,6 +180,44 @@
             <span class="status-dot" style="position: absolute; bottom: 3px; right: 3px; width: 6px; height: 6px;"></span>
           </button>
 
+          <!-- Multi-Tenant Workspace Switcher Widget -->
+          <div class="workspace-switcher-wrapper" style="position: relative;">
+            <button type="button" class="btn-workspace-switcher" id="btnWorkspaceDropdown" onclick="app.toggleWorkspaceDropdown()" title="Switch Workspace / Manage Team">
+              <span class="ws-icon">🏢</span>
+              <span class="ws-info">
+                <span class="ws-name" id="currentWorkspaceName">Primary Workspace</span>
+                <span class="ws-role-pill" id="currentWorkspaceRole">Owner</span>
+              </span>
+              <span class="ws-chevron" id="wsChevron">▾</span>
+            </button>
+
+            <!-- Workspace Switcher Menu Dropdown -->
+            <div class="workspace-dropdown-menu" id="workspaceDropdownMenu" style="display: none;">
+              <div class="ws-dropdown-header">
+                <span style="font-size: 11px; font-weight: 700; text-transform: uppercase; color: var(--text-dim); letter-spacing: 0.5px;">Workspaces</span>
+                <span class="badge-pill" id="workspaceCountBadge" style="font-size: 10px; background: #ecfdf5; color: #059669; padding: 2px 6px; border-radius: 4px;">1 Active</span>
+              </div>
+              
+              <div class="ws-list-container" id="workspaceListItems">
+                <!-- Injected dynamically -->
+              </div>
+
+              <div class="ws-dropdown-actions">
+                <button type="button" class="btn-ws-action" onclick="app.openNewWorkspaceModal()">
+                  <span style="font-size: 15px; font-weight: 700; color: #059669;">+</span> <span>Create New Workspace</span>
+                </button>
+                <button type="button" class="btn-ws-action" onclick="app.openTeamModal()">
+                  <span>👥</span> <span>Team Members &amp; Roles</span>
+                </button>
+              </div>
+
+              <div class="ws-dropdown-footer" id="wsAuthFooter">
+                <div class="ws-user-info" id="wsCurrentUserText">Guest Mode</div>
+                <button type="button" class="btn-ws-auth-action" id="btnWsAuthToggle" onclick="app.openAuthModal()">Sign In</button>
+              </div>
+            </div>
+          </div>
+
           <!-- Real-Time Top Notification Bell Icon with Dropdown -->
           <div class="header-notification-wrapper" style="position: relative;">
             <button type="button" class="header-notif-btn" id="btnTopNotifBell" onclick="app.toggleTopNotifDropdown()" title="Click to view leads who opened emails">
@@ -1935,6 +1973,149 @@
         <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalSpamGuide')">Got It, Close</button>
         <button type="button" class="btn btn-primary" onclick="app.closeModal('modalSpamGuide'); app.fixSubjectForPrimaryInbox();" style="background: #059669; border-color: #059669;">✨ 1-Click Optimize Subject Now</button>
       </div>
+    </div>
+  </div>
+
+  <!-- MODAL: CREATE NEW WORKSPACE (MULTI-TENANT) -->
+  <div class="modal-backdrop" id="modalNewWorkspace" style="display: none;">
+    <div class="modal-card" style="max-width: 480px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+        <div>
+          <div class="modal-title" style="margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+            <span>🏢 Create New Workspace</span>
+          </div>
+          <div style="font-size: 12.5px; color: var(--text-dim);">
+            Create a dedicated workspace with 100% isolated accounts, campaigns, inboxes, and bounces.
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="app.closeModal('modalNewWorkspace')" style="font-size: 14px; padding: 2px 8px; border-radius: 6px;">✕</button>
+      </div>
+
+      <form id="formNewWorkspace" onsubmit="app.handleCreateWorkspace(event)">
+        <div class="form-group" style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px; color: var(--text-main);">
+            Workspace Name <span style="color: #ef4444;">*</span>
+          </label>
+          <input type="text" id="newWorkspaceNameInput" class="form-control" placeholder="e.g. Real Estate Growth Team, Acme Agency" required style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 13.5px;">
+        </div>
+
+        <div style="background: #f0fdf4; border: 1px solid #bbf7d0; border-radius: var(--radius-sm); padding: 12px; margin-bottom: 20px; font-size: 12px; color: #166534;">
+          <strong>🛡️ Strict Data Isolation Guaranteed:</strong>
+          <ul style="margin: 6px 0 0 16px; padding: 0; line-height: 1.5;">
+            <li>Zero account or password leakage across workspaces</li>
+            <li>Independent message variants, campaign queues, &amp; inboxes</li>
+            <li>Separate suppression &amp; bounce tracking per team</li>
+          </ul>
+        </div>
+
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 10px;">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalNewWorkspace')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSubmitNewWorkspace">Create &amp; Switch Workspace</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: TEAM MEMBERS & ROLES (RBAC) -->
+  <div class="modal-backdrop" id="modalTeamMembers" style="display: none;">
+    <div class="modal-card" style="max-width: 580px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+        <div>
+          <div class="modal-title" style="margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+            <span>👥 Team Members &amp; Workspace Access</span>
+          </div>
+          <div style="font-size: 12.5px; color: var(--text-dim);" id="teamModalWorkspaceNameSub">
+            Active Workspace: Primary Workspace
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="app.closeModal('modalTeamMembers')" style="font-size: 14px; padding: 2px 8px; border-radius: 6px;">✕</button>
+      </div>
+
+      <!-- Invite Member Form -->
+      <form id="formInviteMember" onsubmit="app.handleInviteMember(event)" style="margin-bottom: 20px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: var(--radius-sm); padding: 14px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: var(--text-main); margin-bottom: 10px;">
+          Invite Team Member to this Workspace
+        </div>
+        <div style="display: flex; gap: 10px; flex-wrap: wrap;">
+          <input type="email" id="inviteMemberEmailInput" class="form-control" placeholder="colleague@domain.com" required style="flex: 1; min-width: 180px; padding: 8px 12px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 13px;">
+          <select id="inviteMemberRoleSelect" class="form-control" style="width: 110px; padding: 8px; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); font-size: 13px;">
+            <option value="member">Member</option>
+            <option value="admin">Admin</option>
+          </select>
+          <button type="submit" class="btn btn-primary" style="padding: 8px 14px; font-size: 12.5px;">+ Invite</button>
+        </div>
+      </form>
+
+      <!-- Member List -->
+      <div style="margin-bottom: 16px;">
+        <div style="font-size: 12.5px; font-weight: 700; color: var(--text-dim); text-transform: uppercase; margin-bottom: 8px; letter-spacing: 0.5px;">
+          Active Members (<span id="teamMembersCount">1</span>)
+        </div>
+        <div id="teamMembersList" style="max-height: 240px; overflow-y: auto;">
+          <!-- Dynamically populated -->
+        </div>
+      </div>
+
+      <div class="modal-actions" style="display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalTeamMembers')">Done</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: AUTHENTICATION (SIGN IN & REGISTER) -->
+  <div class="modal-backdrop" id="modalAuth" style="display: none;">
+    <div class="modal-card" style="max-width: 440px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+        <div>
+          <div class="modal-title" style="margin-bottom: 4px; display: flex; align-items: center; gap: 8px;">
+            <span>🔐 MailFlow Multi-Tenant Sign In</span>
+          </div>
+          <div style="font-size: 12.5px; color: var(--text-dim);">
+            Manage your personal and team email outreach workspaces.
+          </div>
+        </div>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="app.closeModal('modalAuth')" style="font-size: 14px; padding: 2px 8px; border-radius: 6px;">✕</button>
+      </div>
+
+      <!-- Auth Tabs -->
+      <div class="auth-tab-buttons">
+        <button type="button" class="auth-tab-btn active" id="tabBtnSignIn" onclick="app.switchAuthTab('signin')">Sign In</button>
+        <button type="button" class="auth-tab-btn" id="tabBtnSignUp" onclick="app.switchAuthTab('signup')">Create Account</button>
+      </div>
+
+      <!-- Form: Sign In -->
+      <form id="formSignIn" onsubmit="app.handleSignIn(event)">
+        <div class="form-group" style="margin-bottom: 14px;">
+          <label style="display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px;">Email Address</label>
+          <input type="email" id="authSignInEmail" class="form-control" placeholder="user@company.com" required style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 13.5px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 20px;">
+          <label style="display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px;">Password</label>
+          <input type="password" id="authSignInPassword" class="form-control" placeholder="••••••••" required style="width: 100%; padding: 10px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 13.5px;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 13.5px;">Sign In to Workspace</button>
+      </form>
+
+      <!-- Form: Sign Up (Register) -->
+      <form id="formSignUp" onsubmit="app.handleSignUp(event)" style="display: none;">
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px;">Your Name</label>
+          <input type="text" id="authSignUpName" class="form-control" placeholder="Alex Morgan" required style="width: 100%; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 13px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px;">Email Address</label>
+          <input type="email" id="authSignUpEmail" class="form-control" placeholder="alex@company.com" required style="width: 100%; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 13px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px;">Primary Workspace Name</label>
+          <input type="text" id="authSignUpWorkspace" class="form-control" placeholder="e.g. Growth Team" style="width: 100%; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 13px;">
+        </div>
+        <div class="form-group" style="margin-bottom: 18px;">
+          <label style="display: block; font-size: 12.5px; font-weight: 600; margin-bottom: 6px;">Password (Min. 6 chars)</label>
+          <input type="password" id="authSignUpPassword" class="form-control" placeholder="••••••••" required minlength="6" style="width: 100%; padding: 9px 12px; border-radius: var(--radius-sm); border: 1px solid var(--border-subtle); font-size: 13px;">
+        </div>
+        <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 13.5px;">Create Account &amp; Workspace</button>
+      </form>
     </div>
   </div>
 

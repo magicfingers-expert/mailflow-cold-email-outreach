@@ -1,8 +1,12 @@
 const db = require('./db');
 const EncryptionService = require('./encryptionService');
+const tenantManager = require('./tenantManager');
 
 class AuthService {
-  static register({ name, email, password }) {
+  /**
+   * Register a new user and create their isolated primary workspace/tenant
+   */
+  static register({ name, email, password, workspaceName }) {
     if (!email || !email.includes('@')) {
       throw new Error('A valid email address is required.');
     }
@@ -20,6 +24,8 @@ class AuthService {
     }
 
     const password_hash = EncryptionService.hashPassword(password);
+    
+    // 1. Create User
     const user = db.createUser({
       name: name.trim(),
       email: cleanEmail,
@@ -27,19 +33,42 @@ class AuthService {
       is_verified: true
     });
 
-    const session = db.createSession(user.id);
+    // 2. Create Isolated Tenant/Workspace for this user
+    const tenantName = (workspaceName && workspaceName.trim()) 
+      ? workspaceName.trim() 
+      : `${name.trim()}'s Workspace`;
+
+    const tenant = db.createTenant({
+      name: tenantName,
+      owner_id: user.id
+    });
+
+    // 3. Update User's default tenant
+    db.updateUser(user.id, { default_tenant_id: tenant.id });
+
+    // 4. Pre-initialize isolated filesystem partition for this tenant
+    tenantManager.getTenantServices(tenant.id);
+
+    // 5. Create Session
+    const session = db.createSession(user.id, tenant.id);
+
     return {
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        is_verified: user.is_verified,
+        default_tenant_id: tenant.id,
         created_at: user.created_at
       },
-      token: session.token
+      token: session.token,
+      tenant,
+      tenants: [{ ...tenant, role: 'owner' }]
     };
   }
 
+  /**
+   * Login user and resolve their accessible tenants
+   */
   static login({ email, password }) {
     if (!email || !password) {
       throw new Error('Email and password are required.');
@@ -56,16 +85,163 @@ class AuthService {
       throw new Error('Invalid email or password.');
     }
 
-    const session = db.createSession(user.id);
+    // Resolve user's accessible tenants
+    let tenants = db.getTenantsByUserId(user.id);
+    if (tenants.length === 0) {
+      // Ensure user has at least one workspace
+      const newTenant = db.createTenant({
+        name: `${user.name}'s Workspace`,
+        owner_id: user.id
+      });
+      db.updateUser(user.id, { default_tenant_id: newTenant.id });
+      tenants = [{ ...newTenant, role: 'owner' }];
+    }
+
+    // Determine active tenant
+    const activeTenantId = (user.default_tenant_id && tenants.some(t => t.id === user.default_tenant_id))
+      ? user.default_tenant_id
+      : tenants[0].id;
+
+    const activeTenant = tenants.find(t => t.id === activeTenantId) || tenants[0];
+
+    // Pre-initialize isolated services
+    tenantManager.getTenantServices(activeTenant.id);
+
+    const session = db.createSession(user.id, activeTenant.id);
+
     return {
       user: {
         id: user.id,
         name: user.name,
         email: user.email,
-        is_verified: user.is_verified,
+        default_tenant_id: activeTenant.id,
         created_at: user.created_at
       },
-      token: session.token
+      token: session.token,
+      activeTenant,
+      tenants
+    };
+  }
+
+  /**
+   * Get current authenticated user profile and workspaces
+   */
+  static getMe(token) {
+    if (!token) return null;
+    const session = db.findSession(token);
+    if (!session) return null;
+
+    const user = db.findUserById(session.user_id);
+    if (!user) return null;
+
+    const tenants = db.getTenantsByUserId(user.id);
+    const activeTenantId = session.active_tenant_id || user.default_tenant_id || (tenants[0] ? tenants[0].id : 'default');
+    const activeTenant = db.findTenantById(activeTenantId) || (tenants[0] || db.ensureDefaultTenant());
+
+    return {
+      user: {
+        id: user.id,
+        name: user.name,
+        email: user.email,
+        default_tenant_id: user.default_tenant_id,
+        created_at: user.created_at
+      },
+      activeTenant,
+      tenants
+    };
+  }
+
+  /**
+   * Switch the active workspace for the current session
+   */
+  static switchTenant(userId, token, targetTenantId) {
+    if (!userId || !token || !targetTenantId) {
+      throw new Error('User, token, and target workspace ID are required.');
+    }
+
+    const membership = db.getTenantMembership(targetTenantId, userId);
+    const tenant = db.findTenantById(targetTenantId);
+
+    if (!membership && (!tenant || tenant.owner_id !== userId)) {
+      throw new Error('Access denied: You are not a member of this workspace.');
+    }
+
+    db.updateSessionActiveTenant(token, targetTenantId);
+    db.updateUser(userId, { default_tenant_id: targetTenantId });
+
+    // Ensure services initialized
+    tenantManager.getTenantServices(targetTenantId);
+
+    return {
+      success: true,
+      activeTenant: {
+        ...tenant,
+        role: membership ? membership.role : 'owner'
+      }
+    };
+  }
+
+  /**
+   * Create a new workspace for an existing user
+   */
+  static createWorkspace(userId, workspaceName) {
+    if (!userId) throw new Error('User ID is required.');
+    if (!workspaceName || !workspaceName.trim()) {
+      throw new Error('Workspace name is required.');
+    }
+
+    const user = db.findUserById(userId);
+    if (!user) throw new Error('User not found.');
+
+    const tenant = db.createTenant({
+      name: workspaceName.trim(),
+      owner_id: userId
+    });
+
+    // Ensure isolated filesystem partition
+    tenantManager.getTenantServices(tenant.id);
+
+    return {
+      ...tenant,
+      role: 'owner'
+    };
+  }
+
+  /**
+   * Invite or add a member to a workspace
+   */
+  static inviteMember(tenantId, inviterUserId, { email, role = 'member' }) {
+    if (!email || !email.includes('@')) {
+      throw new Error('A valid email address is required.');
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    let targetUser = db.findUserByEmail(cleanEmail);
+
+    if (!targetUser) {
+      // Create user placeholder for invited member
+      targetUser = db.createUser({
+        name: cleanEmail.split('@')[0],
+        email: cleanEmail,
+        password_hash: EncryptionService.hashPassword(EncryptionService.generateToken(12)),
+        is_verified: true,
+        default_tenant_id: tenantId
+      });
+    }
+
+    const member = db.addTenantMember({
+      tenant_id: tenantId,
+      user_id: targetUser.id,
+      role: role || 'member'
+    });
+
+    return {
+      membershipId: member.id,
+      userId: targetUser.id,
+      name: targetUser.name,
+      email: targetUser.email,
+      role: member.role,
+      joinedAt: member.joined_at
     };
   }
 
@@ -74,105 +250,6 @@ class AuthService {
       db.deleteSession(token);
     }
     return true;
-  }
-
-  static getUserFromToken(token) {
-    if (!token) return null;
-    const session = db.findSession(token);
-    if (!session) return null;
-    const user = db.findUserById(session.user_id);
-    if (!user) return null;
-    return {
-      id: user.id,
-      name: user.name,
-      email: user.email,
-      is_verified: user.is_verified,
-      created_at: user.created_at
-    };
-  }
-
-  static requestPasswordReset(email) {
-    const cleanEmail = (email || '').toLowerCase().trim();
-    const user = db.findUserByEmail(cleanEmail);
-    if (!user) {
-      // Return success anyway for security timing attack prevention
-      return { success: true, message: 'If that email exists, password reset instructions have been sent.' };
-    }
-
-    const resetToken = EncryptionService.generateToken(24);
-    const expires = Date.now() + 3600000; // 1 hour
-    db.updateUser(user.id, { reset_token: resetToken, reset_token_expires: expires });
-
-    return {
-      success: true,
-      message: 'Password reset link generated.',
-      debugToken: resetToken // Included for testing convenience
-    };
-  }
-
-  static resetPassword(resetToken, newPassword) {
-    if (!resetToken) throw new Error('Reset token is required.');
-    if (!newPassword || newPassword.length < 6) throw new Error('Password must be at least 6 characters.');
-
-    const user = db.data.users.find(
-      u => u.reset_token === resetToken && u.reset_token_expires && u.reset_token_expires > Date.now()
-    );
-
-    if (!user) {
-      throw new Error('Invalid or expired password reset token.');
-    }
-
-    const password_hash = EncryptionService.hashPassword(newPassword);
-    db.updateUser(user.id, {
-      password_hash,
-      reset_token: null,
-      reset_token_expires: null
-    });
-
-    db.deleteUserSessions(user.id);
-    const session = db.createSession(user.id);
-
-    return {
-      success: true,
-      message: 'Password has been reset successfully.',
-      token: session.token,
-      user: { id: user.id, name: user.name, email: user.email }
-    };
-  }
-
-  // Middleware to authenticate requests
-  static authMiddleware(req, res, next) {
-    let token = null;
-    const authHeader = req.headers['authorization'];
-    if (authHeader && authHeader.startsWith('Bearer ')) {
-      token = authHeader.substring(7);
-    } else if (req.query && req.query.token) {
-      token = req.query.token;
-    }
-
-    // Default fallback to demo user if no token provided during testing
-    if (!token) {
-      const demoUser = db.data.users[0];
-      if (demoUser) {
-        req.user = {
-          id: demoUser.id,
-          name: demoUser.name,
-          email: demoUser.email,
-          is_verified: demoUser.is_verified
-        };
-        return next();
-      }
-      return res.status(401).json({ success: false, error: 'Authentication required' });
-    }
-
-    const user = AuthService.getUserFromToken(token);
-    if (!user) {
-      return res.status(401).json({ success: false, error: 'Invalid or expired session. Please log in.' });
-    }
-
-    req.user = user;
-    req.sessionToken = token;
-    next();
   }
 }
 

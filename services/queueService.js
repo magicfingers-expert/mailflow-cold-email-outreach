@@ -7,8 +7,12 @@ const CAMPAIGNS_FILE = path.join(__dirname, '..', 'data', 'campaigns.json');
 const OPEN_EVENTS_FILE = path.join(__dirname, '..', 'data', 'open_events.json');
 
 class QueueService {
-  constructor(emailService) {
+  constructor(emailService, options = {}) {
     this.emailService = emailService;
+    this.campaignsFile = options.campaignsFile || CAMPAIGNS_FILE;
+    this.openEventsFile = options.openEventsFile || OPEN_EVENTS_FILE;
+    this.tenantId = options.tenantId || 'default';
+    this.bounceService = options.bounceService || bounceService;
     this.campaigns = [];
     this.activeJobs = new Map();
     this.recentOpens = []; // Store real-time open notification events
@@ -17,21 +21,21 @@ class QueueService {
   }
 
   loadCampaigns() {
-    const data = storage.readJSON(CAMPAIGNS_FILE, []);
+    const data = storage.readJSON(this.campaignsFile, []);
     this.campaigns = Array.isArray(data) ? data : [];
   }
 
   saveCampaigns() {
-    storage.writeJSON(CAMPAIGNS_FILE, this.campaigns);
+    storage.writeJSON(this.campaignsFile, this.campaigns);
   }
 
   loadOpenEvents() {
-    const data = storage.readJSON(OPEN_EVENTS_FILE, []);
+    const data = storage.readJSON(this.openEventsFile, []);
     this.recentOpens = Array.isArray(data) ? data : [];
   }
 
   saveOpenEvents() {
-    storage.writeJSON(OPEN_EVENTS_FILE, this.recentOpens.slice(0, 150));
+    storage.writeJSON(this.openEventsFile, this.recentOpens.slice(0, 150));
   }
 
   // Register a test send tracking ID so it can trigger live open alerts
@@ -183,7 +187,7 @@ class QueueService {
     const campaignId = `camp-${Date.now()}`;
     const recipientsList = cappedRecipients.map((email, idx) => ({
       id: `rec-${idx + 1}`,
-      trackingId: `trk-${Date.now()}-${idx + 1}-${Math.random().toString(36).substr(2, 6)}`,
+      trackingId: `trk_${this.tenantId}_${Date.now()}_${idx + 1}_${Math.random().toString(36).substr(2, 6)}`,
       email: email.toLowerCase().trim(),
       variantNumber: (Array.isArray(messageVariants) && messageVariants.length > 0) ? (idx % messageVariants.length) + 1 : 1,
       status: 'Pending',
@@ -279,7 +283,7 @@ class QueueService {
       jobState.currentLead = rec.email;
 
       // Auto-Suppression check: Skip previously bounced leads to protect sender reputation
-      if (bounceService.isSuppressed(rec.email)) {
+      if (this.bounceService.isSuppressed(rec.email)) {
         rec.status = 'Suppressed';
         rec.error = 'Lead was previously bounced (Auto-Suppressed to protect inbox reputation)';
         rec.isSuppressed = true;
@@ -368,7 +372,7 @@ class QueueService {
 
         if (isSmtpBounce) {
           rec.isBounced = true;
-          bounceService.recordBounce({
+          this.bounceService.recordBounce({
             email: rec.email,
             senderEmail: creds.senderEmail,
             campaignId: campaign.id,
