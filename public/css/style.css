@@ -3089,4 +3089,16 @@ body {
   animation: spinPulse 0.4s ease-out;
 }
 
+/* Input Error Pulse Animation */
+@keyframes inputErrorPulse {
+  0% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0.6); border-color: #ef4444; }
+  50% { transform: scale(1.005); box-shadow: 0 0 0 4px rgba(239, 68, 68, 0.35); border-color: #ef4444; }
+  100% { transform: scale(1); box-shadow: 0 0 0 0 rgba(239, 68, 68, 0); }
+}
+
+.input-error-pulse {
+  animation: inputErrorPulse 0.8s ease-in-out infinite alternate !important;
+  border-color: #ef4444 !important;
+}
+
 

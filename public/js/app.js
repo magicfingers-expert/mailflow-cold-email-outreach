@@ -3593,7 +3593,7 @@ const app = {
     const btn = document.getElementById('btnExecuteTestSend');
 
     if (!testRecipient || !testRecipient.includes('@')) {
-      alert('Please enter a valid recipient email address.');
+      this.highlightField('testRecipientEmail', '⚠️ Please enter a valid recipient email address.');
       return;
     }
 
@@ -3624,7 +3624,7 @@ const app = {
     }
 
     if (!senderPassword && (!activeAcc || !activeAcc.hasPassword)) {
-      alert('Please enter your 16-character Google App Password in Step 1 first.');
+      this.highlightField('senderPassword', '⚠️ Please enter your 16-character Google App Password in Step 1 first.');
       return;
     }
 
@@ -3669,7 +3669,58 @@ const app = {
   // ==========================================================
 
   async parseLeadsLive() {
-    const rawText = document.getElementById('leadsInput').value;
+    const rawText = (document.getElementById('leadsInput')?.value || '').trim();
+    if (!rawText) {
+      this.parsedValidation = {
+        validRecipients: [],
+        cappedRecipients: [],
+        validCount: 0,
+        duplicatesRemoved: 0,
+        invalidCount: 0,
+        invalidEmails: [],
+        isOverLimit: false,
+        canSend: false
+      };
+      this.updateLeadsUI(this.parsedValidation);
+      return;
+    }
+
+    // Instant zero-lag client validation first so UI updates immediately
+    const tokens = rawText.split(/[\r\n,;\t]+/).map(t => t.replace(/[<>"']/g, '').trim()).filter(Boolean);
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+    const validEmails = [];
+    const invalidEmails = [];
+    const seenSet = new Set();
+    let dupes = 0;
+
+    for (const t of tokens) {
+      if (emailRegex.test(t)) {
+        const norm = t.toLowerCase();
+        if (seenSet.has(norm)) {
+          dupes++;
+        } else {
+          seenSet.add(norm);
+          validEmails.push(t);
+        }
+      } else {
+        invalidEmails.push(t);
+      }
+    }
+
+    const capped = validEmails.slice(0, 50);
+    this.parsedValidation = {
+      validRecipients: capped,
+      cappedRecipients: capped,
+      validCount: capped.length,
+      allowedCount: capped.length,
+      duplicatesRemoved: dupes,
+      invalidCount: invalidEmails.length,
+      invalidEmails: invalidEmails,
+      isOverLimit: validEmails.length > 50,
+      canSend: capped.length > 0 && invalidEmails.length === 0
+    };
+    this.updateLeadsUI(this.parsedValidation);
+
     try {
       const res = await fetch('/api/recipients/parse', {
         method: 'POST',
@@ -3682,7 +3733,7 @@ const app = {
         this.updateLeadsUI(data);
       }
     } catch (err) {
-      console.error('Parse error:', err);
+      // Client parse already active, graceful fallback
     }
   },
 
@@ -3808,14 +3859,64 @@ lead10@businesspartner.com`;
   // SEND OUTREACH WORKFLOW WITH ANTI-SPAM INTERVAL
   // ==========================================================
 
+  highlightField(fieldId, message) {
+    const el = document.getElementById(fieldId);
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      el.focus();
+      el.classList.add('input-error-pulse');
+      setTimeout(() => el.classList.remove('input-error-pulse'), 3000);
+    }
+    this.showToast(message, 'danger');
+  },
+
   async startOutreachCampaign() {
-    await this.parseLeadsLive();
+    const btn = document.getElementById('btnSendOutreach');
+
+    // 1. Synchronously parse leads directly in client so button never lags or fails on slow networks
+    const rawRecipients = (document.getElementById('leadsInput')?.value || '').trim();
+    if (rawRecipients) {
+      const tokens = rawRecipients.split(/[\r\n,;\t]+/).map(t => t.replace(/[<>"']/g, '').trim()).filter(Boolean);
+      const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+      const validEmails = [];
+      const invalidEmails = [];
+      const seenSet = new Set();
+      let dupes = 0;
+
+      for (const t of tokens) {
+        if (emailRegex.test(t)) {
+          const norm = t.toLowerCase();
+          if (seenSet.has(norm)) {
+            dupes++;
+          } else {
+            seenSet.add(norm);
+            validEmails.push(t);
+          }
+        } else {
+          invalidEmails.push(t);
+        }
+      }
+
+      const capped = validEmails.slice(0, 50);
+      this.parsedValidation = {
+        validRecipients: capped,
+        cappedRecipients: capped,
+        validCount: capped.length,
+        allowedCount: capped.length,
+        duplicatesRemoved: dupes,
+        invalidCount: invalidEmails.length,
+        invalidEmails: invalidEmails,
+        isOverLimit: validEmails.length > 50,
+        canSend: capped.length > 0 && invalidEmails.length === 0
+      };
+      this.updateLeadsUI(this.parsedValidation);
+    }
 
     this.onCurrentVariantInput();
 
-    let senderEmail = document.getElementById('senderEmail').value.trim();
+    let senderEmail = document.getElementById('senderEmail')?.value.trim() || '';
     if (senderEmail.endsWith('@gmail')) senderEmail = senderEmail + '.com';
-    document.getElementById('senderEmail').value = senderEmail;
+    if (document.getElementById('senderEmail')) document.getElementById('senderEmail').value = senderEmail;
 
     let senderPassword = document.getElementById('senderPassword')?.value.trim() || '';
     if (senderPassword.includes('•') || senderPassword.includes('*')) senderPassword = '';
@@ -3829,55 +3930,54 @@ lead10@businesspartner.com`;
     }
 
     const senderName = document.getElementById('senderDisplayName')?.value.trim() || activeAcc?.name || senderEmail.split('@')[0];
-    const subject = document.getElementById('emailSubject').value.trim();
-    const message = document.getElementById('emailMessage').value.trim();
-    const rawRecipients = document.getElementById('leadsInput').value;
-    const delaySeconds = parseInt(document.getElementById('sendingDelaySelect').value) || 15;
+    const subject = document.getElementById('emailSubject')?.value.trim() || '';
+    const message = document.getElementById('emailMessage')?.value.trim() || '';
+    const delaySeconds = parseInt(document.getElementById('sendingDelaySelect')?.value) || 15;
     const plainTextOnly = document.getElementById('chkStealthMode') ? document.getElementById('chkStealthMode').checked : true;
 
+    // STEP 1 VALIDATION (Visual pulse + instant toast, no frozen alert)
     if (!senderEmail || !senderEmail.includes('@')) {
-      alert('Please enter your sender email address in Step 1.');
-      document.getElementById('senderEmail').focus();
+      this.highlightField('senderEmail', '⚠️ Step 1: Please enter your sender email address.');
       return;
     }
 
     if (!senderPassword && (!activeAcc || !activeAcc.hasPassword)) {
-      alert('Please enter your 16-character Google App Password in Step 1 before launching outreach.\n\nIf you don\'t have one yet, click "App Password Help ↗" in Step 1 to generate one at myaccount.google.com/apppasswords.');
-      document.getElementById('senderPassword').focus();
+      this.highlightField('senderPassword', '⚠️ Step 1: Please enter your 16-character Google App Password.');
       return;
     }
 
-    const val = this.parsedValidation;
-    if (val.validCount === 0) {
-      alert('Please paste at least one valid lead email address in Step 2.');
-      document.getElementById('leadsInput').focus();
+    // STEP 2 VALIDATION
+    const val = this.parsedValidation || {};
+    const leadList = val.cappedRecipients || val.validRecipients || [];
+    if (!rawRecipients || leadList.length === 0) {
+      this.highlightField('leadsInput', '⚠️ Step 2: Please paste at least one lead email address.');
       return;
     }
 
     if (val.invalidCount > 0) {
-      alert(`Please fix or remove the ${val.invalidCount} invalid email address(es) before sending.`);
+      this.highlightField('leadsInput', `⚠️ Step 2: Please remove the ${val.invalidCount} invalid address(es).`);
       return;
     }
 
+    // STEP 3 VALIDATION
     if (!subject) {
-      alert('Please enter an outreach subject in Step 3.');
-      document.getElementById('emailSubject').focus();
+      this.highlightField('emailSubject', '⚠️ Step 3: Please enter an outreach subject.');
       return;
     }
 
     if (!message) {
-      alert('Please write your outreach message in Step 3.');
-      document.getElementById('emailMessage').focus();
+      this.highlightField('emailMessage', '⚠️ Step 3: Please write your outreach message body.');
       return;
     }
 
-    const selfRecipient = val.allowedRecipients.find(r => r.toLowerCase() === senderEmail.toLowerCase());
+    // SAFE SELF-RECIPIENT CHECK (No undefined.find crash!)
+    const selfRecipient = leadList.find(r => typeof r === 'string' && r.toLowerCase() === senderEmail.toLowerCase());
     if (selfRecipient) {
       const proceed = confirm(
         `⚠️ Self-Sending Deliverability Warning:\n\n` +
         `Your lead list contains your own sender email address (${senderEmail}).\n\n` +
-        `Google's incoming security gateway automatically treats emails sent to oneself via external SMTP as spoofing, and routes them to Spam.\n\n` +
-        `For accurate inbox verification, test by sending to a secondary email address (Outlook, Yahoo, or alternative Gmail).\n\n` +
+        `Google automatically treats emails sent to oneself via external SMTP as spoofing, and routes them to Spam.\n\n` +
+        `For accurate inbox delivery verification, test by sending to a secondary email address (Outlook, Yahoo, or alternative Gmail).\n\n` +
         `Do you still want to proceed with sending?`
       );
       if (!proceed) return;
@@ -3899,56 +3999,13 @@ lead10@businesspartner.com`;
 
     this.saveCurrentAccountToStorage();
 
-    const leadCount = val.allowedCount;
-    const confirmMsg = `Ready to launch outreach?\n\n• From: "${senderName}" <${senderEmail}>\n• Total Leads: ${leadCount}\n• Rotation: 5 Auto-Shuffled Unique Message Variants\n• Delay: ~${delaySeconds}s per lead (Humanized Jitter Delay)\n• Delivery Mode: ${plainTextOnly ? '🛡️ Stealth Plain-Text (100% Primary Inbox Safe)' : 'Standard Minimal HTML'}\n\nClick OK to start sending.`;
-    if (!confirm(confirmMsg)) return;
+    const leadCount = leadList.length;
 
-    const btn = document.getElementById('btnSendOutreach');
-    btn.disabled = true;
-    btn.innerText = '⚡ Pre-flight checking Gmail credentials...';
-
-    // Pre-flight socket diagnosis to ensure no 535 BadCredentials before launching
-    try {
-      const diagRes = await fetch('/api/smtp/diagnose', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ email: senderEmail, password: senderPassword })
-      });
-      const diagData = await diagRes.json();
-      if (!diagData.success) {
-        btn.disabled = false;
-        btn.innerText = 'Send Outreach Campaign';
-        
-        // Show console and help box in Step 1
-        const consoleDiv = document.getElementById('smtpDiagnosticConsole');
-        const helpBox = document.getElementById('authHelpBox');
-        const logBox = document.getElementById('terminalLogContainer');
-        if (consoleDiv) consoleDiv.style.display = 'block';
-        if (helpBox) {
-          helpBox.style.display = 'block';
-          const helpSender = document.getElementById('helpSenderEmail');
-          if (helpSender) helpSender.innerText = senderEmail;
-        }
-        if (logBox && Array.isArray(diagData.logs)) {
-          logBox.innerHTML = diagData.logs.map(l => {
-            let tagClass = 'term-tag-info';
-            let tagText = `[${l.step}]`;
-            if (l.status === 'success') { tagClass = 'term-tag-ok'; tagText = '[OK]'; }
-            else if (l.status === 'error') { tagClass = 'term-tag-err'; tagText = '[ERR]'; }
-            else if (l.status === 'warning') { tagClass = 'term-tag-warn'; tagText = '[WARN]'; }
-            return `<div class="terminal-line"><span class="${tagClass}">${tagText}</span> ${this.escapeHtml(l.text)}</div>`;
-          }).join('');
-        }
-
-        alert('⚠️ Google rejected your App Password (535 BadCredentials).\n\nPlease check that 2-Step Verification is active on ' + senderEmail + ' and generate a valid 16-letter App Password at myaccount.google.com/apppasswords.');
-        document.getElementById('senderPassword').focus();
-        return;
-      }
-    } catch (e) {
-      console.warn('Preflight diag skipped:', e);
+    // IMMEDIATE VISUAL BUTTON FEEDBACK
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = '⚡ Launching Outreach Campaign...';
     }
-
-    btn.innerText = 'Starting Outreach...';
 
     try {
       const res = await fetch('/api/campaigns/send-direct', {
@@ -3969,23 +4026,31 @@ lead10@businesspartner.com`;
       });
 
       const data = await res.json();
-      btn.disabled = false;
-      btn.innerText = 'Send Outreach Campaign';
+
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '⚡ Launch Outreach Campaign';
+      }
 
       if (data.success && data.campaignId) {
         this.activeCampaignId = data.campaignId;
         this.showSendingView(data);
         this.startStatusPolling(data.campaignId);
-        // Show Vercel serverless notice if returned from backend
+        this.showToast(`🚀 Campaign launched! Dispatching ${leadCount} lead(s) with ~${delaySeconds}s pacing.`);
         if (data.serverlessWarning) {
           setTimeout(() => this.showToast('ℹ️ ' + data.serverlessWarning, 'info'), 1500);
         }
       } else {
-        alert(data.error || 'Failed to start campaign');
+        const errMsg = data.error || 'Failed to start campaign';
+        this.showToast('⚠️ ' + errMsg, 'danger');
+        alert('⚠️ Outreach Launch Error:\n\n' + errMsg);
       }
     } catch (err) {
-      btn.disabled = false;
-      btn.innerText = 'Send Outreach Campaign';
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = '⚡ Launch Outreach Campaign';
+      }
+      this.showToast('⚠️ Connection Error: ' + err.message, 'danger');
       alert('Error launching campaign: ' + err.message);
     }
   },
