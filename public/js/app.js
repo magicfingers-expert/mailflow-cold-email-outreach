@@ -418,6 +418,21 @@ const app = {
         this.updateDesktopLivePreview();
       });
     }
+
+    // Track active composer field for tag insertion
+    const subjEl = document.getElementById('emailSubject');
+    const msgEl = document.getElementById('emailMessage');
+    if (subjEl) subjEl.addEventListener('focus', () => { this._lastFocusedInput = 'emailSubject'; });
+    if (msgEl) msgEl.addEventListener('focus', () => { this._lastFocusedInput = 'emailMessage'; });
+
+    // Close modals on clicking backdrop
+    document.querySelectorAll('.modal-backdrop').forEach(modal => {
+      modal.addEventListener('click', (e) => {
+        if (e.target === modal) {
+          modal.classList.remove('active');
+        }
+      });
+    });
   },
 
   normalizeEmailInput(inputEl) {
@@ -2807,6 +2822,9 @@ const app = {
   },
 
   switchVariantTab(index, saveCurrent = true) {
+    while (this.messageVariants.length < 5) {
+      this.messageVariants.push({ subject: '', message: '' });
+    }
     if (index < 0 || index >= this.messageVariants.length) return;
 
     // Save current input before switching only if explicitly requested and changing tabs
@@ -2895,10 +2913,17 @@ const app = {
       delaySelect.value = '15';
       this.onDelayChange('15');
     }
+
+    const subj = (document.getElementById('emailSubject')?.value || '').trim();
+    const ticketPattern = /(ticket\s*(irn|#|\bid\b)|case\s*#|ref\s*#|order\s*#|support\s*ticket)/i;
+    if (ticketPattern.test(subj)) {
+      this.fixSubjectForPrimaryInbox();
+    }
+
     this.runDeliverabilityAudit();
     this.analyzeSpamScoreLive();
     this.updateDesktopLivePreview();
-    this.showToast('✨ 100% Primary Inbox Shield Activated! Stealth Mode & Jitter Pacing Active.');
+    this.showToast('✨ 100% Primary Inbox Shield Activated! Stealth Mode, Jitter Pacing & Subject Safe.');
   },
 
   insertSpintaxSample() {
@@ -3014,7 +3039,7 @@ const app = {
     const body = document.getElementById('previewMockupCollapsibleBody');
     const icon = document.getElementById('previewMockupToggleIcon');
     if (!body) return;
-    const isHidden = body.style.display === 'none';
+    const isHidden = body.style.display === 'none' || window.getComputedStyle(body).display === 'none';
     body.style.display = isHidden ? 'block' : 'none';
     if (icon) icon.innerText = isHidden ? '▾' : '▸';
     try {
@@ -3132,6 +3157,10 @@ const app = {
   },
 
   spinSpintaxLivePreview() {
+    const subj = document.getElementById('emailSubject')?.value || '';
+    const msg = document.getElementById('emailMessage')?.value || '';
+    const hasSpintax = /\{([^{}]+)\}/.test(subj + ' ' + msg);
+
     this.updateDesktopLivePreview();
     const card = document.querySelector('.desktop-preview-card');
     if (card) {
@@ -3139,7 +3168,12 @@ const app = {
       void card.offsetWidth;
       card.classList.add('spin-pulse');
     }
-    this.showToast('🎲 Spun fresh Spintax preview combination!');
+
+    if (!hasSpintax) {
+      this.showToast('🎲 Preview refreshed! Tip: Add Spintax like {Hello|Hi|Hey} to test dynamic rotations.');
+    } else {
+      this.showToast('🎲 Spun fresh Spintax variation combination!');
+    }
   },
 
   // ==========================================================
@@ -3724,17 +3758,35 @@ lead10@businesspartner.com`;
 
     document.getElementById('leadsInput').value = sample;
     this.parseLeadsLive();
+    this.updateDesktopLivePreview();
     this.showToast('10 example leads loaded.');
   },
 
+  clearLeadsInput() {
+    const input = document.getElementById('leadsInput');
+    if (input) {
+      input.value = '';
+      this.parseLeadsLive();
+      this.updateDesktopLivePreview();
+      this.showToast('Leads list cleared.');
+    }
+  },
+
   insertTag(tag) {
-    const msgInput = document.getElementById('emailMessage');
-    if (!msgInput) return;
-    const start = msgInput.selectionStart || msgInput.value.length;
-    const end = msgInput.selectionEnd || msgInput.value.length;
-    msgInput.value = msgInput.value.substring(0, start) + tag + msgInput.value.substring(end);
-    msgInput.focus();
-    msgInput.selectionStart = msgInput.selectionEnd = start + tag.length;
+    const activeTarget = (this._lastFocusedInput === 'emailSubject')
+      ? document.getElementById('emailSubject')
+      : document.getElementById('emailMessage');
+    const inputEl = activeTarget || document.getElementById('emailMessage');
+    if (!inputEl) return;
+
+    const start = inputEl.selectionStart || inputEl.value.length;
+    const end = inputEl.selectionEnd || inputEl.value.length;
+    inputEl.value = inputEl.value.substring(0, start) + tag + inputEl.value.substring(end);
+    inputEl.focus();
+    inputEl.selectionStart = inputEl.selectionEnd = start + tag.length;
+
+    this.onCurrentVariantInput();
+    this.updateDesktopLivePreview();
   },
 
   async loadDraft() {
@@ -4248,6 +4300,10 @@ lead10@businesspartner.com`;
     }
   },
 
+  viewCampaignDetails(campaignId) {
+    return this.openCampaignDetailsModal(campaignId);
+  },
+
   async openCampaignDetailsModal(campaignId) {
     try {
       const res = await fetch(`/api/campaigns/${campaignId}/status`);
@@ -4478,26 +4534,46 @@ lead10@businesspartner.com`;
     }
   },
 
-  copyDnsRecord(text, btnEl) {
+  async copyDnsRecord(text, btnEl) {
     if (!text) return;
+    let copied = false;
     try {
-      navigator.clipboard.writeText(text);
-      if (btnEl) {
-        const origText = btnEl.innerText;
-        btnEl.innerText = '✓ Copied!';
-        btnEl.classList.add('btn-primary');
-        setTimeout(() => {
-          btnEl.innerText = origText;
-          btnEl.classList.remove('btn-primary');
-        }, 2000);
+      if (navigator.clipboard && navigator.clipboard.writeText) {
+        await navigator.clipboard.writeText(text);
+        copied = true;
       }
-      this.showToast(`✓ Copied to clipboard: ${text}`);
-    } catch (e) {
-      prompt('Copy this DNS record value:', text);
+    } catch (e) {}
+
+    if (!copied) {
+      try {
+        const ta = document.createElement('textarea');
+        ta.value = text;
+        ta.style.position = 'fixed';
+        ta.style.opacity = '0';
+        document.body.appendChild(ta);
+        ta.select();
+        document.execCommand('copy');
+        document.body.removeChild(ta);
+        copied = true;
+      } catch (e) {}
     }
+
+    if (btnEl) {
+      const origText = btnEl.innerText;
+      btnEl.innerText = '✓ Copied!';
+      btnEl.classList.add('btn-primary');
+      setTimeout(() => {
+        btnEl.innerText = origText;
+        btnEl.classList.remove('btn-primary');
+      }, 2000);
+    }
+    this.showToast(`✓ Copied to clipboard: ${text}`);
   },
 
   switchTab(tabId) {
+    if (tabId === 'campaigns') tabId = 'sent';
+    if (tabId === 'inbox') tabId = 'primary-inbox';
+
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.mobile-bottom-nav-item').forEach(m => m.classList.remove('active'));

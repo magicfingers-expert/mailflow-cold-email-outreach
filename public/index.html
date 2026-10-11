@@ -10,7 +10,7 @@
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
   <link href="https://fonts.googleapis.com/css2?family=Outfit:wght@400;500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap" rel="stylesheet">
-  <link rel="stylesheet" href="css/style.css?v=5.9.0">
+  <link rel="stylesheet" href="css/style.css?v=6.0.0">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>✉️</text></svg>">
 </head>
 <body>
@@ -350,8 +350,8 @@
               <div class="completed-subtext" id="completedSummaryText">All emails delivered safely.</div>
               <div style="display: flex; justify-content: center; gap: 10px; margin-top: 16px;">
                 <button class="btn btn-primary" onclick="app.resetComposer()">+ Send Another Campaign</button>
-                <button class="btn btn-secondary" onclick="app.switchTab('campaigns')">View History</button>
-                <button class="btn btn-secondary" onclick="app.switchTab('inbox')">Check Real Replies</button>
+                <button class="btn btn-secondary" onclick="app.switchTab('sent')">View History</button>
+                <button class="btn btn-secondary" onclick="app.switchTab('primary-inbox')">Check Real Replies</button>
               </div>
             </div>
 
@@ -527,7 +527,10 @@
                   <div class="form-step" style="padding: 0;">
                     <div class="step-label-row">
                       <label class="step-label" for="leadsInput" style="font-size: 14px; font-weight: 700; color: var(--text-main);">2. Paste Email Leads (Max 50)</label>
-                      <button type="button" class="action-btn-link" onclick="app.pasteSampleLeads()">+ Paste 10 Example Leads</button>
+                      <div style="display: flex; gap: 8px; align-items: center;">
+                        <button type="button" class="action-btn-link" onclick="app.pasteSampleLeads()">+ Paste 10 Example Leads</button>
+                        <button type="button" class="action-btn-link" onclick="app.clearLeadsInput()" style="color: #dc2626;" title="Clear lead addresses">🗑️ Clear</button>
+                      </div>
                     </div>
                     <span class="step-helper" style="display: block; margin-bottom: 8px;">Paste up to 50 email addresses, one per line. No names or CSV headers required.</span>
 
@@ -1948,6 +1951,6 @@
   <!-- Toast Notification -->
   <div class="toast-box" id="toastBox">Notification message</div>
 
-  <script src="js/app.js?v=5.9.0"></script>
+  <script src="js/app.js?v=6.0.0"></script>
 </body>
 </html>
