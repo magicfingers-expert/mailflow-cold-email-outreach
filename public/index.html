@@ -218,7 +218,10 @@
             </div>
           </div>
 
-          <!-- Real-Time Top Notification Bell Icon with Dropdown -->
+          <!-- Direct User Account & Auth Status Widget -->
+          <div class="header-user-status" id="headerUserAuthWidget" style="display: flex; align-items: center; margin-left: 4px;">
+            <!-- Rendered dynamically via app.renderWorkspaceUI() -->
+          </div>
           <div class="header-notification-wrapper" style="position: relative;">
             <button type="button" class="header-notif-btn" id="btnTopNotifBell" onclick="app.toggleTopNotifDropdown()" title="Click to view leads who opened emails">
               <span style="font-size: 17px; line-height: 1;">🔔</span>
@@ -1096,11 +1099,15 @@
                 <div class="card-subtitle">Complete log of sent campaigns, direct replies, and test messages for selected account</div>
               </div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
-                <select id="sentAccountFilterSelect" class="form-control" onchange="app.onSentAccountFilterChange(this.value)" style="width: 200px; font-size: 12.5px; font-weight: 600;">
+                <select id="sentViewModeSelect" class="form-control" onchange="app.onSentViewModeChange(this.value)" style="width: 175px; font-size: 12.5px; font-weight: 600; background: #f0fdf4; border-color: #86efac; color: #166534;" title="Toggle between individual dispatched leads or grouped campaigns">
+                  <option value="leads" selected>👤 Dispatched Leads</option>
+                  <option value="campaigns">📁 Grouped Campaigns</option>
+                </select>
+                <select id="sentAccountFilterSelect" class="form-control" onchange="app.onSentAccountFilterChange(this.value)" style="width: 170px; font-size: 12.5px; font-weight: 600;">
                   <option value="all">All Accounts</option>
                 </select>
-                <input type="text" id="sentSearchInput" class="form-control" placeholder="Search sent..." style="width: 180px; font-size: 12.5px; padding: 5px 10px;" oninput="app.filterSentTable()">
-                <button class="btn btn-sm btn-secondary" onclick="app.loadCampaigns()">↻ Refresh Sent</button>
+                <input type="text" id="sentSearchInput" class="form-control" placeholder="Search leads, subject..." style="width: 175px; font-size: 12.5px; padding: 5px 10px;" oninput="app.filterSentTable()">
+                <button class="btn btn-sm btn-secondary" onclick="app.loadSent()" title="Refresh sent outreach dispatches">↻ Refresh Sent</button>
                 <button class="btn btn-sm btn-danger" onclick="app.clearAllHistory()">Clear Log</button>
               </div>
             </div>
@@ -1110,12 +1117,12 @@
               <table class="clean-table history-table">
                 <thead>
                   <tr>
-                    <th style="width: 22%;">Sender Account</th>
-                    <th style="width: 20%;">Lead / Recipient</th>
+                    <th style="width: 20%;">Sender Account</th>
+                    <th style="width: 22%;">Lead / Recipient</th>
                     <th style="width: 22%;">Subject / Outreach</th>
-                    <th style="width: 12%;">Opens (Tracked)</th>
+                    <th style="width: 13%;">Opens (Tracked)</th>
                     <th style="width: 10%;">Delivery</th>
-                    <th style="width: 14%;">Sent Date</th>
+                    <th style="width: 13%;">Sent Date</th>
                     <th style="width: 10%;">Action</th>
                   </tr>
                 </thead>

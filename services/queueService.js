@@ -57,6 +57,10 @@ class QueueService {
 
     const now = new Date().toISOString();
 
+    // Ensure fresh in-memory state
+    this.loadCampaigns();
+    this.loadOpenEvents();
+
     // 1. Check campaigns recipients
     for (let camp of this.campaigns) {
       if (camp.recipients) {
@@ -126,7 +130,7 @@ class QueueService {
       id: 'open-' + Date.now() + '-' + Math.random().toString(36).substr(2, 4),
       campaignId: meta.campaignId || 'general',
       subject: meta.subject || 'Outreach Email',
-      email: meta.email || 'Lead Recipient',
+      email: meta.email || (meta.recipientEmail || 'Lead Recipient'),
       openedAt: now,
       openCount: 1,
       isFirstOpen: true,
@@ -141,6 +145,7 @@ class QueueService {
   }
 
   getRecentOpens(sinceTimestamp = 0) {
+    this.loadOpenEvents();
     if (!sinceTimestamp) return this.recentOpens.slice(0, 30);
     return this.recentOpens.filter(o => new Date(o.openedAt).getTime() > sinceTimestamp);
   }

@@ -2,6 +2,13 @@
 
 // Multi-Tenant Session & API Client Interceptor
 (function() {
+  // Ensure every unique browser has an isolated guest identifier
+  // This guarantees two different browsers/computers NEVER collide or leak accounts!
+  if (!localStorage.getItem('mailflow_client_guest_id')) {
+    const guestId = 'guest_' + Math.random().toString(36).substring(2, 9) + '_' + Date.now().toString(36);
+    localStorage.setItem('mailflow_client_guest_id', guestId);
+  }
+
   const originalFetch = window.fetch;
   window.fetch = function(url, options = {}) {
     options = options || {};
@@ -18,7 +25,14 @@
       }
     }
 
-    const activeTenantId = localStorage.getItem('mailflow_active_tenant') || 'default';
+    // Isolate by active authenticated tenant, or unique per-browser guest session
+    let activeTenantId = localStorage.getItem('mailflow_active_tenant');
+    if (!token && (!activeTenantId || activeTenantId === 'default')) {
+      activeTenantId = localStorage.getItem('mailflow_client_guest_id') || 'default';
+    } else if (!activeTenantId) {
+      activeTenantId = 'default';
+    }
+
     if (options.headers instanceof Headers) {
       if (!options.headers.has('X-Tenant-Id')) options.headers.set('X-Tenant-Id', activeTenantId);
     } else {
@@ -33,10 +47,17 @@
 
 const app = {
   authToken: localStorage.getItem('mailflow_auth_token') || null,
-  activeTenantId: localStorage.getItem('mailflow_active_tenant') || 'default',
+  activeTenantId: (function() {
+    const token = localStorage.getItem('mailflow_auth_token');
+    const saved = localStorage.getItem('mailflow_active_tenant');
+    if (token && saved && saved !== 'default') return saved;
+    const guest = localStorage.getItem('mailflow_client_guest_id');
+    return (saved && saved !== 'default') ? saved : (guest || 'default');
+  })(),
   currentWorkspace: null,
   userWorkspaces: [],
   currentUser: null,
+  sentViewMode: 'leads',
 
   accounts: [],
   activeAccountId: null,
@@ -119,6 +140,7 @@ const app = {
     ];
 
     this.bindEvents();
+    this.initAudioUnlock();
     this.initTenantAuth();
     this.loadSavedAccounts();
     this.loadSendingDelayPreference();
@@ -596,14 +618,32 @@ const app = {
   // REAL-TIME EMAIL OPEN TRACKER & NOTIFICATION ENGINE
   // ==========================================================
 
+  initAudioUnlock() {
+    const unlock = () => {
+      try {
+        const AudioContext = window.AudioContext || window.webkitAudioContext;
+        if (AudioContext) {
+          if (!this._audioCtx) this._audioCtx = new AudioContext();
+          if (this._audioCtx.state === 'suspended') this._audioCtx.resume().catch(() => {});
+        }
+      } catch (e) {}
+    };
+    document.addEventListener('click', unlock, { once: false, passive: true });
+    document.addEventListener('keydown', unlock, { once: false, passive: true });
+    document.addEventListener('touchstart', unlock, { once: false, passive: true });
+  },
+
   playChimeSound() {
     try {
       const AudioContext = window.AudioContext || window.webkitAudioContext;
       if (!AudioContext) return;
-      const ctx = new AudioContext();
-      if (ctx.state === 'suspended') {
-        ctx.resume();
+      if (!this._audioCtx) {
+        this._audioCtx = new AudioContext();
       }
+      if (this._audioCtx.state === 'suspended') {
+        this._audioCtx.resume().catch(() => {});
+      }
+      const ctx = this._audioCtx;
       const now = ctx.currentTime;
       
       // Note 1 (D5)
@@ -612,7 +652,7 @@ const app = {
       osc1.type = 'sine';
       osc1.frequency.setValueAtTime(587.33, now);
       osc1.frequency.exponentialRampToValueAtTime(880, now + 0.12);
-      gain1.gain.setValueAtTime(0.3, now);
+      gain1.gain.setValueAtTime(0.35, now);
       gain1.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
       osc1.connect(gain1);
       gain1.connect(ctx.destination);
@@ -624,14 +664,14 @@ const app = {
       const gain2 = ctx.createGain();
       osc2.type = 'triangle';
       osc2.frequency.setValueAtTime(1174.66, now + 0.08);
-      gain2.gain.setValueAtTime(0.18, now + 0.08);
+      gain2.gain.setValueAtTime(0.25, now + 0.08);
       gain2.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
       osc2.connect(gain2);
       gain2.connect(ctx.destination);
       osc2.start(now + 0.08);
       osc2.stop(now + 0.45);
     } catch (e) {
-      console.warn('Audio chime:', e);
+      console.warn('Audio chime notice:', e.message);
     }
   },
 
@@ -760,6 +800,7 @@ const app = {
 
     this.updateTrackerViewUI();
     this.loadCampaigns();
+    this.loadSent();
   },
 
   // ==========================================================
@@ -1583,38 +1624,100 @@ const app = {
       const sentData = await sentRes.json();
       const directSent = (sentData.success && Array.isArray(sentData.messages)) ? sentData.messages : [];
 
-      // Combine items
+      // Combine items according to view mode
       this.sentItems = [];
+      const viewMode = this.sentViewMode || 'leads';
 
-      campaigns.forEach(c => {
-        this.sentItems.push({
-          type: 'campaign',
-          id: c.id,
-          senderEmail: c.senderEmail || 'Sender',
-          toText: `${c.totalRecipients || (c.recipients ? c.recipients.length : 0)} Leads`,
-          subject: c.subject || 'Outreach Campaign',
-          opens: c.openCount || 0,
-          sentCount: c.sentCount || 0,
-          failedCount: c.failedCount || 0,
-          status: c.status || 'Completed',
-          date: c.createdAt || new Date().toISOString(),
-          raw: c
+      if (viewMode === 'leads') {
+        // Individual lead dispatches view
+        campaigns.forEach(c => {
+          if (Array.isArray(c.recipients) && c.recipients.length > 0) {
+            c.recipients.forEach((r, idx) => {
+              this.sentItems.push({
+                type: 'lead',
+                id: `${c.id}_${r.id || idx}`,
+                campaignId: c.id,
+                senderEmail: c.senderEmail || 'Sender',
+                recipientEmail: r.email,
+                toText: r.email,
+                subject: r.subjectSent || c.subject || 'Outreach Campaign',
+                opens: r.openCount || (r.opened ? 1 : 0),
+                opened: !!r.opened,
+                openedAt: r.openedAt,
+                status: r.status || (r.sentAt ? 'Delivered' : 'Pending'),
+                date: r.sentAt || c.createdAt || new Date().toISOString(),
+                error: r.error,
+                trackingId: r.trackingId,
+                variantNumber: r.variantNumber,
+                raw: { campaign: c, recipient: r }
+              });
+            });
+          } else {
+            this.sentItems.push({
+              type: 'campaign',
+              id: c.id,
+              campaignId: c.id,
+              senderEmail: c.senderEmail || 'Sender',
+              recipientEmail: `${c.totalRecipients || 0} Leads`,
+              toText: `${c.totalRecipients || 0} Leads`,
+              subject: c.subject || 'Outreach Campaign',
+              opens: c.openCount || 0,
+              status: c.status || 'Completed',
+              date: c.createdAt || new Date().toISOString(),
+              raw: c
+            });
+          }
         });
-      });
 
-      directSent.forEach(s => {
-        this.sentItems.push({
-          type: 'direct',
-          id: s.uid,
-          senderEmail: s.accountEmail || s.from || 'Sender',
-          toText: s.to || 'Recipient',
-          subject: s.subject || 'Direct Message',
-          opens: s.trackingId ? 1 : 0,
-          status: 'Delivered',
-          date: s.date || new Date().toISOString(),
-          raw: s
+        directSent.forEach(s => {
+          this.sentItems.push({
+            type: 'direct',
+            id: s.uid,
+            senderEmail: s.accountEmail || s.from || 'Sender',
+            recipientEmail: s.to || 'Recipient',
+            toText: s.to || 'Recipient',
+            subject: s.subject || 'Direct Message',
+            opens: s.trackingId ? 1 : 0,
+            status: 'Delivered',
+            date: s.date || new Date().toISOString(),
+            raw: s
+          });
         });
-      });
+      } else {
+        // Grouped campaigns view
+        campaigns.forEach(c => {
+          this.sentItems.push({
+            type: 'campaign',
+            id: c.id,
+            campaignId: c.id,
+            senderEmail: c.senderEmail || 'Sender',
+            recipientEmail: `${c.totalRecipients || (c.recipients ? c.recipients.length : 0)} Leads`,
+            toText: `${c.totalRecipients || (c.recipients ? c.recipients.length : 0)} Leads`,
+            subject: c.subject || 'Outreach Campaign',
+            opens: c.openCount || 0,
+            sentCount: c.sentCount || 0,
+            failedCount: c.failedCount || 0,
+            status: c.status || 'Completed',
+            date: c.createdAt || new Date().toISOString(),
+            raw: c
+          });
+        });
+
+        directSent.forEach(s => {
+          this.sentItems.push({
+            type: 'direct',
+            id: s.uid,
+            senderEmail: s.accountEmail || s.from || 'Sender',
+            recipientEmail: s.to || 'Recipient',
+            toText: s.to || 'Recipient',
+            subject: s.subject || 'Direct Message',
+            opens: s.trackingId ? 1 : 0,
+            status: 'Delivered',
+            date: s.date || new Date().toISOString(),
+            raw: s
+          });
+        });
+      }
 
       // Sort newest first
       this.sentItems.sort((a, b) => new Date(b.date) - new Date(a.date));
@@ -1649,10 +1752,21 @@ const app = {
         filterSelect.innerHTML = opts;
       }
 
+      // Keep view mode selector aligned
+      const viewSelect = document.getElementById('sentViewModeSelect');
+      if (viewSelect && viewSelect.value !== viewMode) {
+        viewSelect.value = viewMode;
+      }
+
       this.renderSentTable();
     } catch (e) {
       console.warn('Sent load error:', e);
     }
+  },
+
+  onSentViewModeChange(mode) {
+    this.sentViewMode = mode || 'leads';
+    this.loadSent();
   },
 
   onSentAccountFilterChange(email) {
@@ -1679,6 +1793,7 @@ const app = {
       list = list.filter(i => 
         (i.senderEmail && i.senderEmail.toLowerCase().includes(searchTerm)) ||
         (i.toText && i.toText.toLowerCase().includes(searchTerm)) ||
+        (i.recipientEmail && i.recipientEmail.toLowerCase().includes(searchTerm)) ||
         (i.subject && i.subject.toLowerCase().includes(searchTerm))
       );
     }
@@ -1696,24 +1811,43 @@ const app = {
 
     tbody.innerHTML = list.map(item => {
       const timeStr = item.date ? new Date(item.date).toLocaleString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '';
-      const openBadge = item.opens > 0 
-        ? `<span class="status-badge status-completed" style="font-size: 11px;">👁️ ${item.opens} open${item.opens > 1 ? 's' : ''}</span>`
-        : `<span class="status-badge status-pending" style="font-size: 11px;">Awaiting open</span>`;
+      
+      let openBadge = '';
+      if (item.opens > 0) {
+        const timeTip = item.openedAt ? ` title="Opened at ${new Date(item.openedAt).toLocaleTimeString()}"` : '';
+        openBadge = `<span class="status-badge status-completed"${timeTip} style="font-size: 11px; background: #ecfdf5; color: #047857; font-weight: 700;">👁️ ${item.opens} open${item.opens > 1 ? 's' : ''}</span>`;
+      } else {
+        openBadge = `<span class="status-badge status-pending" style="font-size: 11px;">⏳ Awaiting open</span>`;
+      }
 
-      const statusBadge = `<span class="status-badge status-completed" style="font-size: 11px;">✓ ${this.escapeHtml(item.status)}</span>`;
+      let statusBadge = '';
+      if (item.status === 'Sent' || item.status === 'Delivered' || item.status === 'Completed') {
+        statusBadge = `<span class="status-badge status-completed" style="font-size: 11px;">✓ Delivered</span>`;
+      } else if (item.status === 'Failed') {
+        statusBadge = `<span class="status-badge status-failed" style="font-size: 11px;" title="${this.escapeHtml(item.error || 'Delivery failed')}">✕ Failed</span>`;
+      } else if (item.status === 'Suppressed') {
+        statusBadge = `<span class="status-badge" style="font-size: 11px; background: #f1f5f9; color: #64748b;" title="Auto-Suppressed bounce">🚫 Suppressed</span>`;
+      } else {
+        statusBadge = `<span class="status-badge status-inprogress" style="font-size: 11px;">● ${this.escapeHtml(item.status)}</span>`;
+      }
+
+      const isLead = item.type === 'lead';
+      const toDisplay = isLead 
+        ? `<div style="display: flex; align-items: center; gap: 5px;"><span style="color: #0284c7; font-size: 13px;">👤</span><strong style="color: #0284c7; font-size: 12.5px;">${this.escapeHtml(item.toText)}</strong></div>`
+        : `<span style="font-weight: 600; color: #059669;">${this.escapeHtml(item.toText)}</span>`;
 
       return `
         <tr>
-          <td><strong style="color: var(--text-main); font-size: 13px;">${this.escapeHtml(item.senderEmail)}</strong></td>
-          <td><span style="font-weight: 600; color: #059669;">${this.escapeHtml(item.toText)}</span></td>
-          <td style="color: var(--text-muted); font-size: 13px;">${this.escapeHtml(item.subject)}</td>
+          <td><strong style="color: var(--text-main); font-size: 12.5px;">${this.escapeHtml(item.senderEmail)}</strong></td>
+          <td>${toDisplay}</td>
+          <td style="color: var(--text-muted); font-size: 12.5px;" title="${this.escapeHtml(item.subject)}">${this.escapeHtml(item.subject)}</td>
           <td>${openBadge}</td>
           <td>${statusBadge}</td>
           <td style="font-size: 12px; color: var(--text-dim);">${timeStr}</td>
           <td>
-            ${item.type === 'campaign' 
-              ? `<button class="btn btn-sm btn-secondary" onclick="app.viewCampaignDetails('${item.id}')" style="font-size: 11.5px; padding: 3px 8px;">Audit</button>` 
-              : `<button class="btn btn-sm btn-secondary" onclick="app.selectActiveAllInboxMessage('${item.id}'); app.switchTab('all-inbox');" style="font-size: 11.5px; padding: 3px 8px;">View</button>`}
+            ${isLead || item.type === 'campaign'
+              ? `<button class="btn btn-sm btn-secondary" onclick="app.viewCampaignDetails('${item.campaignId || item.id}')" style="font-size: 11px; padding: 2px 7px;">Audit</button>` 
+              : `<button class="btn btn-sm btn-secondary" onclick="app.selectActiveAllInboxMessage('${item.id}'); app.switchTab('all-inbox');" style="font-size: 11px; padding: 2px 7px;">View</button>`}
           </td>
         </tr>
       `;
@@ -3817,6 +3951,7 @@ const app = {
           msg += ` Open tracking active 👁️`;
         }
         this.showToast(msg);
+        this.loadSent();
       } else {
         alert('Test send failed: ' + (data.error || 'Check your sender credentials'));
       }
@@ -4582,6 +4717,7 @@ lead10@businesspartner.com`;
       document.getElementById('btnLivePause').style.display = 'none';
       document.getElementById('btnLiveStop').style.display = 'none';
       this.loadCampaigns();
+      this.loadSent();
     }
   },
 
@@ -5211,17 +5347,36 @@ lead10@businesspartner.com`;
     if (nameEl) nameEl.innerText = ws.name || 'Primary Workspace';
     if (roleEl) roleEl.innerText = (ws.role || 'Owner').toUpperCase();
 
+    const headerAuthWidget = document.getElementById('headerUserAuthWidget');
+
     if (this.currentUser) {
       if (authTextEl) authTextEl.innerText = this.currentUser.email;
       if (authBtnEl) {
         authBtnEl.innerText = 'Sign Out';
         authBtnEl.onclick = () => this.handleSignOut();
       }
+      if (headerAuthWidget) {
+        headerAuthWidget.innerHTML = `
+          <div style="display: flex; align-items: center; gap: 6px; background: #f0fdf4; border: 1px solid #bbf7d0; padding: 4px 10px; border-radius: 20px; font-size: 12px; color: #166534;" title="Signed in as ${this.escapeHtml(this.currentUser.email)}">
+            <span style="font-size: 13px;">👤</span>
+            <span style="font-weight: 600; max-width: 140px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${this.escapeHtml(this.currentUser.name || this.currentUser.email)}</span>
+            <button type="button" class="action-btn-link" onclick="app.handleSignOut()" style="font-size: 11px; color: #b91c1c; margin-left: 4px; padding: 0 2px;" title="Sign out of this session">Sign Out</button>
+          </div>
+        `;
+      }
     } else {
       if (authTextEl) authTextEl.innerText = 'Guest Mode';
       if (authBtnEl) {
         authBtnEl.innerText = 'Sign In';
         authBtnEl.onclick = () => this.openAuthModal();
+      }
+      if (headerAuthWidget) {
+        headerAuthWidget.innerHTML = `
+          <button type="button" class="btn btn-sm btn-secondary" onclick="app.openAuthModal()" style="font-size: 12px; padding: 4px 10px; border-radius: 20px; display: flex; align-items: center; gap: 5px; background: #ffffff; border: 1px solid var(--border-subtle); color: var(--text-main);" title="Sign in or create account for personal data isolation">
+            <span style="font-size: 13px;">🔒</span>
+            <span style="font-weight: 600;">Sign In</span>
+          </button>
+        `;
       }
     }
   },

@@ -231,6 +231,7 @@ class TenantManager {
 
     // Verify candidate tenant services
     let services = this.getTenantServices(targetTenantId);
+    services.queueService.loadCampaigns();
     let matched = services.queueService.campaigns.some(c =>
       c.recipients && c.recipients.some(r => r.trackingId === trackingId)
     ) || (services.queueService.testTrackings && services.queueService.testTrackings.has(trackingId));
@@ -242,6 +243,7 @@ class TenantManager {
         for (const t of allTenants) {
           if (t.id === targetTenantId) continue;
           const s = this.getTenantServices(t.id);
+          s.queueService.loadCampaigns();
           const found = s.queueService.campaigns.some(c =>
             c.recipients && c.recipients.some(r => r.trackingId === trackingId)
           ) || (s.queueService.testTrackings && s.queueService.testTrackings.has(trackingId));
@@ -252,19 +254,30 @@ class TenantManager {
             break;
           }
         }
-      } catch (e) {
-        // Fallback to loaded instances
-        for (const [tId, bundle] of this.instances.entries()) {
-          if (tId === targetTenantId) continue;
-          const found = bundle.queueService.campaigns.some(c =>
-            c.recipients && c.recipients.some(r => r.trackingId === trackingId)
-          ) || (bundle.queueService.testTrackings && bundle.queueService.testTrackings.has(trackingId));
-          if (found) {
-            targetTenantId = tId;
-            services = bundle;
-            break;
+      } catch (e) {}
+
+      // Fallback: check all directories under data/tenants/
+      if (!matched) {
+        try {
+          const tenantsDir = path.join(DATA_DIR, 'tenants');
+          if (fs.existsSync(tenantsDir)) {
+            const dirs = fs.readdirSync(tenantsDir);
+            for (const dirName of dirs) {
+              if (dirName === targetTenantId) continue;
+              const s = this.getTenantServices(dirName);
+              s.queueService.loadCampaigns();
+              const found = s.queueService.campaigns.some(c =>
+                c.recipients && c.recipients.some(r => r.trackingId === trackingId)
+              ) || (s.queueService.testTrackings && s.queueService.testTrackings.has(trackingId));
+              if (found) {
+                targetTenantId = dirName;
+                services = s;
+                matched = true;
+                break;
+              }
+            }
           }
-        }
+        } catch (e) {}
       }
     }
 
