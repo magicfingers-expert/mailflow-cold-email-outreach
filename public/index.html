@@ -692,13 +692,19 @@
                           style="min-height: 150px; border-color: #cbd5e1;"
                         ></textarea>
 
-                        <div class="personalization-hint" style="margin-top: 12px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
+                        <div style="font-size: 11px; color: var(--text-dim); margin-top: 4px; display: flex; align-items: center; gap: 4px;">
+                          <span>💡</span>
+                          <span>Tip: Paste screenshot (<strong>Ctrl+V</strong>) or drag &amp; drop an image directly into the message body.</span>
+                        </div>
+
+                        <div class="personalization-hint" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
                           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                             <span style="font-weight: 600; color: var(--text-dim); font-size: 12px;">Insert Tag:</span>
                             <button type="button" class="tag-btn" onclick="app.insertTag('{{email}}')">{{email}}</button>
                             <button type="button" class="tag-btn" onclick="app.insertTag('{{name}}')">{{name}}</button>
                             <button type="button" class="tag-btn" onclick="app.insertTag('{{senderName}}')">{{senderName}}</button>
                             <button type="button" class="tag-btn" onclick="app.insertSpintaxSample()" style="background: #f0fdf4; color: #047857; font-weight: 600; border-color: #a7f3d0;">+ Spintax {A|B}</button>
+                            <button type="button" class="tag-btn" onclick="app.openInsertImageModal()" style="background: #eff6ff; color: #1d4ed8; font-weight: 600; border-color: #bfdbfe; box-shadow: 0 1px 3px rgba(37,99,235,0.12);">🖼️ Insert Image</button>
                           </div>
 
                           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
@@ -2134,6 +2140,85 @@
         </div>
         <button type="submit" class="btn btn-primary" style="width: 100%; padding: 10px; font-size: 13.5px;">Create Account &amp; Workspace</button>
       </form>
+    </div>
+  </div>
+
+  <!-- MODAL: INSERT IMAGE INTO COMPOSER -->
+  <div class="modal-backdrop" id="modalInsertImage" style="display: none;">
+    <div class="modal-card" style="max-width: 520px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <div class="modal-title" style="margin-bottom: 0; display: flex; align-items: center; gap: 8px;">
+          <span>🖼️ Insert Image into Outreach</span>
+        </div>
+        <button type="button" class="action-btn-link" onclick="app.closeModal('modalInsertImage')" style="font-size: 18px; color: var(--text-dim); line-height: 1;">&times;</button>
+      </div>
+      <p style="font-size: 13px; color: var(--text-muted); margin-bottom: 16px;">
+        Embed banners, company logos, product screenshots, or charts directly into your outreach message.
+      </p>
+
+      <!-- TABS: Upload Image vs Web URL -->
+      <div style="display: flex; gap: 8px; margin-bottom: 16px; border-bottom: 1px solid var(--border-subtle); padding-bottom: 8px;">
+        <button type="button" id="tabBtnUploadImg" class="btn btn-sm btn-primary" onclick="app.switchImageModalTab('upload')">
+          📤 Upload from Computer
+        </button>
+        <button type="button" id="tabBtnUrlImg" class="btn btn-sm btn-secondary" onclick="app.switchImageModalTab('url')">
+          🔗 Web Image URL
+        </button>
+      </div>
+
+      <!-- TAB CONTENT 1: UPLOAD FILE -->
+      <div id="imageTabUpload">
+        <div id="imageDropZone" style="border: 2px dashed #93c5fd; border-radius: 8px; background: #f8fafc; padding: 24px 16px; text-align: center; cursor: pointer; transition: all 0.2s ease; margin-bottom: 14px;"
+             onclick="document.getElementById('modalImageFileInput').click()">
+          <input type="file" id="modalImageFileInput" accept="image/png,image/jpeg,image/jpg,image/gif,image/webp,image/svg+xml" style="display: none;" onchange="app.onImageFileSelected(this.files)">
+          <div style="font-size: 32px; margin-bottom: 6px;">📁</div>
+          <div style="font-size: 13px; font-weight: 600; color: var(--text-main);">Click to browse or drag &amp; drop image here</div>
+          <div style="font-size: 11.5px; color: var(--text-dim); margin-top: 4px;">Supports PNG, JPG, GIF, WebP, SVG (Max 10MB)</div>
+        </div>
+      </div>
+
+      <!-- TAB CONTENT 2: WEB URL -->
+      <div id="imageTabUrl" style="display: none; margin-bottom: 14px;">
+        <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Image Direct URL *</label>
+        <input type="url" id="modalImageUrlInput" class="form-control" placeholder="https://example.com/logo.png" oninput="app.onImageUrlInput(this.value)">
+      </div>
+
+      <!-- LIVE IMAGE PREVIEW CARD -->
+      <div id="modalImagePreviewContainer" style="display: none; background: #f1f5f9; border: 1px solid var(--border-subtle); border-radius: 8px; padding: 12px; margin-bottom: 14px; text-align: center;">
+        <div style="font-size: 11.5px; font-weight: 600; color: var(--text-dim); margin-bottom: 8px; text-align: left;">Live Preview:</div>
+        <img id="modalImagePreviewEl" src="" alt="Preview" style="max-height: 180px; max-width: 100%; object-fit: contain; border-radius: 4px; box-shadow: 0 2px 6px rgba(0,0,0,0.1);">
+        <div id="modalImageMetaText" style="font-size: 11px; color: var(--text-dim); margin-top: 6px;"></div>
+      </div>
+
+      <!-- IMAGE SETTINGS -->
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+        <div>
+          <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Alt Text / Description</label>
+          <input type="text" id="modalImageAltInput" class="form-control" placeholder="e.g. Product Demo or Logo">
+        </div>
+        <div>
+          <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Display Width</label>
+          <select id="modalImageWidthSelect" class="form-control" style="font-size: 12.5px;">
+            <option value="100%" selected>100% (Responsive Full Width)</option>
+            <option value="500px">500px (Large Banner)</option>
+            <option value="350px">350px (Medium Card)</option>
+            <option value="200px">200px (Small Thumbnail)</option>
+            <option value="120px">120px (Logo / Signature Icon)</option>
+          </select>
+        </div>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Clickable Link URL (Optional)</label>
+        <input type="url" id="modalImageLinkInput" class="form-control" placeholder="https://yourcompany.com (opens when clicked)">
+      </div>
+
+      <div class="modal-actions">
+        <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalInsertImage')">Cancel</button>
+        <button type="button" class="btn btn-primary" id="btnConfirmInsertImage" onclick="app.confirmInsertImage()" style="background: #2563eb; border-color: #2563eb;">
+          🖼️ Insert into Message
+        </button>
+      </div>
     </div>
   </div>
 

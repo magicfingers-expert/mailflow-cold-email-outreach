@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const path = require('path');
+const fs = require('fs');
 require('dotenv').config();
 
 const EmailValidator = require('./services/emailValidator');
@@ -418,6 +419,66 @@ app.post('/api/recipients/parse', (req, res) => {
   const { rawText } = req.body;
   const result = EmailValidator.cleanAndValidate(rawText);
   res.json({ success: true, ...result });
+});
+
+// ---------------- IMAGE UPLOADER FOR COMPOSER ----------------
+
+app.post('/api/upload-image', (req, res) => {
+  try {
+    const { imageBase64, filename } = req.body;
+    if (!imageBase64) {
+      return res.status(400).json({ success: false, error: 'No image data provided.' });
+    }
+
+    const matches = imageBase64.match(/^data:image\/([a-zA-Z0-9+.-]+);base64,(.+)$/);
+    let ext = 'png';
+    let base64Data = imageBase64;
+
+    if (matches && matches.length === 3) {
+      ext = matches[1].replace('jpeg', 'jpg').replace('svg+xml', 'svg');
+      base64Data = matches[2];
+    } else if (filename && filename.includes('.')) {
+      ext = filename.split('.').pop().toLowerCase();
+    }
+
+    const allowedExts = ['png', 'jpg', 'jpeg', 'gif', 'webp', 'svg'];
+    if (!allowedExts.includes(ext.toLowerCase())) {
+      ext = 'png';
+    }
+
+    const uploadsDir = path.join(__dirname, 'public', 'uploads');
+    if (!fs.existsSync(uploadsDir)) {
+      fs.mkdirSync(uploadsDir, { recursive: true });
+    }
+
+    const safeBaseName = (filename || 'img')
+      .replace(/\.[^/.]+$/, '')
+      .replace(/[^a-zA-Z0-9_-]/g, '_')
+      .slice(0, 30) || 'image';
+
+    const uniqueFileName = `${safeBaseName}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}.${ext}`;
+    const filePath = path.join(uploadsDir, uniqueFileName);
+
+    const buffer = Buffer.from(base64Data, 'base64');
+    fs.writeFileSync(filePath, buffer);
+
+    const host = req.get('host') || 'localhost:3000';
+    const protocol = req.protocol || 'http';
+    const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
+    const fullUrl = `${baseUrl}/uploads/${uniqueFileName}`;
+    const relativeUrl = `/uploads/${uniqueFileName}`;
+
+    res.json({
+      success: true,
+      url: fullUrl,
+      relativeUrl,
+      filename: uniqueFileName,
+      size: buffer.length
+    });
+  } catch (err) {
+    console.error('Image upload error:', err.message);
+    res.status(500).json({ success: false, error: err.message });
+  }
 });
 
 // ---------------- CAMPAIGN DISPATCHER & QUEUE (TENANT ISOLATED) ----------------

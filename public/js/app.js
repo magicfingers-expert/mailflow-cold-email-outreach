@@ -480,7 +480,64 @@ const app = {
     const subjEl = document.getElementById('emailSubject');
     const msgEl = document.getElementById('emailMessage');
     if (subjEl) subjEl.addEventListener('focus', () => { this._lastFocusedInput = 'emailSubject'; });
-    if (msgEl) msgEl.addEventListener('focus', () => { this._lastFocusedInput = 'emailMessage'; });
+    if (msgEl) {
+      msgEl.addEventListener('focus', () => { this._lastFocusedInput = 'emailMessage'; });
+
+      // Support pasting screenshots (Ctrl+V) directly into message textarea
+      msgEl.addEventListener('paste', (e) => {
+        const items = (e.clipboardData || e.originalEvent?.clipboardData)?.items;
+        if (!items) return;
+        for (const item of items) {
+          if (item.type.indexOf('image') === 0) {
+            e.preventDefault();
+            const file = item.getAsFile();
+            this.uploadAndInsertImageFile(file, 'Pasted Screenshot');
+            break;
+          }
+        }
+      });
+
+      // Support dragging and dropping images directly onto message textarea
+      msgEl.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        msgEl.style.borderColor = '#2563eb';
+      });
+      msgEl.addEventListener('dragleave', () => {
+        msgEl.style.borderColor = '#cbd5e1';
+      });
+      msgEl.addEventListener('drop', (e) => {
+        e.preventDefault();
+        msgEl.style.borderColor = '#cbd5e1';
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          const file = e.dataTransfer.files[0];
+          if (file.type.startsWith('image/')) {
+            this.uploadAndInsertImageFile(file, file.name);
+          }
+        }
+      });
+    }
+
+    // Support drag and drop on modal image drop zone
+    const modalDropZone = document.getElementById('imageDropZone');
+    if (modalDropZone) {
+      modalDropZone.addEventListener('dragover', (e) => {
+        e.preventDefault();
+        modalDropZone.style.borderColor = '#2563eb';
+        modalDropZone.style.background = '#eff6ff';
+      });
+      modalDropZone.addEventListener('dragleave', () => {
+        modalDropZone.style.borderColor = '#93c5fd';
+        modalDropZone.style.background = '#f8fafc';
+      });
+      modalDropZone.addEventListener('drop', (e) => {
+        e.preventDefault();
+        modalDropZone.style.borderColor = '#93c5fd';
+        modalDropZone.style.background = '#f8fafc';
+        if (e.dataTransfer && e.dataTransfer.files && e.dataTransfer.files.length > 0) {
+          this.onImageFileSelected(e.dataTransfer.files);
+        }
+      });
+    }
 
     // Close modals on clicking backdrop
     document.querySelectorAll('.modal-backdrop').forEach(modal => {
@@ -3203,7 +3260,13 @@ const app = {
     if (fromValEl) fromValEl.innerText = `${senderName} <${senderEmail}>`;
     if (toValEl) toValEl.innerText = targetRecipient;
     if (subjValEl) subjValEl.innerText = processedSubject || '(No subject entered)';
-    if (bodyValEl) bodyValEl.innerText = processedBody || '(No message body entered yet)';
+    if (bodyValEl) {
+      if (!processedBody) {
+        bodyValEl.innerHTML = '<span style="color: var(--text-dim); font-style: italic;">(Your outreach message preview will appear here in real-time as you type in Step 3...)</span>';
+      } else {
+        bodyValEl.innerHTML = this.renderBodyForPreview(processedBody);
+      }
+    }
     if (variantTagEl) variantTagEl.innerText = `Message ${this.activeVariantIndex + 1} Active`;
 
     const leadCount = this.parsedValidation?.allowedCount || 0;
@@ -3219,6 +3282,35 @@ const app = {
         summaryDurationEl.innerText = `~${mins} min${mins > 1 ? 's' : ''}`;
       }
     }
+  },
+
+  renderBodyForPreview(text) {
+    if (!text) return '';
+    let rendered = this.escapeHtml(text);
+
+    // Unescape safe <img> tags that were inserted
+    rendered = rendered.replace(/&lt;img\s+([^&>]+)&gt;/gi, (m, attrs) => {
+      const cleanAttrs = attrs.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+      return `<img ${cleanAttrs} style="max-width:100%; height:auto; display:block; margin:8px 0; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,0.08);">`;
+    });
+
+    // Unescape safe <a> tags wrapping images or links
+    rendered = rendered.replace(/&lt;a\s+([^&>]+)&gt;(.*?)&lt;\/a&gt;/gi, (m, attrs, content) => {
+      const cleanAttrs = attrs.replace(/&quot;/g, '"').replace(/&#39;/g, "'");
+      return `<a ${cleanAttrs} target="_blank">${content}</a>`;
+    });
+
+    // Convert Markdown images: ![alt](url) -> <img>
+    rendered = rendered.replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+|\/uploads\/[^\s)]+|data:image\/[^;]+;base64,[^\s)]+)\)/gi, (m, alt, url) => {
+      return `<div style="margin: 8px 0;"><img src="${url}" alt="${alt}" style="max-width:100%; height:auto; display:block; border-radius:6px; box-shadow:0 1px 4px rgba(0,0,0,0.08);"></div>`;
+    });
+
+    // Convert Markdown links: [text](url) -> <a href="...">text</a>
+    rendered = rendered.replace(/\[([^\]]+)\]\((https?:\/\/[^\s)]+)\)/gi, (m, linkText, url) => {
+      return `<a href="${url}" target="_blank" style="color:#2563eb;text-decoration:underline;">${linkText}</a>`;
+    });
+
+    return rendered.replace(/\n/g, '<br>');
   },
 
   spinSpintaxLivePreview() {
@@ -3909,6 +4001,258 @@ lead10@businesspartner.com`;
 
     this.onCurrentVariantInput();
     this.updateDesktopLivePreview();
+  },
+
+  // ==========================================================
+  // INLINE IMAGE INSERTION & UPLOAD ENGINE
+  // ==========================================================
+
+  openInsertImageModal() {
+    this._currentImageBase64 = null;
+    this._currentImageFilename = null;
+    this._imageModalTab = 'upload';
+
+    const fileInput = document.getElementById('modalImageFileInput');
+    if (fileInput) fileInput.value = '';
+
+    const urlInput = document.getElementById('modalImageUrlInput');
+    if (urlInput) urlInput.value = '';
+
+    const altInput = document.getElementById('modalImageAltInput');
+    if (altInput) altInput.value = '';
+
+    const linkInput = document.getElementById('modalImageLinkInput');
+    if (linkInput) linkInput.value = '';
+
+    const widthSelect = document.getElementById('modalImageWidthSelect');
+    if (widthSelect) widthSelect.value = '100%';
+
+    const previewContainer = document.getElementById('modalImagePreviewContainer');
+    if (previewContainer) previewContainer.style.display = 'none';
+
+    this.switchImageModalTab('upload');
+    this.openModal('modalInsertImage');
+  },
+
+  switchImageModalTab(tab) {
+    this._imageModalTab = tab;
+    const tabUpload = document.getElementById('imageTabUpload');
+    const tabUrl = document.getElementById('imageTabUrl');
+    const btnUpload = document.getElementById('tabBtnUploadImg');
+    const btnUrl = document.getElementById('tabBtnUrlImg');
+
+    if (tab === 'upload') {
+      if (tabUpload) tabUpload.style.display = 'block';
+      if (tabUrl) tabUrl.style.display = 'none';
+      if (btnUpload) btnUpload.className = 'btn btn-sm btn-primary';
+      if (btnUrl) btnUrl.className = 'btn btn-sm btn-secondary';
+      if (this._currentImageBase64) {
+        this.updateModalImagePreview(this._currentImageBase64, this._currentImageFilename);
+      } else {
+        const previewContainer = document.getElementById('modalImagePreviewContainer');
+        if (previewContainer) previewContainer.style.display = 'none';
+      }
+    } else {
+      if (tabUpload) tabUpload.style.display = 'none';
+      if (tabUrl) tabUrl.style.display = 'block';
+      if (btnUpload) btnUpload.className = 'btn btn-sm btn-secondary';
+      if (btnUrl) btnUrl.className = 'btn btn-sm btn-primary';
+      const url = document.getElementById('modalImageUrlInput')?.value.trim();
+      if (url) {
+        this.updateModalImagePreview(url, 'External Web Image');
+      } else {
+        const previewContainer = document.getElementById('modalImagePreviewContainer');
+        if (previewContainer) previewContainer.style.display = 'none';
+      }
+    }
+  },
+
+  onImageFileSelected(files) {
+    if (!files || files.length === 0) return;
+    const file = files[0];
+    if (!file.type.startsWith('image/')) {
+      alert('Please select an image file (PNG, JPG, WebP, GIF, SVG).');
+      return;
+    }
+    if (file.size > 10 * 1024 * 1024) {
+      alert('Image file size must be less than 10MB.');
+      return;
+    }
+
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      this._currentImageBase64 = e.target.result;
+      this._currentImageFilename = file.name;
+
+      const altInput = document.getElementById('modalImageAltInput');
+      if (altInput && !altInput.value) {
+        altInput.value = file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ');
+      }
+
+      const sizeKb = Math.round(file.size / 1024);
+      this.updateModalImagePreview(this._currentImageBase64, `${file.name} (~${sizeKb} KB)`);
+    };
+    reader.readAsDataURL(file);
+  },
+
+  onImageUrlInput(url) {
+    const clean = (url || '').trim();
+    if (clean) {
+      this.updateModalImagePreview(clean, 'External Web Image');
+      const altInput = document.getElementById('modalImageAltInput');
+      if (altInput && !altInput.value) {
+        const parts = clean.split('/').pop().split('?')[0];
+        altInput.value = parts.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ') || 'Image';
+      }
+    } else {
+      const previewContainer = document.getElementById('modalImagePreviewContainer');
+      if (previewContainer) previewContainer.style.display = 'none';
+    }
+  },
+
+  updateModalImagePreview(src, metaText = '') {
+    const previewContainer = document.getElementById('modalImagePreviewContainer');
+    const previewEl = document.getElementById('modalImagePreviewEl');
+    const metaEl = document.getElementById('modalImageMetaText');
+    if (previewContainer && previewEl) {
+      previewEl.src = src;
+      previewContainer.style.display = 'block';
+      if (metaEl) metaEl.innerText = metaText;
+    }
+  },
+
+  async confirmInsertImage() {
+    const btn = document.getElementById('btnConfirmInsertImage');
+    const altText = (document.getElementById('modalImageAltInput')?.value || '').trim() || 'Image';
+    const width = document.getElementById('modalImageWidthSelect')?.value || '100%';
+    const linkUrl = (document.getElementById('modalImageLinkInput')?.value || '').trim();
+
+    let finalImageUrl = '';
+
+    if (this._imageModalTab === 'upload') {
+      if (!this._currentImageBase64) {
+        alert('Please choose an image file to upload.');
+        return;
+      }
+
+      if (btn) {
+        btn.disabled = true;
+        btn.innerText = 'Uploading Image...';
+      }
+
+      try {
+        const res = await fetch('/api/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: this._currentImageBase64,
+            filename: this._currentImageFilename || 'image.png'
+          })
+        });
+        const data = await res.json();
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = '🖼️ Insert into Message';
+        }
+
+        if (data.success && (data.url || data.relativeUrl)) {
+          finalImageUrl = data.url || data.relativeUrl;
+        } else {
+          alert('Failed to upload image: ' + (data.error || 'Server error'));
+          return;
+        }
+      } catch (err) {
+        if (btn) {
+          btn.disabled = false;
+          btn.innerText = '🖼️ Insert into Message';
+        }
+        alert('Image upload failed: ' + err.message);
+        return;
+      }
+    } else {
+      const urlInput = (document.getElementById('modalImageUrlInput')?.value || '').trim();
+      if (!urlInput) {
+        alert('Please enter an image URL (e.g. https://example.com/logo.png).');
+        return;
+      }
+      finalImageUrl = urlInput;
+    }
+
+    this.insertImageTagIntoMessage({
+      url: finalImageUrl,
+      alt: altText,
+      width: width,
+      link: linkUrl
+    });
+
+    this.closeModal('modalInsertImage');
+    this.showToast(`✓ Image inserted into Message ${this.activeVariantIndex + 1}!`);
+  },
+
+  insertImageTagIntoMessage({ url, alt, width = '100%', link = '' }) {
+    const msgEl = document.getElementById('emailMessage');
+    if (!msgEl) return;
+
+    let imageTag = '';
+    const cleanAlt = (alt || 'Image').replace(/"/g, '&quot;');
+    const isFullWidth = (width === '100%');
+
+    if (!link && isFullWidth) {
+      // Clean, standard Markdown image syntax
+      imageTag = `\n\n![${cleanAlt}](${url})\n\n`;
+    } else {
+      // HTML image tag with custom width or link
+      const widthAttr = !isFullWidth ? ` width="${parseInt(width) || width}"` : '';
+      const styleAttr = isFullWidth 
+        ? 'style="max-width:100%;height:auto;display:block;margin:12px 0;border-radius:6px;"'
+        : `style="max-width:100%;width:${width};height:auto;display:block;margin:12px 0;border-radius:6px;"`;
+
+      let imgHtml = `<img src="${url}" alt="${cleanAlt}"${widthAttr} ${styleAttr} />`;
+      if (link) {
+        imgHtml = `<a href="${link}" target="_blank">${imgHtml}</a>`;
+      }
+      imageTag = `\n\n${imgHtml}\n\n`;
+    }
+
+    const start = msgEl.selectionStart || msgEl.value.length;
+    const end = msgEl.selectionEnd || msgEl.value.length;
+    msgEl.value = msgEl.value.substring(0, start) + imageTag + msgEl.value.substring(end);
+    msgEl.focus();
+    msgEl.selectionStart = msgEl.selectionEnd = start + imageTag.length;
+
+    this.onCurrentVariantInput();
+    this.updateDesktopLivePreview();
+  },
+
+  async uploadAndInsertImageFile(file, altText = '') {
+    if (!file || !file.type.startsWith('image/')) return;
+    this.showToast('Uploading image...', 'info');
+
+    const reader = new FileReader();
+    reader.onload = async (e) => {
+      try {
+        const res = await fetch('/api/upload-image', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            imageBase64: e.target.result,
+            filename: file.name || 'image.png'
+          })
+        });
+        const data = await res.json();
+        if (data.success && (data.url || data.relativeUrl)) {
+          const imgUrl = data.url || data.relativeUrl;
+          const alt = altText || file.name.replace(/\.[^/.]+$/, '').replace(/[_-]/g, ' ') || 'Image';
+          this.insertImageTagIntoMessage({ url: imgUrl, alt, width: '100%' });
+          this.showToast(`✓ Image uploaded and inserted!`);
+        } else {
+          this.showToast('Failed to upload image: ' + (data.error || 'Server error'), 'danger');
+        }
+      } catch (err) {
+        this.showToast('Image upload failed: ' + err.message, 'danger');
+      }
+    };
+    reader.readAsDataURL(file);
   },
 
   async loadDraft() {

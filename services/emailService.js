@@ -475,16 +475,52 @@ class EmailService {
     const cleanSubject = this.sanitizeSubject(randomizedSubject);
     const sanitizedBody = this.sanitizeOutreachContent(randomizedMessage);
 
+    // Detect if outreach message contains inline images (Markdown ![alt](url) or HTML <img ...>)
+    const hasImage = /!\[[^\]]*\]\([^)]+\)|<img\b[^>]*>/i.test(sanitizedBody);
+
+    const origin = (baseUrl || process.env.BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
+
     // Inject 1x1 transparent tracking pixel when tracking is enabled and trackingId is provided
     let trackingPixelHtml = '';
     if (enableTracking && trackingId) {
-      const origin = (baseUrl || process.env.BASE_URL || 'http://localhost:3000').replace(/\/$/, '');
       const trackingPixelUrl = `${origin}/api/track/open/${encodeURIComponent(trackingId)}`;
       trackingPixelHtml = `<div style="display:none;font-size:0;line-height:0;max-height:0;mso-hide:all;opacity:0.01;overflow:hidden;"><img src="${trackingPixelUrl}" width="1" height="1" style="width:1px!important;height:1px!important;border:none!important;" alt="" /></div>`;
     }
 
+    // Process HTML message content: resolve relative uploads, convert Markdown images & links
+    let processedHtml = (sanitizedBody || '')
+      // Make relative /uploads/ image paths absolute so recipients can view them
+      .replace(/(<img\b[^>]*src=["'])\/uploads\/([^"']+)(["'][^>]*>)/gi, `$1${origin}/uploads/$2$3`)
+      .replace(/!\[([^\]]*)\]\((\/uploads\/[^)]+)\)/gi, (m, alt, relUrl) => `![${alt}](${origin}${relUrl})`)
+      // Convert Markdown images ![alt](url) -> <img> tag with responsive human Gmail styling
+      .replace(/!\[([^\]]*)\]\((https?:\/\/[^\s)]+|data:image\/[^;]+;base64,[^\s)]+)\)/gi, (match, alt, url) => {
+        const cleanAlt = (alt || '').replace(/"/g, '&quot;');
+        return `<div style="margin: 12px 0;"><img src="${url}" alt="${cleanAlt}" style="max-width: 100%; height: auto; display: block; border-radius: 6px;" /></div>`;
+      })
+      // Ensure any raw <img> tags have responsive styling
+      .replace(/<img\b(?![^>]*style=)([^>]*src=["'][^"']+["'][^>]*)>/gi, '<img $1 style="max-width: 100%; height: auto; display: block; margin: 12px 0; border-radius: 6px;">');
+
     // Authentic 1-on-1 human Gmail web composer HTML structure (no bulky DOCTYPE/viewport boilerplate)
-    const formattedHtml = `<div dir="ltr">${(sanitizedBody || '').split('\n\n').map(p => `<div>${p.replace(/\n/g, '<br>')}</div>`).join('<div><br></div>')}${trackingPixelHtml}</div>`;
+    const formattedHtml = `<div dir="ltr">${processedHtml.split('\n\n').map(p => {
+      const pTrim = p.trim();
+      if (!pTrim) return '';
+      return `<div>${pTrim.replace(/\n/g, '<br>')}</div>`;
+    }).filter(Boolean).join('<div><br></div>')}${trackingPixelHtml}</div>`;
+
+    // Deliverability-optimized clean plain-text alternative (converts Markdown images to readable image URLs)
+    const plainTextBody = (sanitizedBody || '')
+      .replace(/!\[([^\]]*)\]\(([^)]+)\)/gi, (match, alt, url) => {
+        const fullUrl = url.startsWith('/') ? `${origin}${url}` : url;
+        return alt ? `[Image: ${alt} - ${fullUrl}]` : `[Image: ${fullUrl}]`;
+      })
+      .replace(/<img\b[^>]*src=["']([^"']+)["'][^>]*alt=["']([^"']+)["'][^>]*>/gi, (match, url, alt) => {
+        const fullUrl = url.startsWith('/') ? `${origin}${url}` : url;
+        return `[Image: ${alt} - ${fullUrl}]`;
+      })
+      .replace(/<img\b[^>]*src=["']([^"']+)["'][^>]*>/gi, (match, url) => {
+        const fullUrl = url.startsWith('/') ? `${origin}${url}` : url;
+        return `[Image: ${fullUrl}]`;
+      });
 
     if (cleanSender && cleanPass) {
       try {
@@ -515,12 +551,12 @@ class EmailService {
           from: fromHeader,
           to: recipientEmail,
           subject: cleanSubject,
-          text: sanitizedBody,
+          text: plainTextBody,
           date: new Date()
         };
 
-        // Attach human Gmail HTML multipart when tracking is enabled or not pure plain-text
-        if (enableTracking || !plainTextOnly) {
+        // Attach human Gmail HTML multipart when tracking is enabled, when plainTextOnly is false, OR when message has an image
+        if (enableTracking || !plainTextOnly || hasImage) {
           mailOptions.html = formattedHtml;
         }
 
