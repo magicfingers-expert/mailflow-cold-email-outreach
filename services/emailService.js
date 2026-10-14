@@ -1,4 +1,5 @@
 const nodemailer = require('nodemailer');
+const { ImapFlow } = require('imapflow');
 const path = require('path');
 const securityService = require('./securityService');
 const deliverabilityService = require('./deliverabilityService');
@@ -43,18 +44,35 @@ class EmailService {
 
   // Safe accounts for frontend client consumption - NEVER exposes passwords
   getSafeAccounts() {
-    return this.accounts.map(acc => ({
-      id: acc.id,
-      email: acc.email,
-      name: acc.name || acc.email.split('@')[0],
-      provider: acc.provider || (acc.email.endsWith('@gmail.com') ? 'gmail' : 'smtp'),
-      status: acc.status || 'Connected',
-      isDefault: !!acc.isDefault,
-      dailyLimit: acc.dailyLimit || 50,
-      sentToday: acc.sentToday || 0,
-      createdAt: acc.createdAt || new Date().toISOString(),
-      hasPassword: !!acc.password
-    }));
+    return this.accounts.map(acc => {
+      this.resetDailyUsageIfNewDay(acc);
+      const isThrottled = !!(acc.throttleUntil && new Date(acc.throttleUntil) > new Date());
+      const dailyLimit = acc.dailyLimit || 50;
+      const sentToday = acc.sentToday || 0;
+      return {
+        id: acc.id,
+        email: acc.email,
+        name: acc.name || acc.email.split('@')[0],
+        provider: acc.provider || (acc.email.endsWith('@gmail.com') ? 'gmail' : 'smtp'),
+        status: isThrottled ? 'Throttled' : (acc.status || 'Pending Verification'),
+        isDefault: !!acc.isDefault,
+        dailyLimit,
+        sentToday,
+        remainingCapacity: Math.max(0, dailyLimit - sentToday),
+        isThrottled,
+        throttleUntil: acc.throttleUntil || null,
+        throttleReason: acc.throttleReason || null,
+        createdAt: acc.createdAt || new Date().toISOString(),
+        hasPassword: !!acc.password,
+        lastTestedAt: acc.lastTestedAt || null,
+        smtpStatus: acc.smtpStatus || 'untested',
+        smtpError: acc.smtpError || null,
+        imapStatus: acc.imapStatus || 'untested',
+        imapError: acc.imapError || null,
+        sendingReady: acc.sendingReady !== undefined ? acc.sendingReady : (acc.status === 'Connected'),
+        receivingReady: acc.receivingReady !== undefined ? acc.receivingReady : (acc.status === 'Connected')
+      };
+    });
   }
 
   getAccountById(id) {
@@ -86,18 +104,31 @@ class EmailService {
     return securityService.decrypt(account.password);
   }
 
-  saveOrUpdateAccount({ email, password, name, provider, isDefault, status = 'Connected' }) {
+  addAccount(data) {
+    return this.saveOrUpdateAccount(data);
+  }
+
+  saveOrUpdateAccount({ email, password, name, provider, isDefault, status, dailyLimit, dailySendCap }) {
     const cleanEmail = this.cleanEmail(email);
     const cleanPass = this.cleanPassword(password);
     let account = this.getAccountByEmail(cleanEmail);
+    const cap = Math.max(1, Math.min(2000, parseInt(dailySendCap || dailyLimit || 50, 10) || 50));
 
     if (account) {
       account.name = name || account.name || cleanEmail.split('@')[0];
       if (cleanPass) {
         account.password = securityService.encrypt(cleanPass);
+        // If password changed, require fresh verification test
+        account.smtpStatus = 'untested';
+        account.status = 'Pending Verification';
+        account.sendingReady = false;
       }
-      account.status = status;
+      if (status) account.status = status;
       account.provider = provider || (cleanEmail.endsWith('@gmail.com') ? 'gmail' : 'smtp');
+      if (dailyLimit !== undefined || dailySendCap !== undefined) {
+        account.dailyLimit = cap;
+        account.dailySendCap = cap;
+      }
       if (isDefault) {
         this.accounts.forEach(a => a.isDefault = (a.id === account.id));
       }
@@ -109,11 +140,19 @@ class EmailService {
         name: name || cleanEmail.split('@')[0],
         password: cleanPass ? securityService.encrypt(cleanPass) : '',
         provider: provider || (cleanEmail.endsWith('@gmail.com') ? 'gmail' : 'smtp'),
-        status: 'Connected',
-        dailyLimit: 50,
+        status: status || 'Pending Verification',
+        dailyLimit: cap,
+        dailySendCap: cap,
         sentToday: 0,
         isDefault: this.accounts.length === 0 || !!isDefault,
-        createdAt: new Date().toISOString()
+        createdAt: new Date().toISOString(),
+        lastTestedAt: null,
+        smtpStatus: 'untested',
+        smtpError: null,
+        imapStatus: 'untested',
+        imapError: null,
+        sendingReady: false,
+        receivingReady: false
       };
       if (account.isDefault) {
         this.accounts.forEach(a => a.isDefault = false);
@@ -123,6 +162,139 @@ class EmailService {
 
     this.saveAccounts();
     return account;
+  }
+
+  // Server-side SMTP & IMAP connectivity testing for saved sender accounts
+  async testAccountConnection(accountId) {
+    const account = this.getAccountById(accountId);
+    if (!account) {
+      throw new Error('Account not found.');
+    }
+    const cleanEmail = this.cleanEmail(account.email);
+    const cleanPass = this.getAccountPassword(account);
+    if (!cleanPass) {
+      account.status = 'Missing Password';
+      account.smtpStatus = 'failed';
+      account.smtpError = 'No password stored for this account';
+      account.imapStatus = 'failed';
+      account.imapError = 'No password stored for this account';
+      account.sendingReady = false;
+      account.receivingReady = false;
+      this.saveAccounts();
+      return { success: false, error: 'No password stored for this account', account: this.getSafeAccounts().find(a => a.id === account.id) };
+    }
+
+    // 1. SMTP Test (Outbound sending capability)
+    const smtpResult = await this.diagnoseSmtpSocket({ email: cleanEmail, password: cleanPass });
+    account.lastTestedAt = new Date().toISOString();
+    account.smtpStatus = smtpResult.success ? 'verified' : 'failed';
+    account.smtpError = smtpResult.success ? null : (smtpResult.error || 'SMTP verification failed');
+    account.sendingReady = smtpResult.success;
+
+    // 2. IMAP Test (Inbound reply sync capability)
+    const imapResult = await this.diagnoseImapSocket({ email: cleanEmail, password: cleanPass });
+    account.imapStatus = imapResult.success ? 'verified' : 'failed';
+    account.imapError = imapResult.success ? null : (imapResult.error || 'IMAP verification failed');
+    account.receivingReady = imapResult.success;
+
+    // Overall status reflects reality
+    if (account.sendingReady && account.receivingReady) {
+      account.status = 'Connected';
+    } else if (account.sendingReady) {
+      account.status = 'Sending Ready (IMAP Sync Off)';
+    } else if (account.receivingReady) {
+      account.status = 'Receiving Only (SMTP Failed)';
+    } else {
+      account.status = 'Verification Failed';
+    }
+
+    this.saveAccounts();
+    return {
+      success: account.sendingReady,
+      status: account.status,
+      smtpResult,
+      imapResult,
+      account: this.getSafeAccounts().find(a => a.id === account.id)
+    };
+  }
+
+  // Standalone IMAP test for inbox synchronization validation
+  async testAccountImapConnection(accountId) {
+    const account = this.getAccountById(accountId);
+    if (!account) throw new Error('Account not found.');
+
+    const cleanEmail = this.cleanEmail(account.email);
+    const cleanPass = this.getAccountPassword(account);
+    if (!cleanPass) throw new Error('No password stored for this account.');
+
+    const imapResult = await this.diagnoseImapSocket({ email: cleanEmail, password: cleanPass });
+    account.imapStatus = imapResult.success ? 'verified' : 'failed';
+    account.imapError = imapResult.success ? null : (imapResult.error || 'IMAP failed');
+    account.receivingReady = imapResult.success;
+    if (account.sendingReady && account.receivingReady) {
+      account.status = 'Connected';
+    } else if (account.sendingReady) {
+      account.status = 'Sending Ready (IMAP Sync Off)';
+    }
+    this.saveAccounts();
+
+    return {
+      success: imapResult.success,
+      imapResult,
+      account: this.getSafeAccounts().find(a => a.id === account.id)
+    };
+  }
+
+  // Socket-level IMAP diagnostic probe
+  async diagnoseImapSocket({ email, password, host, port }) {
+    const cleanEmail = this.cleanEmail(email);
+    let cleanPass = this.cleanPassword(password);
+    if (!cleanPass) {
+      const saved = this.getAccountByEmail(cleanEmail);
+      if (saved && saved.password) cleanPass = this.getAccountPassword(saved);
+    }
+    if (!cleanEmail || !cleanPass) {
+      return { success: false, error: 'Email and password required for IMAP test.' };
+    }
+
+    const targetHost = host || (cleanEmail.endsWith('@gmail.com') ? 'imap.gmail.com' : 'imap.gmail.com');
+    const targetPort = port || 993;
+
+    const client = new ImapFlow({
+      host: targetHost,
+      port: targetPort,
+      secure: true,
+      auth: { user: cleanEmail, pass: cleanPass },
+      logger: false
+    });
+
+    client.on('error', () => {});
+
+    try {
+      await client.connect();
+      const status = await client.status('INBOX', { messages: true, unseen: true });
+      await client.logout();
+      return {
+        success: true,
+        host: targetHost,
+        port: targetPort,
+        inboxTotal: status.messages || 0,
+        unseen: status.unseen || 0,
+        message: `IMAP connection verified successfully (${status.messages || 0} messages in INBOX)`
+      };
+    } catch (err) {
+      try { await client.logout(); } catch (e) {}
+      let errMsg = err.message || 'IMAP connection failed';
+      if (errMsg.includes('535') || errMsg.includes('BadCredentials') || errMsg.includes('AUTHENTICATIONFAILED')) {
+        errMsg = `Google IMAP Authentication Failed for ${cleanEmail}. Verify your 16-character App Password.`;
+      }
+      return {
+        success: false,
+        host: targetHost,
+        port: targetPort,
+        error: errMsg
+      };
+    }
   }
 
   deleteAccount(id) {
@@ -142,9 +314,146 @@ class EmailService {
     return true;
   }
 
+  resetDailyUsageIfNewDay(account) {
+    if (!account) return;
+    const now = new Date();
+    const lastSent = account.lastSentAt ? new Date(account.lastSentAt) : null;
+    if (lastSent) {
+      const isDifferentDay = now.getUTCFullYear() !== lastSent.getUTCFullYear() ||
+                            now.getUTCMonth() !== lastSent.getUTCMonth() ||
+                            now.getUTCDate() !== lastSent.getUTCDate();
+      if (isDifferentDay) {
+        account.sentToday = 0;
+      }
+    }
+    // Also clear expired throttle
+    if (account.throttleUntil && new Date(account.throttleUntil) <= now) {
+      account.throttleUntil = null;
+      account.throttleReason = null;
+      if (account.status === 'Throttled') {
+        account.status = account.sendingReady ? 'Connected' : 'Pending Verification';
+      }
+    }
+  }
+
+  incrementSentToday(accountId, count = 1) {
+    const acc = this.getAccountById(accountId);
+    if (!acc) return 0;
+    this.resetDailyUsageIfNewDay(acc);
+    acc.sentToday = (acc.sentToday || 0) + count;
+    acc.lastSentAt = new Date().toISOString();
+    this.saveAccounts();
+    return acc.sentToday;
+  }
+
+  recordEmailSent(accountId, count = 1) {
+    return this.incrementSentToday(accountId, count);
+  }
+
+  markAccountThrottled(accountId, reason, cooldownMs = 3600000) {
+    const acc = this.getAccountById(accountId);
+    if (!acc) return;
+    acc.status = 'Throttled';
+    acc.throttleUntil = new Date(Date.now() + cooldownMs).toISOString();
+    acc.throttleReason = reason || 'Provider sending limit or throttling signal detected';
+    this.saveAccounts();
+  }
+
+  setAccountThrottled(accountId, cooldownMs = 3600000, reason = '') {
+    return this.markAccountThrottled(accountId, reason, cooldownMs);
+  }
+
+  updateAccountLimits(accountId, updates = {}) {
+    const acc = this.getAccountById(accountId);
+    if (!acc) throw new Error('Account not found');
+    const cap = updates.dailySendCap !== undefined ? updates.dailySendCap : updates.dailyLimit;
+    if (cap !== undefined) {
+      const parsedCap = Math.max(1, Math.min(2000, parseInt(cap, 10) || 50));
+      acc.dailyLimit = parsedCap;
+      acc.dailySendCap = parsedCap;
+    }
+    if (updates.name !== undefined) {
+      acc.name = updates.name.trim();
+    }
+    if (updates.resetUsage) {
+      acc.sentToday = 0;
+    }
+    this.saveAccounts();
+    return this.getSafeAccounts().find(a => a.id === accountId);
+  }
+
+  async bulkImportAccounts(rawAccounts) {
+    if (!Array.isArray(rawAccounts) || rawAccounts.length === 0) {
+      throw new Error('An array of account objects or CSV rows is required.');
+    }
+
+    const results = [];
+    let imported = 0;
+    let failed = 0;
+
+    for (const item of rawAccounts) {
+      const email = this.cleanEmail(item.email);
+      const password = (item.password || item.appPassword || '').trim();
+      const name = (item.name || item.displayName || email.split('@')[0]).trim();
+      const dailyLimit = parseInt(item.dailySendCap || item.dailyLimit, 10) || 50;
+      const provider = item.provider || (email.endsWith('@gmail.com') ? 'gmail' : 'smtp');
+
+      if (!email || !email.includes('@')) {
+        failed++;
+        results.push({ email: item.email || 'unknown', success: false, error: 'Invalid email address' });
+        continue;
+      }
+
+      if (!password) {
+        failed++;
+        results.push({ email, success: false, error: 'Password or Google App Password is required' });
+        continue;
+      }
+
+      try {
+        const saved = this.saveOrUpdateAccount({
+          email,
+          password,
+          name,
+          provider,
+          dailyLimit
+        });
+        saved.dailyLimit = dailyLimit;
+        this.saveAccounts();
+
+        imported++;
+        results.push({
+          email,
+          id: saved.id,
+          success: true,
+          name: saved.name,
+          dailyLimit: saved.dailyLimit,
+          status: saved.status
+        });
+      } catch (err) {
+        failed++;
+        results.push({ email, success: false, error: err.message });
+      }
+    }
+
+    return {
+      total: rawAccounts.length,
+      imported,
+      failed,
+      results,
+      accounts: this.getSafeAccounts()
+    };
+  }
+
   cleanPassword(rawPass) {
     if (!rawPass) return '';
-    let str = String(rawPass)
+    let str = String(rawPass).trim();
+    // If the password is encrypted in the AES-256-GCM vault, decrypt it first
+    if (str.startsWith('enc:')) {
+      const decrypted = securityService.decrypt(str);
+      return this.cleanPassword(decrypted);
+    }
+    str = str
       .replace(/[\s\u200B-\u200D\uFEFF\r\n\t\-]/g, '') // remove whitespace, zero-width chars, hyphens
       .replace(/^["']|["']$/g, '')
       .trim();
@@ -437,6 +746,25 @@ class EmailService {
       throw new Error(`Invalid recipient address: ${to}`);
     }
 
+    // Controlled test adapter mode for automated test suites
+    if (process.env.MAILFLOW_TEST_MODE === '1') {
+      const isTransientSim = to.includes('transient-fail');
+      if (isTransientSim && (!this._transientAttempts || this._transientAttempts < 2)) {
+        this._transientAttempts = (this._transientAttempts || 0) + 1;
+        throw new Error('ETIMEDOUT: Connection timed out');
+      }
+      return {
+        success: true,
+        messageId: `<test-${Date.now()}-${Math.random().toString(36).substr(2, 6)}@mailflow.test>`,
+        sentFrom: senderEmail || 'test-sender@domain.com',
+        sentTo: to.trim(),
+        sentAt: new Date().toISOString(),
+        mode: 'test_adapter',
+        subjectSent: subject,
+        trackingId
+      };
+    }
+
     const cleanSender = this.cleanEmail(senderEmail);
     let cleanPass = this.cleanPassword(senderPassword);
 
@@ -559,6 +887,13 @@ class EmailService {
         if (enableTracking || !plainTextOnly || hasImage) {
           mailOptions.html = formattedHtml;
         }
+
+        // Inject RFC-8058 compliant One-Click List-Unsubscribe headers
+        const unsubUrl = `${origin}/api/unsubscribe?email=${encodeURIComponent(recipientEmail)}&tenant=${encodeURIComponent(this.tenantId || 'default')}`;
+        mailOptions.headers = {
+          'List-Unsubscribe': `<${unsubUrl}>`,
+          'List-Unsubscribe-Post': 'List-Unsubscribe=One-Click'
+        };
 
         // Only add Reply-To if explicitly different from From (human senders do not set Reply-To to themselves)
         // If inReplyTo/references are set (for ongoing thread conversations), attach them

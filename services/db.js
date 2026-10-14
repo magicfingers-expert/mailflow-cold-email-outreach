@@ -119,6 +119,10 @@ class Database {
     return this.data.tenants.find(t => t.id === id) || null;
   }
 
+  getAllTenants() {
+    return [...this.data.tenants];
+  }
+
   findTenantBySlug(slug) {
     if (!slug) return null;
     return this.data.tenants.find(t => t.slug === slug.toLowerCase().trim()) || null;
@@ -305,6 +309,109 @@ class Database {
   deleteUserSessions(userId) {
     this.data.sessions = this.data.sessions.filter(s => s.user_id !== userId);
     this.save();
+  }
+
+  // --- EMAIL CONNECTIONS ---
+  saveEmailConnection({ user_id, provider = 'gmail', email_address, encrypted_access_token, encrypted_refresh_token, status = 'Connected', is_default = false, daily_limit = 50 }) {
+    if (!this.data.email_connections) this.data.email_connections = [];
+    const cleanEmail = (email_address || '').toLowerCase().trim();
+    let conn = this.data.email_connections.find(c => c.user_id === user_id && c.email_address === cleanEmail);
+
+    if (conn) {
+      conn.encrypted_access_token = encrypted_access_token || conn.encrypted_access_token;
+      if (encrypted_refresh_token) conn.encrypted_refresh_token = encrypted_refresh_token;
+      conn.status = status || conn.status;
+      conn.daily_limit = daily_limit || conn.daily_limit || 50;
+      conn.updated_at = new Date().toISOString();
+      if (is_default) {
+        this.data.email_connections.forEach(c => {
+          if (c.user_id === user_id) c.is_default = (c.id === conn.id);
+        });
+      }
+    } else {
+      const id = `conn-${Date.now()}-${Math.random().toString(36).substr(2, 5)}`;
+      conn = {
+        id,
+        user_id,
+        provider: provider || 'gmail',
+        email_address: cleanEmail,
+        encrypted_access_token,
+        encrypted_refresh_token: encrypted_refresh_token || null,
+        status: status || 'Connected',
+        is_default: !!is_default || this.getEmailConnections(user_id).length === 0,
+        daily_limit: daily_limit || 50,
+        sent_today: 0,
+        last_sent_at: null,
+        created_at: new Date().toISOString(),
+        updated_at: new Date().toISOString()
+      };
+      if (conn.is_default) {
+        this.data.email_connections.forEach(c => {
+          if (c.user_id === user_id) c.is_default = false;
+        });
+      }
+      this.data.email_connections.push(conn);
+    }
+    this.save();
+    return conn;
+  }
+
+  getEmailConnections(userId) {
+    if (!this.data.email_connections) this.data.email_connections = [];
+    if (!userId) return [...this.data.email_connections];
+    return this.data.email_connections.filter(c => c.user_id === userId);
+  }
+
+  getEmailConnectionById(id, userId = null) {
+    if (!this.data.email_connections) this.data.email_connections = [];
+    return this.data.email_connections.find(c => c.id === id && (!userId || c.user_id === userId)) || null;
+  }
+
+  getDefaultEmailConnection(userId) {
+    const list = this.getEmailConnections(userId);
+    return list.find(c => c.is_default) || list[0] || null;
+  }
+
+  setDefaultEmailConnection(userId, connectionId) {
+    if (!this.data.email_connections) this.data.email_connections = [];
+    let updated = false;
+    this.data.email_connections.forEach(c => {
+      if (c.user_id === userId) {
+        c.is_default = (c.id === connectionId);
+        if (c.is_default) updated = true;
+      }
+    });
+    this.save();
+    return updated;
+  }
+
+  deleteEmailConnection(userId, connectionId) {
+    if (!this.data.email_connections) this.data.email_connections = [];
+    const prev = this.data.email_connections.length;
+    this.data.email_connections = this.data.email_connections.filter(c => !(c.id === connectionId && (!userId || c.user_id === userId)));
+    this.save();
+    return this.data.email_connections.length < prev;
+  }
+
+  resetConnectionSentToday(userId, connectionId) {
+    const conn = this.getEmailConnectionById(connectionId, userId);
+    if (conn) {
+      conn.sent_today = 0;
+      this.save();
+      return true;
+    }
+    return false;
+  }
+
+  incrementConnectionSentToday(connectionId) {
+    const conn = this.getEmailConnectionById(connectionId);
+    if (conn) {
+      conn.sent_today = (conn.sent_today || 0) + 1;
+      conn.last_sent_at = new Date().toISOString();
+      this.save();
+      return conn.sent_today;
+    }
+    return 0;
   }
 }
 

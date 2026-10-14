@@ -20,9 +20,8 @@ class InboxService {
     this.loadCache();
 
     // Background auto-sync only makes sense in persistent server environments (local dev).
-    // On Vercel serverless, the process is frozen/terminated between requests, so
-    // setInterval never fires reliably. Skip it to avoid wasted connection attempts.
-    if (!process.env.VERCEL && options.autoSync !== false) {
+    // On Vercel serverless or during automated tests, skip it.
+    if (!process.env.VERCEL && process.env.MAILFLOW_TEST_MODE !== '1' && options.autoSync !== false) {
       this.startBackgroundAutoSync(20000);
     }
   }
@@ -30,9 +29,12 @@ class InboxService {
   startBackgroundAutoSync(intervalMs = 20000) {
     if (this.autoSyncTimer) clearInterval(this.autoSyncTimer);
     // Initial sync after 3 seconds of server startup
-    setTimeout(() => {
+    const initialTimer = setTimeout(() => {
       this.syncAllAccounts({ folder: 'ALL' }).catch(() => {});
     }, 3000);
+    if (initialTimer && typeof initialTimer.unref === 'function') {
+      initialTimer.unref();
+    }
 
     this.autoSyncTimer = setInterval(async () => {
       if (!this.isSyncing) {
@@ -43,6 +45,16 @@ class InboxService {
         }
       }
     }, intervalMs);
+    if (this.autoSyncTimer && typeof this.autoSyncTimer.unref === 'function') {
+      this.autoSyncTimer.unref();
+    }
+  }
+
+  stopBackgroundAutoSync() {
+    if (this.autoSyncTimer) {
+      clearInterval(this.autoSyncTimer);
+      this.autoSyncTimer = null;
+    }
   }
 
   loadCache() {
@@ -164,7 +176,12 @@ class InboxService {
   // Live IMAP sync for a specific account and folder
   async syncGmailAccount({ email, password, folder = 'INBOX', maxFetch = 30 } = {}) {
     let cleanEmail = (email || '').trim().toLowerCase();
-    let cleanPass = this.emailService.cleanPassword(password);
+    let cleanPass = '';
+    if (password && typeof password === 'string' && password.startsWith('enc:')) {
+      cleanPass = this.emailService.getAccountPassword({ password });
+    } else {
+      cleanPass = this.emailService.cleanPassword(password);
+    }
 
     if (!cleanEmail || !cleanPass) {
       const acc = this.emailService.accounts.find(a => a.email && a.email.toLowerCase() === cleanEmail) 
@@ -372,9 +389,10 @@ class InboxService {
 
     const results = [];
     for (const acc of accounts) {
+      const pass = this.emailService.getAccountPassword(acc);
       const res = await this.syncGmailAccount({
         email: acc.email,
-        password: acc.password,
+        password: pass,
         folder,
         maxFetch: 25
       });
@@ -384,7 +402,7 @@ class InboxService {
       if (folder === 'ALL') {
         const spamRes = await this.syncGmailAccount({
           email: acc.email,
-          password: acc.password,
+          password: pass,
           folder: 'SPAM',
           maxFetch: 15
         });

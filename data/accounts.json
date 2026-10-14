@@ -1,1 +1,26 @@
-[]
+[
+  {
+    "id": "acc-alexawix",
+    "email": "alexawixpartner@gmail.com",
+    "name": "Alexa Wix Partner",
+    "password": "enc:c3833f7ba3049e76a4386939:509103dbfe0befcf1c9a481f83dc5623:9e31d62b2baed57d331bfffa69972c91",
+    "provider": "gmail",
+    "status": "Connected",
+    "dailyLimit": 50,
+    "sentToday": 0,
+    "isDefault": true,
+    "createdAt": "2026-10-13T14:03:57.238Z"
+  },
+  {
+    "id": "acc-willowwix",
+    "email": "willowwixpartner@gmail.com",
+    "name": "Thomas Willow",
+    "password": "enc:3490379d61f7edc203ce825b:8ed252fd9df6c31cef7bb84267a3d2c5:fa617320828457ed9f7d8406bdbdd4da",
+    "provider": "gmail",
+    "status": "Connected",
+    "dailyLimit": 50,
+    "sentToday": 0,
+    "isDefault": false,
+    "createdAt": "2026-10-13T14:03:57.252Z"
+  }
+]

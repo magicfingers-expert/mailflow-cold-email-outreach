@@ -71,10 +71,18 @@ class EncryptionService {
   }
 
   static verifyPassword(password, storedHash) {
-    if (!storedHash || !storedHash.includes(':')) return false;
-    const [salt, hash] = storedHash.split(':');
-    const verifyHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
-    return crypto.timingSafeEqual(Buffer.from(hash, 'hex'), Buffer.from(verifyHash, 'hex'));
+    if (!password || !storedHash || typeof storedHash !== 'string' || !storedHash.includes(':')) return false;
+    try {
+      const [salt, hash] = storedHash.split(':');
+      if (!salt || !hash) return false;
+      const verifyHash = crypto.pbkdf2Sync(password, salt, 10000, 64, 'sha512').toString('hex');
+      const hashBuf = Buffer.from(hash, 'hex');
+      const verifyBuf = Buffer.from(verifyHash, 'hex');
+      if (hashBuf.length !== verifyBuf.length) return false;
+      return crypto.timingSafeEqual(hashBuf, verifyBuf);
+    } catch {
+      return false;
+    }
   }
 
   static generateToken(length = 32) {

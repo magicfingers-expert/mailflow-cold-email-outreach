@@ -41,13 +41,20 @@ class BounceService {
     storage.writeJSON(this.suppressionFile, Array.from(this.suppressionList));
   }
 
+  getSuppressedEmails() {
+    this.loadSuppression();
+    return Array.from(this.suppressionList);
+  }
+
   isSuppressed(email) {
     if (!email) return false;
+    this.loadSuppression();
     return this.suppressionList.has(email.toLowerCase().trim());
   }
 
   addToSuppression(email, reason = 'Bounced') {
     if (!email) return false;
+    this.loadSuppression();
     const clean = email.toLowerCase().trim();
     if (!this.suppressionList.has(clean)) {
       this.suppressionList.add(clean);
@@ -60,6 +67,7 @@ class BounceService {
 
   removeFromSuppression(email) {
     if (!email) return false;
+    this.loadSuppression();
     const clean = email.toLowerCase().trim();
     const removed = this.suppressionList.delete(clean);
     if (removed) this.saveSuppression();

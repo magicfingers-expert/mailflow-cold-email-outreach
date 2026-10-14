@@ -5,6 +5,9 @@ const EmailService = require('./emailService');
 const QueueService = require('./queueService');
 const InboxService = require('./inboxService');
 const BounceService = require('./bounceService').BounceService || require('./bounceService');
+const LeadService = require('./leadService');
+const WebsiteAuditorService = require('./websiteAuditorService');
+const ScraperService = require('./scraperService');
 
 const DATA_DIR = path.join(__dirname, '..', 'data');
 const TENANTS_DIR = path.join(DATA_DIR, 'tenants');
@@ -48,8 +51,12 @@ class TenantManager {
       inboxCacheFile: path.join(dir, 'inbox_cache.json'),
       bouncesFile: path.join(dir, 'bounces.json'),
       suppressionFile: path.join(dir, 'suppression.json'),
+      leadsFile: path.join(dir, 'leads.json'),
       variantsFile: path.join(dir, 'saved_variants.json'),
-      draftsFile: path.join(dir, 'drafts.json')
+      draftsFile: path.join(dir, 'drafts.json'),
+      auditsFile: path.join(dir, 'website_audits.json'),
+      scraperJobsFile: path.join(dir, 'scraping_jobs.json'),
+      importJobsFile: path.join(dir, 'import_jobs.json')
     };
   }
 
@@ -76,7 +83,11 @@ class TenantManager {
       paths.openEventsFile,
       paths.inboxCacheFile,
       paths.bouncesFile,
-      paths.suppressionFile
+      paths.suppressionFile,
+      paths.leadsFile,
+      paths.auditsFile,
+      paths.scraperJobsFile,
+      paths.importJobsFile
     ].forEach(filePath => {
       if (!storage.exists(filePath)) {
         storage.writeJSON(filePath, []);
@@ -143,11 +154,18 @@ class TenantManager {
       tenantId: cleanId
     });
 
+    const leadService = new LeadService({
+      leadsFile: paths.leadsFile,
+      tenantId: cleanId,
+      bounceService
+    });
+
     const queueService = new QueueService(emailService, {
       campaignsFile: paths.campaignsFile,
       openEventsFile: paths.openEventsFile,
       tenantId: cleanId,
-      bounceService
+      bounceService,
+      leadService
     });
 
     const inboxService = new InboxService(emailService, queueService, {
@@ -157,6 +175,17 @@ class TenantManager {
       autoSync: cleanId === 'default' // Background sync for default tenant in local dev
     });
 
+    const websiteAuditorService = new WebsiteAuditorService({
+      auditsFile: paths.auditsFile,
+      tenantId: cleanId
+    });
+
+    const scraperService = new ScraperService({
+      jobsFile: paths.scraperJobsFile,
+      tenantId: cleanId,
+      leadService
+    });
+
     const bundle = {
       tenantId: cleanId,
       paths,
@@ -164,6 +193,9 @@ class TenantManager {
       queueService,
       inboxService,
       bounceService,
+      leadService,
+      websiteAuditorService,
+      scraperService,
 
       // Variant Helpers
       getVariants: () => {

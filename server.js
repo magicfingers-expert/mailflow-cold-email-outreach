@@ -9,6 +9,8 @@ const deliverabilityService = require('./services/deliverabilityService');
 const tenantManager = require('./services/tenantManager');
 const { tenantContextMiddleware, requireAuth, requireTenantRole } = require('./services/tenantMiddleware');
 const AuthService = require('./services/authService');
+const LeadService = require('./services/leadService');
+const rateLimiter = require('./services/rateLimiter');
 const db = require('./services/db');
 
 // Global error handlers to prevent crashes from transient socket resets (e.g. ECONNRESET)
@@ -22,6 +24,31 @@ process.on('unhandledRejection', (reason) => {
 
 const app = express();
 const PORT = process.env.PORT || 3000;
+
+// Rate limiters for security protection against brute force and abuse
+const authLimiter = rateLimiter.createMiddleware({
+  windowMs: 60000,
+  max: 20,
+  message: 'Too many authentication attempts. Please wait 60 seconds.'
+});
+
+const smtpLimiter = rateLimiter.createMiddleware({
+  windowMs: 60000,
+  max: 30,
+  message: 'Too many SMTP verification requests. Please wait 60 seconds.'
+});
+
+const sendLimiter = rateLimiter.createMiddleware({
+  windowMs: 60000,
+  max: 20,
+  message: 'Too many campaign send requests. Please wait a moment.'
+});
+
+const importLimiter = rateLimiter.createMiddleware({
+  windowMs: 60000,
+  max: 30,
+  message: 'Too many import requests. Please wait a moment.'
+});
 
 app.use(cors());
 app.use(express.json({ limit: '10mb' }));
@@ -49,7 +76,7 @@ const PIXEL_GIF = Buffer.from('R0lGODlhAQABAIAAAAAAAP///yH5BAEAAAAALAAAAAABAAEAA
 // ---------------- AUTHENTICATION & MULTI-TENANT WORKSPACE APIS ----------------
 
 // Register new user + create isolated primary workspace
-app.post('/api/auth/register', (req, res) => {
+app.post('/api/auth/register', authLimiter, (req, res) => {
   try {
     const { name, email, password, workspaceName } = req.body || {};
     const result = AuthService.register({ name, email, password, workspaceName });
@@ -60,13 +87,14 @@ app.post('/api/auth/register', (req, res) => {
 });
 
 // Login user + return accessible tenants
-app.post('/api/auth/login', (req, res) => {
+app.post('/api/auth/login', authLimiter, (req, res) => {
   try {
     const { email, password } = req.body || {};
     const result = AuthService.login({ email, password });
     res.json({ success: true, ...result });
   } catch (err) {
-    res.status(400).json({ success: false, error: err.message });
+    const isAuthErr = /invalid|password|found/i.test(err.message);
+    res.status(isAuthErr ? 401 : 400).json({ success: false, error: err.message });
   }
 });
 
@@ -312,6 +340,50 @@ app.delete('/api/accounts/:id', (req, res) => {
   res.json({ success, message: 'Account removed', tenantId: req.tenantId });
 });
 
+// Bulk import accounts with explicit password mapping and connection testing
+app.post('/api/accounts/bulk-import', smtpLimiter, async (req, res) => {
+  try {
+    const { accounts, testConnections } = req.body || {};
+    if (!Array.isArray(accounts) || accounts.length === 0) {
+      return res.status(400).json({ success: false, error: 'Array of accounts with email and password is required.' });
+    }
+    const result = await req.tenantServices.emailService.bulkImportAccounts(accounts, { testImmediately: testConnections === true });
+    res.json({ success: true, ...result, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Update sender account limits (daily cap, rate limits)
+app.post('/api/accounts/:id/limits', (req, res) => {
+  try {
+    const updated = req.tenantServices.emailService.updateAccountLimits(req.params.id, req.body || {});
+    res.json({ success: true, account: updated, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Test sender account connectivity (Server-side SMTP & IMAP diagnostic)
+app.post('/api/accounts/:id/test', smtpLimiter, async (req, res) => {
+  try {
+    const result = await req.tenantServices.emailService.testAccountConnection(req.params.id);
+    res.json({ success: result.success, ...result, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message, tenantId: req.tenantId });
+  }
+});
+
+// Standalone IMAP connectivity test for inbox synchronization
+app.post('/api/accounts/:id/test-imap', smtpLimiter, async (req, res) => {
+  try {
+    const result = await req.tenantServices.emailService.testAccountImapConnection(req.params.id);
+    res.json({ success: result.success, ...result, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message, tenantId: req.tenantId });
+  }
+});
+
 // ---------------- GOOGLE POSTMASTER & DNS DELIVERABILITY AUDIT ----------------
 
 // Run DNS deliverability audit (SPF, DKIM, DMARC, MX, Postmaster compliance)
@@ -417,8 +489,183 @@ app.post('/api/smtp/verify', async (req, res) => {
 
 app.post('/api/recipients/parse', (req, res) => {
   const { rawText } = req.body;
-  const result = EmailValidator.cleanAndValidate(rawText);
+  const suppressedList = req.tenantServices.bounceService.getSuppressedEmails();
+  const result = EmailValidator.cleanAndValidate(rawText, suppressedList);
   res.json({ success: true, ...result });
+});
+
+// ---------------- LEADS & CONTACT MANAGEMENT (TENANT ISOLATED) ----------------
+
+// Get leads with search, filter, pagination, stats
+app.get('/api/leads', (req, res) => {
+  const { search, status, page, limit, sortBy, sortOrder, auditStatus, findingId } = req.query;
+  const result = req.tenantServices.leadService.getLeads({
+    search,
+    status,
+    page,
+    limit,
+    sortBy,
+    sortOrder,
+    auditStatus,
+    findingId
+  });
+  res.json({ success: true, ...result, tenantId: req.tenantId });
+});
+
+// Create single lead
+app.post('/api/leads', (req, res) => {
+  try {
+    const lead = req.tenantServices.leadService.addLead(req.body || {});
+    res.json({ success: true, lead, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Public inbound lead capture endpoint (e.g. from public/form.html)
+app.post('/api/leads/submit', importLimiter, (req, res) => {
+  try {
+    const { name, email, phone, lookingFor, budget, location, timeline, notes } = req.body || {};
+    if (!email || !email.includes('@')) {
+      return res.status(400).json({ success: false, error: 'A valid email address is required.' });
+    }
+
+    const cleanEmail = email.toLowerCase().trim();
+    let lead = req.tenantServices.leadService.getLeadByEmail(cleanEmail);
+
+    if (lead) {
+      lead = req.tenantServices.leadService.updateLead(lead.id, {
+        name: name || lead.name,
+        phone: phone || lead.phone,
+        niche: location || lookingFor || lead.niche,
+        company: budget || lead.company,
+        customFields: { lookingFor, budget, location, timeline, notes }
+      });
+    } else {
+      lead = req.tenantServices.leadService.addLead({
+        email: cleanEmail,
+        name: name || cleanEmail.split('@')[0],
+        phone: phone || '',
+        niche: location || lookingFor || 'Inbound Lead',
+        company: budget || '',
+        customFields: { lookingFor, budget, location, timeline, notes }
+      });
+    }
+
+    res.json({ success: true, lead, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Bulk import raw records (CSV, TSV, text list)
+app.post('/api/leads/import', importLimiter, (req, res) => {
+  try {
+    const { rawText, defaultNiche, updateExisting } = req.body || {};
+    const result = req.tenantServices.leadService.importRawRecords(rawText, { defaultNiche, updateExisting });
+    res.json({
+      success: true,
+      summary: {
+        imported: result.importedCount,
+        updated: 0,
+        skippedDuplicates: result.duplicateCount,
+        invalid: result.invalidCount
+      },
+      ...result,
+      tenantId: req.tenantId
+    });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Durable Bulk Import Job for > 1,000 leads (Chunked, asynchronous, non-blocking)
+app.post('/api/leads/bulk-import-job', importLimiter, (req, res) => {
+  try {
+    const { rawText, rows, defaultNiche, defaultCategory, updateExisting, skipDuplicateCheck } = req.body || {};
+    const job = req.tenantServices.leadService.startBulkImportJob({
+      rawText,
+      rows,
+      defaultNiche,
+      defaultCategory,
+      updateExisting,
+      skipDuplicateCheck
+    });
+    res.json({ success: true, job, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Get import job progress & status
+app.get('/api/leads/import-jobs/:id', (req, res) => {
+  const job = req.tenantServices.leadService.getImportJob(req.params.id);
+  if (!job) return res.status(404).json({ success: false, error: 'Import job not found.' });
+  res.json({ success: true, job, tenantId: req.tenantId });
+});
+
+// Export import job accepted/rejected report as CSV
+app.get('/api/leads/import-jobs/:id/export', (req, res) => {
+  const report = req.tenantServices.leadService.exportImportJobReport(req.params.id);
+  if (!report) return res.status(404).json({ success: false, error: 'Import job not found.' });
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="import_report_${req.params.id}.csv"`);
+  res.send(report);
+});
+
+// Export leads as CSV
+app.get('/api/leads/export', (req, res) => {
+  const csv = req.tenantServices.leadService.exportToCsv();
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="leads_${req.tenantId}_${Date.now()}.csv"`);
+  res.send(csv);
+});
+
+// Preview template personalization with fallback validation
+app.post('/api/leads/preview-template', (req, res) => {
+  const { template, lead, sender } = req.body || {};
+  const result = LeadService.renderTemplate(template, lead, sender);
+  res.json({ success: true, ...result });
+});
+
+// Get single lead
+app.get('/api/leads/:id', (req, res) => {
+  const lead = req.tenantServices.leadService.getLeadById(req.params.id);
+  if (!lead) return res.status(404).json({ success: false, error: 'Lead not found.' });
+  res.json({ success: true, lead, tenantId: req.tenantId });
+});
+
+// Update lead
+app.put('/api/leads/:id', (req, res) => {
+  try {
+    const lead = req.tenantServices.leadService.updateLead(req.params.id, req.body || {});
+    res.json({ success: true, lead, tenantId: req.tenantId });
+  } catch (err) {
+    const isNotFound = /not found/i.test(err.message);
+    res.status(isNotFound ? 404 : 400).json({ success: false, error: err.message });
+  }
+});
+
+// Delete single lead
+app.delete('/api/leads/:id', (req, res) => {
+  const ok = req.tenantServices.leadService.deleteLead(req.params.id);
+  if (!ok) {
+    return res.status(404).json({ success: false, error: 'Lead not found in this workspace' });
+  }
+  res.json({ success: true, tenantId: req.tenantId });
+});
+
+// Bulk delete leads
+app.post('/api/leads/bulk-delete', (req, res) => {
+  const { ids } = req.body || {};
+  const deletedCount = req.tenantServices.leadService.bulkDeleteLeads(ids);
+  res.json({ success: true, deletedCount, tenantId: req.tenantId });
+});
+
+// Clear all leads
+app.delete('/api/leads', (req, res) => {
+  req.tenantServices.leadService.clearAllLeads();
+  res.json({ success: true, message: 'All leads cleared', tenantId: req.tenantId });
 });
 
 // ---------------- IMAGE UPLOADER FOR COMPOSER ----------------
@@ -447,26 +694,29 @@ app.post('/api/upload-image', (req, res) => {
     }
 
     const uploadsDir = path.join(__dirname, 'public', 'uploads');
-    if (!fs.existsSync(uploadsDir)) {
-      fs.mkdirSync(uploadsDir, { recursive: true });
-    }
-
-    const safeBaseName = (filename || 'img')
-      .replace(/\.[^/.]+$/, '')
-      .replace(/[^a-zA-Z0-9_-]/g, '_')
-      .slice(0, 30) || 'image';
-
-    const uniqueFileName = `${safeBaseName}_${Date.now()}_${Math.random().toString(36).substr(2, 6)}.${ext}`;
-    const filePath = path.join(uploadsDir, uniqueFileName);
-
     const buffer = Buffer.from(base64Data, 'base64');
-    fs.writeFileSync(filePath, buffer);
+    if (buffer.length > 5 * 1024 * 1024) {
+      return res.status(400).json({ success: false, error: 'Image size exceeds maximum allowed limit of 5MB.' });
+    }
 
     const host = req.get('host') || 'localhost:3000';
     const protocol = req.protocol || 'http';
     const baseUrl = process.env.BASE_URL || `${protocol}://${host}`;
-    const fullUrl = `${baseUrl}/uploads/${uniqueFileName}`;
-    const relativeUrl = `/uploads/${uniqueFileName}`;
+
+    let savedLocally = false;
+    try {
+      if (!fs.existsSync(uploadsDir)) {
+        fs.mkdirSync(uploadsDir, { recursive: true });
+      }
+      fs.writeFileSync(filePath, buffer);
+      savedLocally = true;
+    } catch (fsErr) {
+      // In read-only serverless environments, store in /tmp or return data URI
+      console.warn('[Upload Notice] Local write failed (serverless environment), falling back to data URL:', fsErr.message);
+    }
+
+    const fullUrl = savedLocally ? `${baseUrl}/uploads/${uniqueFileName}` : `data:image/${ext};base64,${base64Data}`;
+    const relativeUrl = savedLocally ? `/uploads/${uniqueFileName}` : fullUrl;
 
     res.json({
       success: true,
@@ -583,6 +833,59 @@ app.post('/api/campaigns/send-direct', async (req, res) => {
   }
 });
 
+// Multi-Account Campaign Allocation Preview (Round-robin, quota-balanced, capacity check)
+app.post('/api/campaigns/multi-account-preview', (req, res) => {
+  try {
+    const { rawRecipients, selectedAccountIds, maxSendsPerAccount } = req.body || {};
+    const preview = req.tenantServices.queueService.previewMultiAccountAllocation({
+      rawRecipients,
+      selectedAccountIds,
+      maxSendsPerAccount
+    });
+    res.json({ success: true, ...preview, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// Launch Multi-Account Campaign with atomic quota reservation and durable routing
+app.post('/api/campaigns/send-multi-account', sendLimiter, async (req, res) => {
+  try {
+    const {
+      selectedAccountIds,
+      maxSendsPerAccount = 50,
+      subject,
+      message,
+      messageVariants = [],
+      rawRecipients,
+      delaySeconds = 60,
+      plainTextOnly = true,
+      enableTracking = true,
+      routingPolicy = 'balanced'
+    } = req.body || {};
+
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+
+    const result = await req.tenantServices.queueService.startMultiAccountCampaign({
+      selectedAccountIds,
+      maxSendsPerAccount: parseInt(maxSendsPerAccount) || 50,
+      subject,
+      message,
+      messageVariants,
+      rawRecipients,
+      delaySeconds: parseInt(delaySeconds) || 60,
+      plainTextOnly: plainTextOnly !== false,
+      enableTracking: enableTracking !== false,
+      routingPolicy,
+      baseUrl
+    });
+
+    res.json({ success: true, ...result, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
 // Get Live Campaign Status & Live Countdown Timer (Active Workspace)
 app.get('/api/campaigns/:id/status', (req, res) => {
   const status = req.tenantServices.queueService.getCampaignStatus(req.params.id);
@@ -591,14 +894,23 @@ app.get('/api/campaigns/:id/status', (req, res) => {
 });
 
 // Pause Campaign
-app.post('/api/campaigns/:id/pause', (req, res) => {
-  const result = req.tenantServices.queueService.pauseCampaign(req.params.id);
+app.post(['/api/campaigns/:id/pause', '/api/campaigns/pause'], (req, res) => {
+  const id = req.params.id || req.body?.campaignId;
+  const result = req.tenantServices.queueService.pauseCampaign(id);
+  res.json({ ...result, tenantId: req.tenantId });
+});
+
+// Resume Campaign
+app.post(['/api/campaigns/:id/resume', '/api/campaigns/resume'], (req, res) => {
+  const id = req.params.id || req.body?.campaignId;
+  const result = req.tenantServices.queueService.resumeCampaign(id, req.body);
   res.json({ ...result, tenantId: req.tenantId });
 });
 
 // Stop Campaign
-app.post('/api/campaigns/:id/stop', (req, res) => {
-  const result = req.tenantServices.queueService.stopCampaign(req.params.id);
+app.post(['/api/campaigns/:id/stop', '/api/campaigns/stop'], (req, res) => {
+  const id = req.params.id || req.body?.campaignId;
+  const result = req.tenantServices.queueService.stopCampaign(id);
   res.json({ ...result, tenantId: req.tenantId });
 });
 
@@ -743,6 +1055,168 @@ app.post('/api/bounces/simulate', (req, res) => {
   res.json({ success: true, bounce: testBounce, tenantId: req.tenantId });
 });
 
+// ---------------- SUPPRESSION & UNSUBSCRIBE COMPLIANCE (RFC-8058) ----------------
+
+// Get suppression list for active workspace
+app.get('/api/suppression', (req, res) => {
+  const suppressed = req.tenantServices.bounceService.getSuppressedEmails();
+  res.json({
+    success: true,
+    count: suppressed.length,
+    suppressed,
+    tenantId: req.tenantId
+  });
+});
+
+// Manually add contact to suppression list
+app.post('/api/suppression', (req, res) => {
+  const { email, reason = 'Manually suppressed' } = req.body || {};
+  if (!email || !email.includes('@')) {
+    return res.status(400).json({ success: false, error: 'Valid email address is required' });
+  }
+  const cleanEmail = email.toLowerCase().trim();
+  req.tenantServices.bounceService.addToSuppression(cleanEmail, reason);
+
+  // Update lead status in active workspace if present
+  const lead = req.tenantServices.leadService.getLeadByEmail(cleanEmail);
+  if (lead) {
+    req.tenantServices.leadService.updateLead(lead.id, { status: 'Suppressed' });
+  }
+
+  res.json({
+    success: true,
+    message: `${cleanEmail} has been added to the suppression list.`,
+    tenantId: req.tenantId
+  });
+});
+
+// Remove contact from suppression list
+app.delete('/api/suppression/:email', (req, res) => {
+  const cleanEmail = decodeURIComponent(req.params.email).toLowerCase().trim();
+  const removed = req.tenantServices.bounceService.removeFromSuppression(cleanEmail);
+
+  // Update lead status if present
+  const lead = req.tenantServices.leadService.getLeadByEmail(cleanEmail);
+  if (lead && lead.status === 'Suppressed') {
+    req.tenantServices.leadService.updateLead(lead.id, { status: 'Active' });
+  }
+
+  res.json({
+    success: removed,
+    message: removed ? `${cleanEmail} removed from suppression list.` : 'Email was not found in suppression list.',
+    tenantId: req.tenantId
+  });
+});
+
+// One-Click Unsubscribe (RFC-8058) & Browser Unsubscribe Link
+app.all('/api/unsubscribe', (req, res) => {
+  const rawEmail = req.query.email || req.body?.email;
+  const requestedTenant = req.tenantId || req.query.tenant || req.body?.tenant || 'default';
+
+  if (!rawEmail || !rawEmail.includes('@')) {
+    if (req.method === 'POST') {
+      return res.status(400).json({ success: false, error: 'Valid email address is required.' });
+    }
+    return res.status(400).send('<h2>Invalid Unsubscribe Request</h2><p>No valid email address was specified.</p>');
+  }
+
+  const cleanEmail = String(rawEmail).toLowerCase().trim();
+  
+  // Resolve services for the tenant that dispatched the outreach
+  const targetServices = tenantManager.getTenantServices(requestedTenant);
+  targetServices.bounceService.addToSuppression(cleanEmail, 'Recipient Unsubscribed (One-Click / Web)');
+
+  // Also add to default tenant for safety
+  if (requestedTenant !== 'default') {
+    tenantManager.getTenantServices('default').bounceService.addToSuppression(cleanEmail, 'Recipient Unsubscribed (Cross-Tenant)');
+  }
+
+  // Update lead status in workspace if recorded
+  const lead = targetServices.leadService.getLeadByEmail(cleanEmail);
+  if (lead) {
+    targetServices.leadService.updateLead(lead.id, { status: 'Suppressed' });
+  }
+
+  if (req.method === 'POST') {
+    return res.json({
+      success: true,
+      unsubscribed: true,
+      message: `${cleanEmail} has been successfully unsubscribed.`,
+      email: cleanEmail
+    });
+  }
+
+  // Render a clean, executive confirmation page for human recipients
+  res.setHeader('Content-Type', 'text/html; charset=utf-8');
+  res.send(`
+    <!DOCTYPE html>
+    <html lang="en">
+    <head>
+      <meta charset="utf-8">
+      <meta name="viewport" content="width=device-width, initial-scale=1.0">
+      <title>Unsubscribed Successfully • MailFlow</title>
+      <style>
+        body {
+          font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+          background: #090d16;
+          color: #f1f5f9;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          min-height: 100vh;
+          margin: 0;
+          padding: 20px;
+        }
+        .card {
+          background: #111827;
+          border: 1px solid rgba(255, 255, 255, 0.1);
+          border-radius: 12px;
+          padding: 36px 32px;
+          max-width: 460px;
+          text-align: center;
+          box-shadow: 0 20px 40px rgba(0,0,0,0.5);
+        }
+        .icon {
+          width: 54px;
+          height: 54px;
+          background: rgba(16, 185, 129, 0.15);
+          color: #10b981;
+          border-radius: 50%;
+          display: flex;
+          align-items: center;
+          justify-content: center;
+          font-size: 24px;
+          margin: 0 auto 20px auto;
+        }
+        h1 { margin: 0 0 10px 0; font-size: 22px; font-weight: 700; color: #f8fafc; }
+        p { margin: 0 0 18px 0; color: #94a3b8; font-size: 14.5px; line-height: 1.5; }
+        .email-pill {
+          background: rgba(255, 255, 255, 0.05);
+          border: 1px solid rgba(255, 255, 255, 0.08);
+          color: #38bdf8;
+          padding: 6px 14px;
+          border-radius: 20px;
+          font-family: monospace;
+          font-size: 13.5px;
+          display: inline-block;
+          margin-bottom: 24px;
+        }
+        .footer { font-size: 12px; color: #64748b; margin-top: 24px; border-top: 1px solid rgba(255,255,255,0.06); padding-top: 16px; }
+      </style>
+    </head>
+    <body>
+      <div class="card">
+        <div class="icon">✓</div>
+        <h1>Unsubscribed Successfully</h1>
+        <p>You have been removed from this sender's outreach list. You will not receive any further automated emails.</p>
+        <div class="email-pill">${cleanEmail}</div>
+        <div class="footer">MailFlow Outreach Engine • RFC-8058 Compliant One-Click Unsubscribe</div>
+      </div>
+    </body>
+    </html>
+  `);
+});
+
 // Send direct reply to a lead from the inbox and record in SENT
 app.post('/api/inbox/reply', async (req, res) => {
   try {
@@ -810,6 +1284,217 @@ app.post('/api/draft', (req, res) => {
   const { subject, message } = req.body;
   req.tenantServices.saveDraft({ subject, message });
   res.json({ success: true, message: 'Draft saved', tenantId: req.tenantId });
+});
+
+// ---------------- LEAD SCRAPER (DURABLE JOB SYSTEM & MULTI-ADAPTER) ----------------
+
+app.get('/api/scraper/jobs', (req, res) => {
+  const jobs = req.tenantServices.scraperService.listJobs();
+  res.json({ success: true, jobs, tenantId: req.tenantId });
+});
+
+app.post('/api/scraper/jobs', (req, res) => {
+  try {
+    const job = req.tenantServices.scraperService.createJob(req.body || {});
+    res.json({ success: true, job, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/scraper/jobs/:id', (req, res) => {
+  const job = req.tenantServices.scraperService.getJob(req.params.id);
+  if (!job) return res.status(404).json({ success: false, error: 'Scraper job not found.' });
+  res.json({ success: true, job, tenantId: req.tenantId });
+});
+
+app.post('/api/scraper/jobs/:id/start', async (req, res) => {
+  try {
+    const job = await req.tenantServices.scraperService.startJob(req.params.id);
+    res.json({ success: true, job, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/scraper/jobs/:id/pause', (req, res) => {
+  const job = req.tenantServices.scraperService.pauseJob(req.params.id);
+  if (!job) return res.status(404).json({ success: false, error: 'Job not found.' });
+  res.json({ success: true, job, tenantId: req.tenantId });
+});
+
+app.post('/api/scraper/jobs/:id/resume', (req, res) => {
+  try {
+    const job = req.tenantServices.scraperService.resumeJob(req.params.id);
+    res.json({ success: true, job, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/scraper/jobs/:id/cancel', (req, res) => {
+  const job = req.tenantServices.scraperService.cancelJob(req.params.id);
+  if (!job) return res.status(404).json({ success: false, error: 'Job not found.' });
+  res.json({ success: true, job, tenantId: req.tenantId });
+});
+
+app.delete('/api/scraper/jobs/:id', (req, res) => {
+  const ok = req.tenantServices.scraperService.deleteJob(req.params.id);
+  res.json({ success: ok, tenantId: req.tenantId });
+});
+
+app.post('/api/scraper/jobs/:id/save-leads', (req, res) => {
+  try {
+    const { leadIndices } = req.body || {};
+    const result = req.tenantServices.scraperService.saveJobLeadsToDatabase(req.params.id, leadIndices);
+    res.json({ success: true, ...result, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/scraper/jobs/:id/export-csv', (req, res) => {
+  const csv = req.tenantServices.scraperService.exportJobResultsAsCsv(req.params.id);
+  if (!csv) return res.status(404).json({ success: false, error: 'Job not found or has no results.' });
+  res.setHeader('Content-Type', 'text/csv');
+  res.setHeader('Content-Disposition', `attachment; filename="scraper_job_${req.params.id}.csv"`);
+  res.send(csv);
+});
+
+// ---------------- WEBSITE AUDITOR (SAFE CRAWLER & SSRF PROTECTED) ----------------
+
+app.post('/api/auditor/audit-url', async (req, res) => {
+  try {
+    const { url, options } = req.body || {};
+    if (!url) return res.status(400).json({ success: false, error: 'URL is required for audit.' });
+    const audit = await req.tenantServices.websiteAuditorService.auditUrl(url, options);
+    res.json({ success: true, audit, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.post('/api/auditor/batch-audit', async (req, res) => {
+  try {
+    const { urls, options } = req.body || {};
+    if (!Array.isArray(urls) || urls.length === 0) {
+      return res.status(400).json({ success: false, error: 'Array of URLs is required for batch audit.' });
+    }
+    const results = await req.tenantServices.websiteAuditorService.auditBatch(urls, options);
+    res.json({ success: true, results, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+app.get('/api/auditor/audits', (req, res) => {
+  const result = req.tenantServices.websiteAuditorService.listAudits(req.query);
+  res.json({ success: true, ...result, tenantId: req.tenantId });
+});
+
+app.get('/api/auditor/audits/:id', (req, res) => {
+  const audit = req.tenantServices.websiteAuditorService.getAudit(req.params.id);
+  if (!audit) return res.status(404).json({ success: false, error: 'Audit record not found.' });
+  res.json({ success: true, audit, tenantId: req.tenantId });
+});
+
+app.delete('/api/auditor/audits/:id', (req, res) => {
+  const ok = req.tenantServices.websiteAuditorService.deleteAudit(req.params.id);
+  res.json({ success: ok, tenantId: req.tenantId });
+});
+
+app.get('/api/auditor/findings-summary', (req, res) => {
+  const summary = req.tenantServices.websiteAuditorService.getFindingsSummary();
+  res.json({ success: true, summary, tenantId: req.tenantId });
+});
+
+app.post('/api/auditor/audit-lead/:id', async (req, res) => {
+  try {
+    const lead = req.tenantServices.leadService.getLeadById(req.params.id);
+    if (!lead) return res.status(404).json({ success: false, error: 'Lead not found.' });
+    if (!lead.website) return res.status(400).json({ success: false, error: 'Lead has no website URL configured.' });
+
+    const audit = await req.tenantServices.websiteAuditorService.auditUrl(lead.website);
+    const updatedLead = req.tenantServices.leadService.linkAuditToLead(audit);
+    res.json({ success: true, audit, lead: updatedLead, tenantId: req.tenantId });
+  } catch (err) {
+    res.status(400).json({ success: false, error: err.message });
+  }
+});
+
+// ---------------- DASHBOARD REAL METRICS AGGREGATOR ----------------
+
+app.get('/api/metrics/overview', (req, res) => {
+  try {
+    const leads = req.tenantServices.leadService.leads || [];
+    const audits = req.tenantServices.websiteAuditorService.listAudits({ limit: 1000 }).audits || [];
+    const campaigns = req.tenantServices.queueService.getCampaigns() || [];
+    const stats = req.tenantServices.queueService.getStats() || {};
+    const bounces = req.tenantServices.bounceService.getBounces({ limit: 1 }) || {};
+    const suppressed = req.tenantServices.bounceService.getSuppressedEmails() || [];
+    const scraperJobs = req.tenantServices.scraperService.listJobs() || [];
+    const inboxMessages = req.tenantServices.inboxService.getCachedMessages() || [];
+
+    const totalLeadsDiscovered = scraperJobs.reduce((sum, j) => sum + (j.totalDiscovered || (j.results ? j.results.length : 0)), 0);
+    const leadsImported = leads.filter(l => l.source === 'csv_import' || l.source === 'bulk_import' || l.importJobId).length;
+    const websitesAudited = audits.length;
+    const sitesWithVerifiedFindings = audits.filter(a => ((a.criticalIssuesCount || 0) + (a.highIssuesCount || 0) + (a.mediumIssuesCount || 0)) > 0).length;
+    const eligibleContacts = leads.filter(l => (l.status || 'Active') === 'Active' && l.outreachEligibility !== 'ineligible' && !suppressed.includes(l.email.toLowerCase())).length;
+
+    const safeAccounts = req.tenantServices.emailService.getSafeAccounts();
+    const connectedSenderAccounts = safeAccounts.filter(a => a.lastConnected && a.sendingStatus !== 'invalid').length;
+    const accountsRequiringAttention = safeAccounts.filter(a => a.isThrottled || a.sendingStatus === 'failed' || a.sendingStatus === 'invalid').length;
+    const remainingApplicationCapacity = safeAccounts.reduce((sum, a) => sum + (a.remainingCapacity || 0), 0);
+    const totalDailySendCapacity = safeAccounts.reduce((sum, a) => sum + (a.dailySendCap || 50), 0);
+
+    const activeCampaignsCount = campaigns.filter(c => c.status === 'in_progress' || c.status === 'running' || c.status === 'sending').length;
+    const messagesAttempted = stats.sent || 0;
+    const providerConfirmedDeliveryEvents = stats.delivered !== undefined ? stats.delivered : Math.max(0, (stats.sent || 0) - (stats.bounces || bounces.total || 0));
+    const bouncesAndFailures = (stats.bounces || 0) + (stats.failed || 0) + (bounces.total || 0);
+
+    const inboundReplies = inboxMessages.filter(m => !m.isOutbound && !m.folder?.includes('sent')).length;
+    const unsubscribes = suppressed.length;
+
+    res.json({
+      success: true,
+      dataSource: 'mailflow_persistent_store',
+      isRealData: true,
+      generatedAt: new Date().toISOString(),
+      tenantId: req.tenantId,
+      metrics: {
+        totalLeadsDiscovered,
+        totalLeadsInDb: leads.length,
+        leadsImported,
+        websitesAudited,
+        sitesWithVerifiedFindings,
+        eligibleContacts,
+        connectedSenderAccounts,
+        totalSenderAccounts: safeAccounts.length,
+        accountsRequiringAttention,
+        remainingApplicationCapacity,
+        totalDailySendCapacity,
+        activeCampaignsCount,
+        totalCampaigns: campaigns.length,
+        messagesAttempted,
+        providerConfirmedDeliveryEvents,
+        bouncesAndFailures,
+        inboundReplies,
+        unsubscribes
+      }
+    });
+  } catch (err) {
+    res.status(500).json({ success: false, error: err.message });
+  }
+});
+
+// Safe global error handler (never leaks server stack traces or secrets)
+app.use((err, req, res, next) => {
+  console.error('[Server Error Handled]:', err.message);
+  if (res.headersSent) return next(err);
+  res.status(err.status || 500).json({
+    success: false,
+    error: err.message || 'An internal error occurred. Please try again.'
+  });
 });
 
 if (!process.env.VERCEL) {

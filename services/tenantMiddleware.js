@@ -30,7 +30,9 @@ function tenantContextMiddleware(req, res, next) {
     }
 
     // 3. Determine target tenant
-    const requestedTenantId = req.headers['x-tenant-id'] || (req.query && req.query.tenant_id);
+    const requestedTenantId = req.headers['x-tenant-id'] || 
+                              (req.query && (req.query.tenant_id || req.query.tenant)) ||
+                              (req.body && (req.body.tenantId || req.body.tenant));
     let tenantId = 'default';
     let role = 'owner';
 
@@ -66,7 +68,24 @@ function tenantContextMiddleware(req, res, next) {
         role = membership ? membership.role : 'owner';
       }
     } else {
-      // Unauthenticated / local developer / guest fallback
+      // Unauthenticated / guest session
+      // For private API access to a registered owner's tenant, enforce authentication
+      const p = (req.originalUrl || req.path || '').toLowerCase();
+      const isPublicPath = p.includes('/unsubscribe') ||
+                           p.includes('/leads/submit') ||
+                           p.includes('/track') ||
+                           p.includes('/auth/') ||
+                           p.includes('/health');
+
+      if (!isPublicPath && requestedTenantId && requestedTenantId !== 'default') {
+        const existingTenant = db.findTenantById(requestedTenantId);
+        if (existingTenant && existingTenant.owner_id && existingTenant.owner_id !== 'usr-default') {
+          return res.status(401).json({
+            success: false,
+            error: 'Authentication required: You must sign in with a valid account to access this workspace.'
+          });
+        }
+      }
       tenantId = requestedTenantId || 'default';
       role = 'owner';
     }
@@ -77,7 +96,13 @@ function tenantContextMiddleware(req, res, next) {
       if (tenantId === 'default') {
         tenant = db.ensureDefaultTenant();
       } else {
-        tenant = db.createTenant({ id: tenantId, name: 'Workspace ' + tenantId.slice(0, 8), owner_id: user ? user.id : null });
+        // Only allow creating unowned tenants for guest partitions
+        const isGuest = tenantId.startsWith('guest_');
+        tenant = db.createTenant({
+          id: tenantId,
+          name: isGuest ? 'Guest Workspace' : 'Workspace ' + tenantId.slice(0, 8),
+          owner_id: user ? user.id : (isGuest ? null : null)
+        });
       }
     }
 

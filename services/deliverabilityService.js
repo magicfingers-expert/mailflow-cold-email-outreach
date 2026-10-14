@@ -53,48 +53,7 @@ class DeliverabilityService {
     };
 
     // -------------------------------------------------------------
-    // 1. STANDARD @GMAIL.COM HANDLING
-    // -------------------------------------------------------------
-    if (audit.isGmail) {
-      audit.checks.spf = {
-        status: 'pass',
-        value: 'v=spf1 redirect=_spf.google.com',
-        isGoogleAligned: true,
-        details: 'Google automatically manages and authenticates SPF for @gmail.com accounts.'
-      };
-      audit.checks.dkim = {
-        status: 'pass',
-        selector: '20230601 / google',
-        value: 'Google 2048-bit RSA DKIM Key',
-        isGoogleAligned: true,
-        details: 'Outbound emails sent through Google SMTP are signed with Google\'s official 2048-bit DKIM private key.'
-      };
-      audit.checks.dmarc = {
-        status: 'pass',
-        policy: 'reject',
-        value: 'v=DMARC1; p=reject; rua=mailto:mailauth-reports@google.com',
-        isCompliant: true,
-        details: 'Gmail has a strict DMARC p=reject policy enforced globally across all recipient mail servers.'
-      };
-      audit.checks.mx = {
-        status: 'pass',
-        records: ['gmail-smtp-in.l.google.com (Priority 5)', 'alt1.gmail-smtp-in.l.google.com (Priority 10)'],
-        isGoogleMx: true,
-        details: 'Routing directly through Google\'s global cluster.'
-      };
-      audit.checks.postmaster.recommendations.push(
-        'Use humanized pacing (10-20s interval) and 5-Variant rotation to avoid Gmail spam filters.',
-        'Keep daily volume below 50 emails/day per personal account for 100% primary inbox deliverability.'
-      );
-      audit.score = 100;
-
-      const result = { success: true, ...audit };
-      this.cache.set(domain, { timestamp: Date.now(), data: result });
-      return result;
-    }
-
-    // -------------------------------------------------------------
-    // 2. CUSTOM GOOGLE WORKSPACE & PRIVATE DOMAIN DNS CHECKS
+    // LIVE DNS AUDIT (SPF, DMARC, DKIM, MX)
     // -------------------------------------------------------------
     try {
       // --- SPF Check ---
@@ -102,16 +61,16 @@ class DeliverabilityService {
         const txtRecords = await dns.resolveTxt(domain);
         const spfRecord = txtRecords.flat().find(r => r.startsWith('v=spf1'));
         if (spfRecord) {
-          const isGoogle = spfRecord.includes('_spf.google.com') || spfRecord.includes('google.com');
+          const isGoogle = spfRecord.includes('_spf.google.com') || spfRecord.includes('google.com') || spfRecord.includes('redirect=');
           audit.checks.spf = {
             status: 'pass',
             value: spfRecord,
             isGoogleAligned: isGoogle,
             details: isGoogle 
-              ? '✓ Valid SPF record found with Google Workspace inclusion.' 
+              ? '✓ Valid SPF record found with Google authorized routing.' 
               : '✓ SPF record found. (For Google SMTP, include:_spf.google.com is recommended).'
           };
-          if (!isGoogle) audit.score -= 5;
+          if (!isGoogle && audit.isGmail) audit.score -= 5;
         } else {
           audit.checks.spf = {
             status: 'missing',
@@ -149,13 +108,16 @@ class DeliverabilityService {
         const dmarcRecord = dmarcRecords.flat().find(r => r.startsWith('v=DMARC1'));
         if (dmarcRecord) {
           const policyMatch = dmarcRecord.match(/p=([a-z]+)/i);
+          const spMatch = dmarcRecord.match(/sp=([a-z]+)/i);
           const policy = policyMatch ? policyMatch[1].toLowerCase() : 'none';
+          const subPolicy = spMatch ? spMatch[1].toLowerCase() : null;
           audit.checks.dmarc = {
             status: 'pass',
             policy,
+            subPolicy,
             value: dmarcRecord,
             isCompliant: true,
-            details: `✓ DMARC active with policy: p=${policy}. Complies with Google's 2024 requirements.`
+            details: `✓ DMARC active with policy: p=${policy}${subPolicy ? ` (subdomains: sp=${subPolicy})` : ''}. Complies with Google 2024 Bulk Sender rules.`
           };
         } else {
           audit.checks.dmarc = {
@@ -191,12 +153,12 @@ class DeliverabilityService {
       }
 
       // --- DKIM Check ---
-      const commonSelectors = ['google', 'default', 'mail', 'k1', 'smtp', 'selector1'];
+      const commonSelectors = ['20230601', '20210112', '20161025', 'google', 'default', 'mail', 'k1', 'smtp', 'selector1'];
       let dkimFound = false;
       for (const sel of commonSelectors) {
         try {
           const dkimRecords = await dns.resolveTxt(`${sel}._domainkey.${domain}`);
-          const dkimRecord = dkimRecords.flat().find(r => r.includes('v=DKIM1') || r.includes('p='));
+          const dkimRecord = dkimRecords.flat().find(r => r.includes('v=DKIM1') || r.includes('p=') || r.includes('k=rsa'));
           if (dkimRecord) {
             audit.checks.dkim = {
               status: 'pass',
@@ -224,7 +186,7 @@ class DeliverabilityService {
           type: 'TXT',
           host: 'google._domainkey',
           value: 'v=DKIM1; k=rsa; p=(Generate in Google Admin Console > Gmail > Authenticate email)',
-          purpose: 'Cryptographic digital signature for 100% primary inbox arrival'
+          purpose: 'Cryptographic digital signature verifying domain authenticity (RFC 6376)'
         });
       }
 

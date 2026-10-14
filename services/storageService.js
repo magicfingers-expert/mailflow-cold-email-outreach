@@ -34,9 +34,11 @@ function ensureTmpDir(targetTmpPath) {
 function getTmpPath(dataFilePath) {
   try {
     const resolved = path.resolve(dataFilePath);
-    let rel = path.relative(DATA_DIR, resolved);
+    const rel = path.relative(DATA_DIR, resolved);
+    // If the path is outside DATA_DIR (e.g. temporary test directory, custom location),
+    // preserve the specific caller-provided path rather than collapsing by filename.
     if (rel.startsWith('..') || path.isAbsolute(rel)) {
-      rel = path.basename(dataFilePath);
+      return resolved;
     }
     return path.join(TMP_DIR, rel);
   } catch (e) {
@@ -124,6 +126,19 @@ function writeJSON(dataFilePath, data) {
 }
 
 /**
+ * Delete a data file from both local and temp locations.
+ */
+function deleteFile(dataFilePath) {
+  const tmpPath = getTmpPath(dataFilePath);
+  try {
+    if (fs.existsSync(dataFilePath)) fs.unlinkSync(dataFilePath);
+  } catch (e) {}
+  try {
+    if (fs.existsSync(tmpPath)) fs.unlinkSync(tmpPath);
+  } catch (e) {}
+}
+
+/**
  * Check if a data file exists in /tmp or the bundle.
  */
 function exists(dataFilePath) {
@@ -131,5 +146,5 @@ function exists(dataFilePath) {
   return fs.existsSync(tmpPath) || fs.existsSync(dataFilePath);
 }
 
-module.exports = { readJSON, writeJSON, exists, TMP_DIR, DATA_DIR };
+module.exports = { readJSON, writeJSON, deleteFile, exists, TMP_DIR, DATA_DIR };
 

@@ -99,6 +99,17 @@ const app = {
   // Campaign history cache
   campaignsList: [],
 
+  // Leads & Contacts Management State
+  leadsList: [],
+  leadsTotalCount: 0,
+  leadsCurrentPage: 1,
+  leadsPageSize: 20,
+  leadsSearchQuery: '',
+  leadsStatusFilter: 'all',
+  selectedLeadIds: new Set(),
+  composerPickedLeadIds: new Set(),
+  activeEditLeadId: null,
+
   parsedValidation: {
     validRecipients: [],
     cappedRecipients: [],
@@ -148,6 +159,7 @@ const app = {
     this.loadOpenEvents();
     this.loadMessageVariants();
     this.loadCampaigns();
+    this.loadLeads();
     this.loadAllInbox();
     this.loadPrimaryInbox();
     this.loadSent();
@@ -160,6 +172,7 @@ const app = {
     this.renderTopNotifDropdown();
     this.updateDesktopLivePreview();
     this.runDeliverabilityAudit();
+    this.loadOverviewMetrics();
 
     // Restore collapsed preview mockup state if saved
     try {
@@ -221,18 +234,19 @@ const app = {
   updateBouncesBadge(count) {
     const badge = document.getElementById('navBouncesBadge');
     const mbBadge = document.getElementById('mbBouncesBadge');
+    const countText = count > 99 ? '99+' : count;
     if (badge) {
       if (count > 0) {
-        badge.innerText = count;
-        badge.style.display = 'inline-block';
+        badge.innerText = countText;
+        badge.style.display = 'inline-flex';
       } else {
         badge.style.display = 'none';
       }
     }
     if (mbBadge) {
       if (count > 0) {
-        mbBadge.innerText = count;
-        mbBadge.style.display = 'inline-block';
+        mbBadge.innerText = countText;
+        mbBadge.style.display = 'inline-flex';
       } else {
         mbBadge.style.display = 'none';
       }
@@ -419,7 +433,7 @@ const app = {
       });
     }
 
-    // Auto-clean & auto-persist password input on paste / input
+    // Auto-clean password input on paste / input
     const passInput = document.getElementById('senderPassword');
     if (passInput) {
       passInput.addEventListener('input', () => {
@@ -427,9 +441,6 @@ const app = {
         if (cleaned !== passInput.value) {
           passInput.value = cleaned;
         }
-        try {
-          localStorage.setItem('mailflow_last_active_password', cleaned);
-        } catch (e) {}
         
         let email = document.getElementById('senderEmail')?.value.trim().toLowerCase() || '';
         if (email.endsWith('@gmail')) email = email + '.com';
@@ -438,8 +449,10 @@ const app = {
         if (email && email.includes('@')) {
           let acc = this.accounts.find(a => a.email.toLowerCase() === email);
           if (acc) {
-            acc.password = cleaned;
-            acc.hasPassword = !!cleaned;
+            if (cleaned) {
+              acc.password = cleaned;
+              acc.hasPassword = true;
+            }
             acc.name = name;
           } else {
             acc = {
@@ -476,11 +489,13 @@ const app = {
             localStorage.setItem('mailflow_last_active_email', email);
           } catch (e) {}
           const acc = this.accounts.find(a => a.email.toLowerCase() === email);
-          if (acc && passInput && acc.password) {
-            passInput.value = acc.password;
-            try {
-              localStorage.setItem('mailflow_last_active_password', acc.password);
-            } catch (e) {}
+          if (acc && passInput) {
+            if (acc.password) {
+              passInput.value = acc.password;
+            } else if (acc.hasPassword) {
+              passInput.value = '';
+              passInput.placeholder = '•••••••••••••••• (Saved in Vault)';
+            }
           }
         }
         this.updateDesktopLivePreview();
@@ -980,6 +995,611 @@ const app = {
         </tr>
       `;
     }).join('');
+  },
+
+  // ==========================================================
+  // TAB 1B: LEADS & CONTACTS MANAGEMENT CONTROLLER
+  // ==========================================================
+
+  async loadLeads(page = 1) {
+    this.leadsCurrentPage = page;
+    const tbody = document.getElementById('leadsTableBody');
+    if (tbody && (!this.leadsList || this.leadsList.length === 0)) {
+      tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 32px; color: var(--text-muted);">Loading leads...</td></tr>`;
+    }
+
+    try {
+      const q = encodeURIComponent(this.leadsSearchQuery || '');
+      const s = encodeURIComponent(this.leadsStatusFilter || 'all');
+      const a = encodeURIComponent(this.leadsAuditFilter || 'all');
+      const res = await this.authFetch(`/api/leads?page=${page}&limit=${this.leadsPageSize}&search=${q}&status=${s}&auditStatus=${a}`);
+      if (!res.ok) throw new Error(`HTTP error ${res.status}`);
+      const data = await res.json();
+      
+      this.leadsList = data.leads || [];
+      this.leadsTotalCount = data.total || 0;
+      
+      // Update statistics badges
+      const statTotal = document.getElementById('leadsTotalCount');
+      if (statTotal) statTotal.innerText = data.total || 0;
+
+      const navPill = document.getElementById('navLeadsBadge');
+      if (navPill) {
+        if (data.total > 0) {
+          navPill.innerText = data.total > 999 ? '999+' : data.total;
+          navPill.style.display = 'inline-block';
+        } else {
+          navPill.style.display = 'none';
+        }
+      }
+
+      // Compute status breakdown from leads
+      const counts = { Active: 0, Contacted: 0, Bounced: 0, Suppressed: 0 };
+      (data.leads || []).forEach(l => {
+        const st = (l.status || 'Active');
+        if (counts[st] !== undefined) counts[st]++;
+      });
+      const elAct = document.getElementById('leadsActiveCount');
+      if (elAct) elAct.innerText = counts.Active;
+      const elCon = document.getElementById('leadsContactedCount');
+      if (elCon) elCon.innerText = counts.Contacted;
+      const elBnc = document.getElementById('leadsBouncedCount');
+      if (elBnc) elBnc.innerText = counts.Bounced;
+      const elSup = document.getElementById('leadsSuppressedCount');
+      if (elSup) elSup.innerText = counts.Suppressed;
+
+      this.renderLeadsTable();
+      this.updateLeadsPagination();
+    } catch (e) {
+      console.error('Failed to load leads:', e);
+      if (tbody) {
+        tbody.innerHTML = `<tr><td colspan="7" style="text-align: center; padding: 32px; color: #ef4444;">Failed to load leads from server.</td></tr>`;
+      }
+    }
+  },
+
+  onLeadsAuditFilterChange() {
+    const select = document.getElementById('leadsAuditFilter');
+    this.leadsAuditFilter = select ? select.value : 'all';
+    this.loadLeads(1);
+  },
+
+  renderLeadsTable() {
+    const tbody = document.getElementById('leadsTableBody');
+    if (!tbody) return;
+
+    if (!this.leadsList || this.leadsList.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 48px 16px;">
+            <div style="font-size: 32px; margin-bottom: 8px;">👥</div>
+            <div style="font-size: 15px; font-weight: 600; color: var(--text-main); margin-bottom: 4px;">No contacts found</div>
+            <div style="font-size: 13px; color: var(--text-muted); max-width: 380px; margin: 0 auto 16px;">
+              ${this.leadsSearchQuery ? 'No leads matched your search filter.' : 'Add your prospect leads or import a CSV list to start launching personalized campaigns.'}
+            </div>
+            <div style="display: flex; gap: 8px; justify-content: center;">
+              <button type="button" class="btn btn-sm btn-primary" onclick="app.openAddLeadModal()">+ Add Lead</button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="app.toggleBulkImporterBox()">📥 Bulk Import</button>
+            </div>
+          </td>
+        </tr>`;
+      return;
+    }
+
+    const rowsHtml = this.leadsList.map(lead => {
+      const isSelected = this.selectedLeadIds.has(lead.id);
+      const name = lead.name || [lead.firstName, lead.lastName].filter(Boolean).join(' ') || lead.businessName || '—';
+      const status = lead.status || 'Active';
+      
+      let badgeClass = 'status-badge status-completed';
+      let badgeStyle = 'font-size: 11px; padding: 2px 8px; border-radius: 12px;';
+      if (status === 'Contacted') badgeClass = 'status-badge status-inprogress';
+      else if (status === 'Bounced') badgeClass = 'status-badge status-failed';
+      else if (status === 'Suppressed' || status === 'Unsubscribed') {
+        badgeClass = 'status-badge';
+        badgeStyle += ' background: #fee2e2; color: #b91c1c; border: 1px solid #fca5a5;';
+      }
+
+      const auditStatus = lead.websiteAuditStatus || 'none';
+      let auditBadge = '<span style="font-size:11px; color:var(--text-light);">No Site</span>';
+      if (lead.website) {
+        if (auditStatus === 'completed') {
+          const score = lead.websiteAuditScore !== undefined ? lead.websiteAuditScore : 80;
+          auditBadge = `<span class="status-badge ${score >= 80 ? 'status-completed' : (score >= 50 ? 'status-warning' : 'status-failed')}" style="font-size:10px; cursor:pointer;" onclick="app.viewAuditDetail('${lead.websiteAuditId || ''}')">Score: ${score}/100</span>`;
+        } else {
+          auditBadge = `<button type="button" class="btn btn-sm btn-secondary" onclick="app.auditLeadWebsiteInline('${lead.id}')" style="font-size:10px; padding:1px 6px;">Audit Site</button>`;
+        }
+      }
+
+      return `
+        <tr style="border-bottom: 1px solid var(--border-color); transition: background 0.15s ease;">
+          <td style="padding: 10px; text-align: center;">
+            <input type="checkbox" ${isSelected ? 'checked' : ''} onchange="app.toggleSelectLead('${lead.id}', this.checked)">
+          </td>
+          <td style="padding: 10px 14px;">
+            <div style="font-weight: 600; color: var(--text-main);">${app.escapeHtml(name)}</div>
+            <div style="font-size: 12px; color: var(--text-muted); font-family: monospace;">${app.escapeHtml(lead.email)}</div>
+          </td>
+          <td style="padding: 10px 14px;">
+            ${lead.website ? `<div><a href="${lead.website}" target="_blank" rel="noopener noreferrer" style="color:var(--primary); font-size:12px; font-weight:600;">${app.escapeHtml(lead.website.replace(/^https?:\/\//, ''))}</a></div>` : ''}
+            <div style="margin-top: 3px;">${auditBadge}</div>
+          </td>
+          <td style="padding: 10px 14px; color: var(--text-muted);">${app.escapeHtml(lead.niche || lead.category || lead.industry || '—')}</td>
+          <td style="padding: 10px 14px; color: var(--text-muted); font-size: 12px;">${app.escapeHtml(lead.phone || '—')}</td>
+          <td style="padding: 10px 14px;">
+            <span class="${badgeClass}" style="${badgeStyle}">${app.escapeHtml(status)}</span>
+          </td>
+          <td style="padding: 10px 14px; text-align: right;">
+            <div style="display: flex; gap: 6px; justify-content: flex-end;">
+              <button type="button" class="btn btn-sm btn-secondary" onclick="app.openEditLeadModal('${lead.id}')" style="font-size: 11px; padding: 3px 8px;">Edit</button>
+              <button type="button" class="btn btn-sm btn-secondary" onclick="app.deleteLead('${lead.id}')" style="font-size: 11px; padding: 3px 8px; color: #ef4444;" title="Delete lead">✕</button>
+            </div>
+          </td>
+        </tr>`;
+    }).join('');
+
+    tbody.innerHTML = rowsHtml;
+    this.updateSelectedToolbar();
+    this.updateSelectedToolbar();
+  },
+
+  onLeadsSearchChange() {
+    clearTimeout(this._leadsSearchDebounce);
+    this._leadsSearchDebounce = setTimeout(() => {
+      const input = document.getElementById('leadsSearchInput');
+      this.leadsSearchQuery = input ? input.value.trim() : '';
+      this.loadLeads(1);
+    }, 300);
+  },
+
+  onLeadsStatusFilterChange() {
+    const sel = document.getElementById('leadsStatusFilter');
+    this.leadsStatusFilter = sel ? sel.value : 'all';
+    this.loadLeads(1);
+  },
+
+  changeLeadsPage(delta) {
+    const newPage = this.leadsCurrentPage + delta;
+    if (newPage < 1) return;
+    const maxPage = Math.ceil(this.leadsTotalCount / this.leadsPageSize) || 1;
+    if (newPage > maxPage) return;
+    this.loadLeads(newPage);
+  },
+
+  updateLeadsPagination() {
+    const info = document.getElementById('leadsPaginationInfo');
+    const pageNum = document.getElementById('leadsCurrentPageNum');
+    const prevBtn = document.getElementById('leadsPrevPageBtn');
+    const nextBtn = document.getElementById('leadsNextPageBtn');
+
+    const maxPage = Math.ceil(this.leadsTotalCount / this.leadsPageSize) || 1;
+    const start = this.leadsTotalCount === 0 ? 0 : (this.leadsCurrentPage - 1) * this.leadsPageSize + 1;
+    const end = Math.min(this.leadsCurrentPage * this.leadsPageSize, this.leadsTotalCount);
+
+    if (info) info.innerText = `Showing ${start} to ${end} of ${this.leadsTotalCount} leads`;
+    if (pageNum) pageNum.innerText = `Page ${this.leadsCurrentPage} of ${maxPage}`;
+    if (prevBtn) prevBtn.disabled = this.leadsCurrentPage <= 1;
+    if (nextBtn) nextBtn.disabled = this.leadsCurrentPage >= maxPage;
+  },
+
+  toggleSelectLead(id, checked) {
+    if (checked) this.selectedLeadIds.add(id);
+    else this.selectedLeadIds.delete(id);
+    this.updateSelectedToolbar();
+  },
+
+  toggleSelectAllLeads(checked) {
+    if (checked) {
+      (this.leadsList || []).forEach(l => this.selectedLeadIds.add(l.id));
+    } else {
+      this.selectedLeadIds.clear();
+    }
+    this.renderLeadsTable();
+  },
+
+  updateSelectedToolbar() {
+    const count = this.selectedLeadIds.size;
+    const countSpan = document.getElementById('leadsSelectedCount');
+    const deleteBtn = document.getElementById('leadsBulkDeleteBtn');
+    const useBtn = document.getElementById('leadsUseInCampaignBtn');
+    const allBox = document.getElementById('selectAllLeadsCheckbox');
+
+    if (countSpan) countSpan.innerText = count;
+    if (deleteBtn) deleteBtn.style.display = count > 0 ? 'inline-block' : 'none';
+    if (useBtn) useBtn.style.display = count > 0 ? 'inline-block' : 'none';
+    if (allBox) allBox.checked = (this.leadsList && this.leadsList.length > 0 && this.selectedLeadIds.size === this.leadsList.length);
+  },
+
+  async bulkDeleteSelectedLeads() {
+    const ids = Array.from(this.selectedLeadIds);
+    if (ids.length === 0) return;
+    if (!confirm(`Are you sure you want to delete ${ids.length} selected lead(s)?`)) return;
+
+    try {
+      const res = await fetch('/api/leads/bulk-delete', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ ids })
+      });
+      if (!res.ok) throw new Error('Bulk delete failed');
+      this.selectedLeadIds.clear();
+      this.showToast(`Deleted ${ids.length} leads successfully`);
+      this.loadLeads(this.leadsCurrentPage);
+    } catch (e) {
+      alert('Error deleting leads: ' + e.message);
+    }
+  },
+
+  openAddLeadModal() {
+    this.activeEditLeadId = null;
+    const title = document.getElementById('addLeadModalTitle');
+    if (title) title.innerText = 'Add New Lead';
+    const form = document.getElementById('formAddLead');
+    if (form) form.reset();
+    document.getElementById('leadModalId').value = '';
+    this.openModal('modalAddLead');
+  },
+
+  openEditLeadModal(leadId) {
+    const lead = this.leadsList.find(l => l.id === leadId);
+    if (!lead) return;
+    this.activeEditLeadId = leadId;
+    const title = document.getElementById('addLeadModalTitle');
+    if (title) title.innerText = 'Edit Lead';
+    document.getElementById('leadModalId').value = lead.id;
+    document.getElementById('leadModalEmail').value = lead.email || '';
+    document.getElementById('leadModalFirstName').value = lead.firstName || '';
+    document.getElementById('leadModalLastName').value = lead.lastName || '';
+    document.getElementById('leadModalCompany').value = lead.company || '';
+    document.getElementById('leadModalNiche').value = lead.niche || '';
+    document.getElementById('leadModalPhone').value = lead.phone || '';
+    document.getElementById('leadModalStatus').value = lead.status || 'Active';
+    this.openModal('modalAddLead');
+  },
+
+  async saveLeadModal(e) {
+    if (e) e.preventDefault();
+    const id = document.getElementById('leadModalId').value.trim();
+    const email = document.getElementById('leadModalEmail').value.trim();
+    const firstName = document.getElementById('leadModalFirstName').value.trim();
+    const lastName = document.getElementById('leadModalLastName').value.trim();
+    const company = document.getElementById('leadModalCompany').value.trim();
+    const niche = document.getElementById('leadModalNiche').value.trim();
+    const phone = document.getElementById('leadModalPhone').value.trim();
+    const status = document.getElementById('leadModalStatus').value;
+
+    if (!email || !email.includes('@')) {
+      alert('Please provide a valid email address.');
+      return;
+    }
+
+    const payload = {
+      email,
+      firstName,
+      lastName,
+      name: [firstName, lastName].filter(Boolean).join(' ') || undefined,
+      company,
+      niche,
+      phone,
+      status
+    };
+
+    try {
+      const url = id ? `/api/leads/${id}` : '/api/leads';
+      const method = id ? 'PUT' : 'POST';
+      const res = await fetch(url, {
+        method,
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(payload)
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || 'Failed to save lead');
+      this.closeModal('modalAddLead');
+      this.showToast(id ? 'Lead updated successfully' : 'Lead created successfully');
+      this.loadLeads(this.leadsCurrentPage);
+    } catch (err) {
+      alert('Error: ' + err.message);
+    }
+  },
+
+  async deleteLead(id) {
+    if (!confirm('Are you sure you want to delete this lead?')) return;
+    try {
+      const res = await fetch(`/api/leads/${id}`, { method: 'DELETE' });
+      if (!res.ok) throw new Error('Delete failed');
+      this.selectedLeadIds.delete(id);
+      this.showToast('Lead deleted');
+      this.loadLeads(this.leadsCurrentPage);
+    } catch (e) {
+      alert('Error: ' + e.message);
+    }
+  },
+
+  openImportLeadsModal() {
+    const raw = document.getElementById('importLeadsRawText');
+    if (raw) raw.value = '';
+    const box = document.getElementById('importSummaryBox');
+    if (box) box.style.display = 'none';
+    this.openModal('modalImportLeads');
+  },
+
+  async executeImportLeads() {
+    const raw = document.getElementById('importLeadsRawText').value.trim();
+    const niche = document.getElementById('importLeadsDefaultNiche').value.trim();
+    const updateExisting = document.getElementById('importLeadsUpdateExisting').checked;
+
+    if (!raw) {
+      alert('Please paste CSV or email list data to import.');
+      return;
+    }
+
+    const box = document.getElementById('importSummaryBox');
+    if (box) {
+      box.style.display = 'block';
+      box.innerHTML = '⏳ Processing and validating records...';
+    }
+
+    try {
+      const res = await fetch('/api/leads/import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText: raw, defaultNiche: niche, updateExisting })
+      });
+      const result = await res.json();
+      if (!res.ok) throw new Error(result.error || 'Import failed');
+
+      if (box) {
+        box.innerHTML = `
+          <div style="font-weight: 700; color: #10b981; margin-bottom: 6px;">✓ Import Completed</div>
+          <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 8px; text-align: center;">
+            <div style="background: rgba(16, 185, 129, 0.1); padding: 6px; border-radius: 4px;">
+              <div style="font-weight: 700; color: #10b981;">${result.summary?.imported || 0}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Imported</div>
+            </div>
+            <div style="background: rgba(56, 189, 248, 0.1); padding: 6px; border-radius: 4px;">
+              <div style="font-weight: 700; color: #38bdf8;">${result.summary?.updated || 0}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Updated</div>
+            </div>
+            <div style="background: rgba(245, 158, 11, 0.1); padding: 6px; border-radius: 4px;">
+              <div style="font-weight: 700; color: #f59e0b;">${result.summary?.skippedDuplicates || 0}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Duplicates</div>
+            </div>
+            <div style="background: rgba(239, 68, 68, 0.1); padding: 6px; border-radius: 4px;">
+              <div style="font-weight: 700; color: #ef4444;">${result.summary?.invalid || 0}</div>
+              <div style="font-size: 11px; color: var(--text-muted);">Invalid</div>
+            </div>
+          </div>`;
+      }
+      this.showToast(`Imported ${result.summary?.imported || 0} new leads`);
+      this.loadLeads(1);
+    } catch (err) {
+      if (box) box.innerHTML = `<span style="color: #ef4444;">Error: ${err.message}</span>`;
+    }
+  },
+
+  async exportLeadsCsv() {
+    try {
+      const res = await fetch('/api/leads/export');
+      if (!res.ok) throw new Error('Export failed');
+      const blob = await res.blob();
+      const url = window.URL.createObjectURL(blob);
+      const a = document.createElement('a');
+      a.href = url;
+      a.download = `mailflow_leads_${new Date().toISOString().slice(0, 10)}.csv`;
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      window.URL.revokeObjectURL(url);
+      this.showToast('✓ Leads exported successfully');
+    } catch (e) {
+      alert('Error exporting CSV: ' + e.message);
+    }
+  },
+
+  async confirmClearAllLeads() {
+    if (!confirm('⚠️ Are you sure you want to clear all leads in this workspace? This cannot be undone.')) return;
+    try {
+      const res = await fetch('/api/leads/clear', { method: 'POST' });
+      if (!res.ok) throw new Error('Clear failed');
+      this.showToast('All leads cleared');
+      this.loadLeads(1);
+    } catch (e) {
+      alert('Error clearing leads: ' + e.message);
+    }
+  },
+
+  sendToSelectedLeads() {
+    const selectedLeads = this.leadsList.filter(l => this.selectedLeadIds.has(l.id));
+    if (selectedLeads.length === 0) return;
+    const emails = selectedLeads.slice(0, 50).map(l => l.email);
+    const textarea = document.getElementById('leadsInput') || document.getElementById('recipientsTextarea');
+    if (textarea) {
+      textarea.value = emails.join('\n');
+      this.parseLeadsLive();
+    }
+    this.switchTab('composer');
+    this.showToast(`Loaded ${emails.length} selected lead(s) into composer`);
+  },
+
+  async openSelectLeadsForComposerModal() {
+    this.composerPickedLeadIds.clear();
+    const tbody = document.getElementById('composerPickLeadsTableBody');
+    if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">Loading active leads...</td></tr>`;
+    this.openModal('modalSelectLeadsForComposer');
+
+    try {
+      const res = await fetch('/api/leads?status=Active&limit=100');
+      const data = await res.json();
+      const leads = data.leads || [];
+
+      if (leads.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 24px; color: var(--text-muted);">No active leads found in database. Add or import leads first.</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = leads.map(l => `
+        <tr style="border-bottom: 1px solid var(--border-color);">
+          <td style="padding: 8px 10px; text-align: center;">
+            <input type="checkbox" onchange="app.toggleComposerPickLead('${l.id}', this.checked)">
+          </td>
+          <td style="padding: 8px 10px; font-weight: 500;">${app.escapeHtml(l.email)}</td>
+          <td style="padding: 8px 10px; color: var(--text-muted);">${app.escapeHtml(l.name || l.firstName || '—')}</td>
+          <td style="padding: 8px 10px; color: var(--text-muted);">${app.escapeHtml(l.company || '—')}</td>
+          <td style="padding: 8px 10px;"><span class="status-badge status-completed" style="font-size: 10px;">${app.escapeHtml(l.status || 'Active')}</span></td>
+        </tr>
+      `).join('');
+      this.updateComposerPickCount();
+    } catch (e) {
+      if (tbody) tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; color: #ef4444;">Error loading leads</td></tr>`;
+    }
+  },
+
+  toggleComposerPickLead(id, checked) {
+    if (checked) {
+      if (this.composerPickedLeadIds.size >= 50) {
+        alert('Maximum of 50 recipients per outreach batch.');
+        return;
+      }
+      this.composerPickedLeadIds.add(id);
+    } else {
+      this.composerPickedLeadIds.delete(id);
+    }
+    this.updateComposerPickCount();
+  },
+
+  selectAllActiveForComposer() {
+    const checkboxes = document.querySelectorAll('#composerPickLeadsTableBody input[type="checkbox"]');
+    checkboxes.forEach((cb, idx) => {
+      if (idx < 50) {
+        cb.checked = true;
+        cb.dispatchEvent(new Event('change'));
+      }
+    });
+  },
+
+  toggleSelectAllComposerPick(checked) {
+    const checkboxes = document.querySelectorAll('#composerPickLeadsTableBody input[type="checkbox"]');
+    checkboxes.forEach((cb, idx) => {
+      if (idx < 50) {
+        cb.checked = checked;
+        cb.dispatchEvent(new Event('change'));
+      }
+    });
+  },
+
+  updateComposerPickCount() {
+    const cnt = document.getElementById('composerLeadSelectionCount');
+    if (cnt) cnt.innerText = `${this.composerPickedLeadIds.size} selected (max 50)`;
+  },
+
+  async applySelectedLeadsToComposer() {
+    if (this.composerPickedLeadIds.size === 0) {
+      alert('Please select at least 1 lead.');
+      return;
+    }
+    try {
+      const res = await fetch('/api/leads?limit=100');
+      const data = await res.json();
+      const allLeads = data.leads || [];
+      const selected = allLeads.filter(l => this.composerPickedLeadIds.has(l.id));
+      const emails = selected.map(l => l.email);
+      const textarea = document.getElementById('leadsInput') || document.getElementById('recipientsTextarea');
+      if (textarea) {
+        textarea.value = emails.join('\n');
+        this.parseLeadsLive();
+      }
+      this.closeModal('modalSelectLeadsForComposer');
+      this.showToast(`Loaded ${emails.length} leads into Campaign Studio!`);
+    } catch (e) {
+      alert('Error applying leads: ' + e.message);
+    }
+  },
+
+  async openPreviewPersonalizationModal() {
+    const sel = document.getElementById('previewLeadSelect');
+    if (!sel) return;
+    sel.innerHTML = '<option value="">Loading test prospects...</option>';
+    this.openModal('modalPreviewPersonalization');
+
+    try {
+      const res = await fetch('/api/leads?limit=50');
+      const data = await res.json();
+      const leads = data.leads || [];
+
+      if (leads.length === 0) {
+        sel.innerHTML = `
+          <option value="sample1" data-name="Jane Doe" data-firstname="Jane" data-company="Acme Corp" data-email="jane@acme.com">Sample: Jane Doe (Acme Corp)</option>
+          <option value="sample2" data-name="Alex Vance" data-firstname="Alex" data-company="TechFlow" data-email="alex@techflow.io">Sample: Alex Vance (TechFlow)</option>
+        `;
+      } else {
+        sel.innerHTML = leads.map(l => `
+          <option value="${l.id}" data-name="${app.escapeHtml(l.name || l.firstName || 'Friend')}" data-firstname="${app.escapeHtml(l.firstName || 'Friend')}" data-company="${app.escapeHtml(l.company || 'your company')}" data-email="${app.escapeHtml(l.email)}">
+            ${app.escapeHtml(l.name || l.email)} (${app.escapeHtml(l.company || 'No Company')})
+          </option>
+        `).join('');
+      }
+      this.updatePersonalizationPreview();
+    } catch (e) {
+      sel.innerHTML = '<option value="">Error loading leads</option>';
+    }
+  },
+
+  updatePersonalizationPreview() {
+    const sel = document.getElementById('previewLeadSelect');
+    const varSel = document.getElementById('previewVariantSelect');
+    const warnBox = document.getElementById('previewUnresolvedWarning');
+    const subjEl = document.getElementById('previewRenderedSubject');
+    const bodyEl = document.getElementById('previewRenderedBody');
+
+    if (!sel) return;
+    const opt = sel.options[sel.selectedIndex];
+    const name = opt ? (opt.getAttribute('data-name') || 'Friend') : 'Friend';
+    const firstName = opt ? (opt.getAttribute('data-firstname') || 'Friend') : 'Friend';
+    const company = opt ? (opt.getAttribute('data-company') || 'your company') : 'your company';
+    const email = opt ? (opt.getAttribute('data-email') || 'lead@example.com') : 'lead@example.com';
+
+    const variantIdx = parseInt(varSel?.value || '0', 10);
+    let rawSubj = '';
+    let rawBody = '';
+
+    if (variantIdx === 0) {
+      rawSubj = document.getElementById('emailSubject')?.value || '';
+      rawBody = document.getElementById('emailMessage')?.value || '';
+    } else if (this.messageVariants && this.messageVariants[variantIdx]) {
+      rawSubj = this.messageVariants[variantIdx].subject || '';
+      rawBody = this.messageVariants[variantIdx].message || '';
+    }
+
+    // Replace variables
+    const render = (template) => {
+      if (!template) return '';
+      let res = template
+        .replace(/\{\{\s*name\s*\}\}/gi, name)
+        .replace(/\{\{\s*firstName\s*\}\}/gi, firstName)
+        .replace(/\{\{\s*first_name\s*\}\}/gi, firstName)
+        .replace(/\{\{\s*company\s*\}\}/gi, company)
+        .replace(/\{\{\s*companyName\s*\}\}/gi, company)
+        .replace(/\{\{\s*email\s*\}\}/gi, email);
+      return res;
+    };
+
+    const renderedSubj = render(rawSubj);
+    const renderedBody = render(rawBody);
+
+    // Detect unresolved variables
+    const unresolvedSubj = (renderedSubj.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []);
+    const unresolvedBody = (renderedBody.match(/\{\{([a-zA-Z0-9_]+)\}\}/g) || []);
+    const allUnresolved = Array.from(new Set([...unresolvedSubj, ...unresolvedBody]));
+
+    if (allUnresolved.length > 0 && warnBox) {
+      warnBox.style.display = 'block';
+      warnBox.innerHTML = `⚠️ <strong>Unresolved Variables Detected:</strong> The template contains <code>${allUnresolved.join(', ')}</code> which this prospect does not have values for. Please add fallback values or update prospect records.`;
+    } else if (warnBox) {
+      warnBox.style.display = 'none';
+    }
+
+    if (subjEl) subjEl.innerText = renderedSubj || '(Empty Subject)';
+    if (bodyEl) bodyEl.innerText = renderedBody || '(Empty Message Body)';
   },
 
   // ==========================================================
@@ -2157,16 +2777,6 @@ const app = {
     if (cBlocked) cBlocked.innerText = this.bouncesList.filter(b => b.category === 'Blocked / Filtered' || b.category === 'Invalid Domain').length;
   },
 
-  updateBouncesBadge(count) {
-    const badge = document.getElementById('navBouncesBadge');
-    if (!badge) return;
-    if (count > 0) {
-      badge.style.display = 'inline-flex';
-      badge.innerText = count > 99 ? '99+' : count;
-    } else {
-      badge.style.display = 'none';
-    }
-  },
 
   filterBounces(type) {
     this.activeBounceFilter = type;
@@ -2379,7 +2989,9 @@ const app = {
 
   async loadSavedAccounts() {
     try {
-      const local = localStorage.getItem('mailflow_accounts_store') || localStorage.getItem('mailflow_accounts_list');
+      localStorage.removeItem('mailflow_accounts_store');
+      localStorage.removeItem('mailflow_last_active_password');
+      const local = localStorage.getItem('mailflow_accounts_list');
       if (local) {
         this.accounts = JSON.parse(local);
       }
@@ -2388,23 +3000,19 @@ const app = {
     }
 
     const lastEmail = (localStorage.getItem('mailflow_last_active_email') || '').trim().toLowerCase();
-    const lastPass = (localStorage.getItem('mailflow_last_active_password') || '').trim();
     const lastName = (localStorage.getItem('mailflow_last_active_name') || '').trim();
 
     if (lastEmail && lastEmail.includes('@')) {
       let activeAcc = this.accounts.find(a => a.email.toLowerCase() === lastEmail);
       if (activeAcc) {
-        if (lastPass && !activeAcc.password) activeAcc.password = lastPass;
         if (lastName && !activeAcc.name) activeAcc.name = lastName;
-        activeAcc.hasPassword = !!activeAcc.password;
         activeAcc.isDefault = true;
       } else {
         activeAcc = {
           id: 'acc-' + Date.now(),
           email: lastEmail,
           name: lastName || lastEmail.split('@')[0],
-          password: lastPass,
-          hasPassword: !!lastPass,
+          hasPassword: true,
           isDefault: true,
           status: 'Connected'
         };
@@ -2421,14 +3029,13 @@ const app = {
           const existing = this.accounts.find(a => a.email.toLowerCase() === backendAcc.email.toLowerCase());
           if (existing) {
             existing.status = backendAcc.status || existing.status || 'Connected';
-            existing.hasPassword = !!backendAcc.hasPassword || !!existing.password || !!existing.hasPassword;
+            existing.hasPassword = !!backendAcc.hasPassword || !!existing.hasPassword;
             if (backendAcc.id) existing.id = backendAcc.id;
           } else {
             this.accounts.push({
               id: backendAcc.id,
               email: backendAcc.email,
               name: backendAcc.name || backendAcc.email.split('@')[0],
-              password: (backendAcc.email.toLowerCase() === lastEmail ? lastPass : ''),
               hasPassword: !!backendAcc.hasPassword,
               isDefault: false,
               status: backendAcc.status || 'Connected'
@@ -2505,6 +3112,7 @@ const app = {
       localStorage.removeItem('mailflow_last_active_email');
       localStorage.removeItem('mailflow_last_active_password');
       localStorage.removeItem('mailflow_last_active_name');
+      localStorage.removeItem('mailflow_accounts_store');
     } catch (e) {}
 
     this.activeAccountId = null;
@@ -2517,7 +3125,8 @@ const app = {
 
   saveAccountsToStorage() {
     try {
-      localStorage.setItem('mailflow_accounts_store', JSON.stringify(this.accounts));
+      localStorage.removeItem('mailflow_accounts_store'); // Zero plain passwords in browser storage
+      localStorage.removeItem('mailflow_last_active_password');
       const safeAccounts = this.accounts.map(a => ({
         id: a.id,
         email: a.email,
@@ -2550,35 +3159,93 @@ const app = {
     if (!tbody) return;
 
     if (this.accounts.length === 0) {
-      tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 24px; color: var(--text-dim);">No accounts saved yet. Click "+ Add Account" to save one.</td></tr>`;
+      tbody.innerHTML = `<tr><td colspan="6" style="text-align: center; padding: 24px; color: var(--text-dim);">No accounts saved yet. Click "+ Add Account" or "Bulk Setup" to connect mailboxes.</td></tr>`;
       return;
     }
 
     tbody.innerHTML = this.accounts.map(acc => {
       const isActive = acc.id === this.activeAccountId;
+      const sentToday = acc.sentToday || 0;
+      const dailyCap = acc.dailySendCap || 50;
+      const remCap = acc.remainingCapacity !== undefined ? acc.remainingCapacity : Math.max(0, dailyCap - sentToday);
+      const isThrottled = acc.isThrottled === true;
+      const statusText = isThrottled ? 'Throttled (Cooldown)' : (acc.status || 'Connected');
+      const statusClass = isThrottled ? 'status-failed' : (acc.status === 'Connected' ? 'status-completed' : 'status-inprogress');
+
       return `
         <tr>
           <td>
             <strong>${this.escapeHtml(acc.email)}</strong>
-            ${acc.isDefault ? '<span class="status-badge status-inprogress" style="margin-left: 6px;">Default</span>' : ''}
+            <div style="font-size: 11.5px; color: var(--text-dim);">${this.escapeHtml(acc.name || 'Sender')}</div>
+            ${acc.isDefault ? '<span class="status-badge status-inprogress" style="font-size: 9px; padding: 1px 5px; margin-top: 2px;">Default</span>' : ''}
           </td>
           <td>
-            <span class="status-badge ${acc.status === 'Connected' ? 'status-completed' : 'status-stopped'}">
-              ● ${acc.status || 'Connected'}
+            <span class="status-badge ${statusClass}">
+              ● ${statusText}
             </span>
           </td>
-          <td>0 / 50 sent today</td>
-          <td style="text-transform: capitalize; color: var(--text-dim);">${acc.email.endsWith('@gmail.com') ? 'Gmail' : 'SMTP'}</td>
           <td>
-            <div style="display: flex; gap: 6px;">
-              ${!isActive ? `<button class="btn btn-sm btn-primary" onclick="app.selectActiveAccount('${acc.id}'); app.switchTab('composer');">Switch to this</button>` : '<span style="font-size: 12px; font-weight: 600; color: var(--status-success); padding: 4px 8px;">Active</span>'}
-              <button class="btn btn-sm btn-secondary" onclick="app.makeDefaultAccount('${acc.id}')">Set Default</button>
-              <button class="btn btn-sm btn-danger" onclick="app.removeAccount('${acc.id}')">Remove</button>
+            <strong>${sentToday} / ${dailyCap}</strong> sent
+            <button type="button" class="btn btn-sm btn-secondary" onclick="app.promptEditAccountCap('${acc.id}', ${dailyCap})" style="font-size: 10px; padding: 1px 5px; margin-left: 4px;" title="Edit Daily Send Cap">✏️</button>
+          </td>
+          <td>
+            <span style="font-weight: 600; color: ${remCap > 0 ? '#059669' : '#dc2626'}; font-size: 13px;">${remCap} sends</span>
+          </td>
+          <td style="font-size: 12px; color: var(--text-dim);">
+            ${acc.lastConnected ? new Date(acc.lastConnected).toLocaleDateString() : 'Never'}
+          </td>
+          <td>
+            <div style="display: flex; gap: 6px; flex-wrap: wrap;">
+              <button class="btn btn-sm btn-secondary" onclick="app.testAccountConnectionById('${acc.id}')" title="Test SMTP Socket">⚡ Test</button>
+              ${!isActive ? `<button class="btn btn-sm btn-primary" onclick="app.selectActiveAccount('${acc.id}'); app.switchTab('composer');">Use</button>` : '<span style="font-size: 12px; font-weight: 600; color: var(--status-success); padding: 4px 6px;">Active</span>'}
+              <button class="btn btn-sm btn-secondary" onclick="app.makeDefaultAccount('${acc.id}')">Default</button>
+              <button class="btn btn-sm btn-danger" onclick="app.removeAccount('${acc.id}')" title="Remove account">✕</button>
             </div>
           </td>
         </tr>
       `;
     }).join('');
+  },
+
+  async promptEditAccountCap(accountId, currentCap) {
+    const val = prompt(`Enter new daily send cap for this account:`, currentCap);
+    if (!val) return;
+    const newCap = parseInt(val, 10);
+    if (isNaN(newCap) || newCap < 1) {
+      this.showToast('Please enter a valid positive number.', 'warning');
+      return;
+    }
+    try {
+      const res = await this.authFetch(`/api/accounts/${accountId}/limits`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ dailySendCap: newCap })
+      });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast(`✓ Daily cap updated to ${newCap} sends/day.`);
+        this.loadSavedAccounts();
+        this.loadOverviewMetrics();
+      }
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    }
+  },
+
+  async testAccountConnectionById(accountId) {
+    try {
+      this.showToast('Testing account SMTP socket connection...', 'info');
+      const res = await this.authFetch(`/api/accounts/${accountId}/test`, { method: 'POST' });
+      const data = await res.json();
+      if (data.success) {
+        this.showToast(`✓ Connection Verified! TLS & Authentication OK (Latency: ${data.latencyMs || 100}ms)`, 'success');
+      } else {
+        this.showToast(`✕ Connection Failed: ${data.error || 'Server rejected credentials'}`, 'danger');
+      }
+      this.loadSavedAccounts();
+    } catch (err) {
+      this.showToast(`Test error: ${err.message}`, 'danger');
+    }
   },
 
   onAccountDropdownChange() {
@@ -2605,22 +3272,17 @@ const app = {
       if (acc.password) {
         passInput.value = acc.password;
         passInput.placeholder = '•••••••••••••••• (Saved in Secure Vault)';
+      } else if (acc.hasPassword) {
+        passInput.value = '';
+        passInput.placeholder = '•••••••••••••••• (Saved in Secure Vault)';
       } else {
-        const lastPass = (localStorage.getItem('mailflow_last_active_password') || '').trim();
-        if (lastPass) {
-          passInput.value = lastPass;
-          acc.password = lastPass;
-          acc.hasPassword = true;
-        } else {
-          passInput.value = '';
-          passInput.placeholder = 'abcd efgh ijkl mnop';
-        }
+        passInput.value = '';
+        passInput.placeholder = 'abcd efgh ijkl mnop';
       }
     }
 
     try {
       localStorage.setItem('mailflow_last_active_email', acc.email);
-      if (acc.password) localStorage.setItem('mailflow_last_active_password', acc.password);
       if (acc.name) localStorage.setItem('mailflow_last_active_name', acc.name);
     } catch (e) {}
 
@@ -2679,8 +3341,8 @@ const app = {
       return passInput;
     }
     const acc = this.accounts.find(a => a.id === this.activeAccountId) || this.accounts.find(a => a.isDefault) || this.accounts[0];
-    if (acc?.password) return acc.password;
-    return (localStorage.getItem('mailflow_last_active_password') || '').trim();
+    if (acc?.password && !acc.password.includes('•')) return acc.password;
+    return '';
   },
 
   saveCurrentAccountToStorage() {
@@ -2720,7 +3382,6 @@ const app = {
     this.activeAccountId = acc.id;
     try {
       localStorage.setItem('mailflow_last_active_email', email);
-      if (acc.password) localStorage.setItem('mailflow_last_active_password', acc.password);
       localStorage.setItem('mailflow_last_active_name', name);
     } catch (e) {}
 
@@ -2844,7 +3505,7 @@ const app = {
     this.selectActiveAccount(acc.id);
     this.runDeliverabilityAudit(email);
     this.closeModal('modalAddAccount');
-    this.showToast(`✓ Account ${email} added & 100% Primary Inbox Shield Active!`);
+    this.showToast(`✓ Account ${email} added & Auth Configured!`);
 
     fetch('/api/accounts', {
       method: 'POST',
@@ -3179,7 +3840,7 @@ const app = {
     this.runDeliverabilityAudit();
     this.analyzeSpamScoreLive();
     this.updateDesktopLivePreview();
-    this.showToast('✨ 100% Primary Inbox Shield Activated! Stealth Mode, Jitter Pacing & Subject Safe.');
+    this.showToast('✨ Deliverability Protection Activated! Stealth Mode, Jitter Pacing & Subject Safe.');
   },
 
   insertSpintaxSample() {
@@ -3252,7 +3913,7 @@ const app = {
     }
 
     if (meterTitle) {
-      if (score >= 90) meterTitle.innerText = `Primary Inbox Placement: ${score}%`;
+      if (score >= 90) meterTitle.innerText = `Content Deliverability Score: ${score}%`;
       else if (score >= 75) meterTitle.innerText = `Moderate Deliverability: ${score}%`;
       else meterTitle.innerText = `Spam Risk Warning: ${score}%`;
     }
@@ -3279,7 +3940,7 @@ const app = {
         alertBox.innerHTML = `
           <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
             <div>
-              ⚠️ <strong>Deliverability Alert:</strong> Remove trigger words like <strong>${flaggedWords.map(w => `"${w}"`).join(', ')}</strong> to guarantee inbox arrival.
+              ⚠️ <strong>Deliverability Alert:</strong> Remove trigger words like <strong>${flaggedWords.map(w => `"${w}"`).join(', ')}</strong> to improve inbox placement.
             </div>
             <button type="button" class="btn btn-sm btn-secondary" onclick="app.openSpamGuideModal()" style="font-size: 11.5px; padding: 4px 8px; border-radius: 6px;">
               💡 Deliverability Guide
@@ -3329,7 +3990,7 @@ const app = {
       this.messageVariants[this.activeVariantIndex].subject = fixed;
     }
     this.onCurrentVariantInput();
-    this.showToast('✨ Subject optimized for 100% Primary Inbox placement!');
+    this.showToast('✨ Subject optimized to reduce spam trigger risks!');
   },
 
   // ==========================================================
@@ -3757,9 +4418,6 @@ const app = {
     if (!password && activeAcc?.password) {
       password = activeAcc.password;
     }
-    if (!password) {
-      password = (localStorage.getItem('mailflow_last_active_password') || '').trim();
-    }
 
     const statusDiv = document.getElementById('smtpVerifyStatus');
     const helpBox = document.getElementById('authHelpBox');
@@ -3872,9 +4530,6 @@ const app = {
     if (!senderPassword && activeAcc?.password) {
       senderPassword = activeAcc.password;
     }
-    if (!senderPassword) {
-      senderPassword = (localStorage.getItem('mailflow_last_active_password') || '').trim();
-    }
 
     const senderName = document.getElementById('senderDisplayName')?.value.trim() || activeAcc?.name || senderEmail.split('@')[0];
     const testRecipient = document.getElementById('testRecipientEmail')?.value.trim();
@@ -3893,7 +4548,7 @@ const app = {
         '⚠️ Deliverability Warning:\n\n' +
         'You are sending a test email to the exact same email address you are sending from (' + senderEmail + ').\n\n' +
         'Google\'s incoming security gateway automatically treats emails sent to oneself via external apps as spoofing, and puts them in Spam.\n\n' +
-        'To accurately verify 100% Primary Inbox arrival, send this test to a different email address (e.g. your secondary email, Outlook, Yahoo, or Mail-Tester.com).\n\n' +
+        'To accurately verify inbox arrival, send this test to a different email address (e.g. your secondary email, Outlook, Yahoo, or Mail-Tester.com).\n\n' +
         'Do you still want to send to ' + testRecipient + '?'
       );
       if (!proceed) return;
@@ -3905,7 +4560,7 @@ const app = {
         `⚠️ High Spam Risk Detected:\n\n` +
         `Your subject "${subject}" contains a fake support ticket reference ("Ticket IRN #").\n\n` +
         `Google and Outlook automatically detect this as deceptive phishing and route the email to Spam.\n\n` +
-        `Click OK to auto-fix the subject for 100% Primary Inbox delivery before sending.\n` +
+        `Click OK to auto-fix the subject to reduce spam filters before sending.\n` +
         `Click Cancel to send with your current subject anyway.`
       );
       if (fixPrompt) {
@@ -4475,9 +5130,6 @@ lead10@businesspartner.com`;
     if (!senderPassword && activeAcc?.password) {
       senderPassword = activeAcc.password;
     }
-    if (!senderPassword) {
-      senderPassword = (localStorage.getItem('mailflow_last_active_password') || '').trim();
-    }
 
     const senderName = document.getElementById('senderDisplayName')?.value.trim() || activeAcc?.name || senderEmail.split('@')[0];
     const subject = document.getElementById('emailSubject')?.value.trim() || '';
@@ -4540,7 +5192,7 @@ lead10@businesspartner.com`;
         `⚠️ High Spam Risk Detected:\n\n` +
         `Your subject "${subject}" contains a fake support ticket reference ("Ticket IRN #").\n\n` +
         `Google and Outlook automatically detect this as deceptive phishing and route the email to Spam.\n\n` +
-        `Click OK to auto-fix the subject for 100% Primary Inbox placement before sending.\n` +
+        `Click OK to auto-fix the subject to reduce spam filters before sending.\n` +
         `Click Cancel to proceed with your current subject anyway.`
       );
       if (fixPrompt) {
@@ -4558,22 +5210,58 @@ lead10@businesspartner.com`;
       btn.innerHTML = '⚡ Launching Outreach Campaign...';
     }
 
+    const isMulti = document.querySelector('input[name="senderRoutingMode"]:checked')?.value === 'multi';
+    let endpoint = '/api/campaigns/send-direct';
+    let payload = {
+      senderEmail,
+      senderPassword,
+      senderName,
+      subject,
+      message,
+      messageVariants: this.messageVariants,
+      rawRecipients,
+      delaySeconds,
+      plainTextOnly,
+      enableTracking
+    };
+
+    if (isMulti) {
+      const selectedAccountIds = [];
+      document.querySelectorAll('.multi-acc-chk:checked').forEach(c => {
+        selectedAccountIds.push(c.getAttribute('data-acc-id'));
+      });
+      if (selectedAccountIds.length === 0) {
+        this.showToast('Please select at least 1 sender mailbox in the pool.', 'warning');
+        if (btn) {
+          btn.disabled = false;
+          btn.innerHTML = '⚡ Launch Outreach Campaign';
+        }
+        return;
+      }
+
+      const maxSendsPerAccount = parseInt(document.getElementById('multiAccountPerCapInput')?.value) || 50;
+      const routingPolicy = document.getElementById('multiAccountPolicySelect')?.value || 'balanced';
+
+      endpoint = '/api/campaigns/send-multi-account';
+      payload = {
+        selectedAccountIds,
+        maxSendsPerAccount,
+        routingPolicy,
+        subject,
+        message,
+        messageVariants: this.messageVariants,
+        rawRecipients,
+        delaySeconds,
+        plainTextOnly,
+        enableTracking
+      };
+    }
+
     try {
-      const res = await fetch('/api/campaigns/send-direct', {
+      const res = await this.authFetch(endpoint, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          senderEmail,
-          senderPassword,
-          senderName,
-          subject,
-          message,
-          messageVariants: this.messageVariants,
-          rawRecipients,
-          delaySeconds,
-          plainTextOnly,
-          enableTracking
-        })
+        body: JSON.stringify(payload)
       });
 
       const data = await res.json();
@@ -4691,6 +5379,7 @@ lead10@businesspartner.com`;
         if (r.status === 'Sent') badge = `<span class="status-badge status-completed">✓ Delivered</span>`;
         else if (r.status === 'Sending') badge = `<span class="status-badge status-inprogress">Sending...</span>`;
         else if (r.status === 'Failed') badge = `<span class="status-badge status-failed">✕ Failed</span>`;
+        else if (r.status === 'Suppressed') badge = `<span class="status-badge" style="background: #fef2f2; color: #dc2626; border: 1px solid #fecaca;">🚫 Suppressed</span>`;
 
         let openBadge = `<span style="color: var(--text-dim); font-size: 12px;">Unopened</span>`;
         if (r.opened) {
@@ -5011,22 +5700,22 @@ lead10@businesspartner.com`;
     const dmarc = audit.checks?.dmarc || audit.dmarc || {};
 
     // 1. Top Navbar Deliverability Badge
-    const headerBadge = document.getElementById('headerDeliverabilityBadge');
+    const headerBadge = document.getElementById('headerDeliverabilityBadge') || document.getElementById('headerDeliverabilityStatus');
     if (headerBadge) {
       headerBadge.style.display = 'inline-flex';
       const score = audit.score || 100;
       if (score >= 90) {
-        headerBadge.innerHTML = `<span style="color: #059669;">🛡️</span> ${score}% Inbox Ready`;
-        headerBadge.className = 'status-badge status-completed';
-        headerBadge.style.background = '#ecfdf5';
+        headerBadge.innerHTML = `${score}% POSTMASTER`;
+        headerBadge.className = 'telemetry-shield-status status-completed';
         headerBadge.style.color = '#059669';
-        headerBadge.style.border = '1px solid #a7f3d0';
       } else if (score >= 70) {
-        headerBadge.innerHTML = `<span style="color: #d97706;">⚠️</span> ${score}% Moderate`;
-        headerBadge.className = 'status-badge status-inprogress';
+        headerBadge.innerHTML = `${score}% MODERATE`;
+        headerBadge.className = 'telemetry-shield-status status-inprogress';
+        headerBadge.style.color = '#d97706';
       } else {
-        headerBadge.innerHTML = `<span style="color: #dc2626;">✕</span> ${score}% Spam Risk`;
-        headerBadge.className = 'status-badge status-failed';
+        headerBadge.innerHTML = `${score}% SPAM RISK`;
+        headerBadge.className = 'telemetry-shield-status status-failed';
+        headerBadge.style.color = '#dc2626';
       }
     }
 
@@ -5188,37 +5877,49 @@ lead10@businesspartner.com`;
   },
 
   switchTab(tabId) {
-    if (tabId === 'campaigns') tabId = 'sent';
-    if (tabId === 'inbox') tabId = 'primary-inbox';
+    const originalTabId = tabId;
+    if (tabId === 'campaigns') tabId = 'composer';
+    if (tabId === 'database') tabId = 'leads';
+    if (tabId === 'inbox') tabId = 'all-inbox';
+    if (tabId === 'analytics') tabId = 'tracker';
+    if (tabId === 'settings') tabId = 'deliverability';
 
     document.querySelectorAll('.nav-link').forEach(l => l.classList.remove('active'));
     document.querySelectorAll('.tab-view').forEach(v => v.classList.remove('active'));
     document.querySelectorAll('.mobile-bottom-nav-item').forEach(m => m.classList.remove('active'));
 
-    const activeLink = document.querySelector(`.nav-link[data-tab="${tabId}"]`);
+    const activeLink = document.querySelector(`.nav-link[data-tab="${originalTabId}"]`) || document.querySelector(`.nav-link[data-tab="${tabId}"]`);
     if (activeLink) activeLink.classList.add('active');
 
-    const activeBottomNav = document.querySelector(`.mobile-bottom-nav-item[data-tab="${tabId}"]`);
+    const activeBottomNav = document.querySelector(`.mobile-bottom-nav-item[data-tab="${originalTabId}"]`) || document.querySelector(`.mobile-bottom-nav-item[data-tab="${tabId}"]`);
     if (activeBottomNav) activeBottomNav.classList.add('active');
 
-    const targetView = document.getElementById(`tab-${tabId}`);
+    const targetView = document.getElementById(`tab-${tabId}`) || document.getElementById(`tab-${originalTabId}`);
     if (targetView) targetView.classList.add('active');
 
     const titles = {
-      'composer': 'Compose & Send Email Outreach',
+      'overview': 'Executive Overview & Real Stored Telemetry',
+      'scraper': 'Lead Scraper & Business Discovery',
+      'auditor': 'Website Auditor & SEO Diagnostics',
+      'composer': 'Campaign Studio & Multi-Account Outreach',
+      'leads': 'Lead Database & Bulk Importer',
       'all-inbox': 'All Inbox (All Connected Accounts)',
-      'primary-inbox': 'Primary Inbox (Selected Account)',
+      'primary-inbox': 'Primary Active Inbox',
       'sent': 'Sent Messages & Outreach Log',
       'spam': 'Spam & Filtered Leads Rescue',
       'bounces': 'Bounced Leads & Delivery Failure Center',
-      'tracker': 'Live Open Tracker & Activity Feed',
-      'accounts': 'Sender Accounts',
+      'tracker': 'Live Open Tracker & Telemetry Feed',
+      'accounts': 'Sender Mailboxes & Quotas',
       'guide': 'Gmail App Password Help',
       'deliverability': 'Google Postmaster & DNS Deliverability Shield'
     };
 
     const breadcrumbTitles = {
+      'overview': 'Executive Command Center',
+      'scraper': 'Lead Discovery Engine',
+      'auditor': 'Website Diagnostic Auditor',
       'composer': 'Campaign Studio',
+      'leads': 'Lead Directory & Outreach Audiences',
       'all-inbox': 'All Inbox Engine',
       'primary-inbox': 'Primary Active Inbox',
       'sent': 'Sent Outreach Log',
@@ -5244,7 +5945,11 @@ lead10@businesspartner.com`;
     // Smooth scroll to top on tab switch
     window.scrollTo({ top: 0, behavior: 'smooth' });
 
+    if (tabId === 'overview') this.loadOverviewMetrics();
+    if (tabId === 'scraper') this.loadScraperJobs();
+    if (tabId === 'auditor') this.loadAuditsHistory();
     if (tabId === 'composer') this.analyzeSpamScoreLive();
+    if (tabId === 'leads') this.loadLeads(1);
     if (tabId === 'all-inbox') this.loadAllInbox();
     if (tabId === 'primary-inbox') this.loadPrimaryInbox();
     if (tabId === 'sent') this.loadSent();
@@ -5269,12 +5974,18 @@ lead10@businesspartner.com`;
 
   openModal(modalId) {
     const m = document.getElementById(modalId);
-    if (m) m.classList.add('active');
+    if (m) {
+      m.style.display = 'flex';
+      m.classList.add('active');
+    }
   },
 
   closeModal(modalId) {
     const m = document.getElementById(modalId);
-    if (m) m.classList.remove('active');
+    if (m) {
+      m.style.display = 'none';
+      m.classList.remove('active');
+    }
   },
 
   showToast(message, type = 'normal') {
@@ -5602,6 +6313,946 @@ lead10@businesspartner.com`;
       }
     } catch (err) {
       this.showToast(err.message, 'danger');
+    }
+  },
+
+  authFetch(url, options = {}) {
+    return fetch(url, options);
+  },
+
+  // ==========================================================
+  // TAB 1: EXECUTIVE OVERVIEW CONTROLLER
+  // ==========================================================
+  async loadOverviewMetrics() {
+    try {
+      const res = await this.authFetch('/api/metrics/overview');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (!data || !data.success || !data.metrics) return;
+      const m = data.metrics;
+
+      // Scraper metrics
+      const kpiTotalDiscovered = document.getElementById('kpiTotalDiscovered');
+      if (kpiTotalDiscovered) kpiTotalDiscovered.innerText = m.scraper?.totalDiscovered || 0;
+
+      // Leads metrics
+      const kpiTotalLeads = document.getElementById('kpiTotalLeads');
+      if (kpiTotalLeads) kpiTotalLeads.innerText = m.leads?.total || 0;
+      const kpiImportedBadge = document.getElementById('kpiImportedBadge');
+      if (kpiImportedBadge) kpiImportedBadge.innerText = `${m.leads?.imported || 0} In DB`;
+      const kpiEligibleSubtext = document.getElementById('kpiEligibleSubtext');
+      if (kpiEligibleSubtext) kpiEligibleSubtext.innerText = `${m.leads?.active || 0} outreach eligible`;
+
+      // Auditor metrics
+      const kpiWebsitesAudited = document.getElementById('kpiWebsitesAudited');
+      if (kpiWebsitesAudited) kpiWebsitesAudited.innerText = m.audits?.totalAudits || 0;
+      const kpiVerifiedFindingsBadge = document.getElementById('kpiVerifiedFindingsBadge');
+      if (kpiVerifiedFindingsBadge) kpiVerifiedFindingsBadge.innerText = `${m.audits?.withIssues || 0} with Issues`;
+
+      // Accounts / Quotas metrics
+      const kpiConnectedSenders = document.getElementById('kpiConnectedSenders');
+      if (kpiConnectedSenders) kpiConnectedSenders.innerText = m.accounts?.connected || 0;
+      const kpiSendCapacityBadge = document.getElementById('kpiSendCapacityBadge');
+      if (kpiSendCapacityBadge) kpiSendCapacityBadge.innerText = `${m.accounts?.totalDailyCapacity || 0} Daily Cap`;
+      const kpiRemainingCapSubtext = document.getElementById('kpiRemainingCapSubtext');
+      if (kpiRemainingCapSubtext) kpiRemainingCapSubtext.innerText = `${m.accounts?.remainingDailyCapacity || 0} sends left today`;
+
+      // Campaign dispatch metrics
+      const kpiActiveCampaigns = document.getElementById('kpiActiveCampaigns');
+      if (kpiActiveCampaigns) kpiActiveCampaigns.innerText = m.campaigns?.active || 0;
+      const kpiAttempted = document.getElementById('kpiAttempted');
+      if (kpiAttempted) kpiAttempted.innerText = m.campaigns?.totalAttempted || 0;
+      const kpiDelivered = document.getElementById('kpiDelivered');
+      if (kpiDelivered) kpiDelivered.innerText = m.campaigns?.totalSent || 0;
+      const kpiBounces = document.getElementById('kpiBounces');
+      if (kpiBounces) kpiBounces.innerText = m.campaigns?.totalBounces || 0;
+      const kpiReplies = document.getElementById('kpiReplies');
+      if (kpiReplies) kpiReplies.innerText = m.campaigns?.totalReplies || 0;
+      const kpiUnsubscribes = document.getElementById('kpiUnsubscribes');
+      if (kpiUnsubscribes) kpiUnsubscribes.innerText = m.campaigns?.totalSuppressed || 0;
+    } catch (err) {
+      console.warn('Overview metrics load error:', err.message);
+    }
+  },
+
+  // ==========================================================
+  // TAB 2: LEAD SCRAPER & DISCOVERY ENGINE CONTROLLER
+  // ==========================================================
+  activeScraperJobId: null,
+  scraperPollTimer: null,
+  scraperLeadsCache: [],
+  selectedScraperIndices: new Set(),
+
+  async handleScraperSubmit(e) {
+    if (e) e.preventDefault();
+    const niche = document.getElementById('scraperNiche')?.value.trim();
+    const location = document.getElementById('scraperLocation')?.value.trim();
+    const keywords = document.getElementById('scraperKeywords')?.value.trim();
+    const source = document.getElementById('scraperSource')?.value || 'osm';
+    const maxResults = parseInt(document.getElementById('scraperMaxResults')?.value || '25', 10);
+    const domainFilter = document.getElementById('scraperDomainFilter')?.value.trim();
+
+    if (!niche || !location) {
+      this.showToast('Please enter both niche and location', 'danger');
+      return;
+    }
+
+    const btn = document.getElementById('btnStartScraper');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="loading-spinner"></span> Starting Discovery...`;
+    }
+
+    const progressCard = document.getElementById('scraperJobProgressCard');
+    if (progressCard) progressCard.style.display = 'block';
+
+    try {
+      const res = await this.authFetch('/api/scraper/jobs', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ niche, location, keywords, source, maxResults, domainFilter })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to launch scraper job');
+      }
+
+      this.activeScraperJobId = data.job.id;
+      this.showToast(`Discovery job launched for ${niche} in ${location}`);
+      this.startScraperPolling(this.activeScraperJobId);
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+      if (progressCard) progressCard.style.display = 'none';
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 19 12 5 21 5 3"/></svg> <span>Start Lead Discovery</span>`;
+      }
+    }
+  },
+
+  startScraperPolling(jobId) {
+    if (this.scraperPollTimer) clearInterval(this.scraperPollTimer);
+
+    const poll = async () => {
+      try {
+        const res = await this.authFetch(`/api/scraper/jobs/${jobId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.job) return;
+        const job = data.job;
+
+        const titleEl = document.getElementById('scraperJobTitle');
+        if (titleEl) titleEl.innerText = `${job.niche} in ${job.location}`;
+
+        const pill = document.getElementById('scraperJobStatusPill');
+        if (pill) {
+          pill.innerText = job.status.toUpperCase();
+          pill.className = `status-badge ${job.status === 'completed' ? 'status-completed' : job.status === 'running' ? 'status-inprogress' : 'status-failed'}`;
+        }
+
+        const subtext = document.getElementById('scraperJobSubtext');
+        if (subtext) subtext.innerText = job.currentStep || 'Querying directory and public coordinates...';
+
+        const countEl = document.getElementById('scraperProgressCount');
+        if (countEl) countEl.innerText = `${job.processedCount || 0} / ${job.targetCount || job.maxResults} leads processed`;
+
+        const pctEl = document.getElementById('scraperProgressPercent');
+        if (pctEl) pctEl.innerText = `${job.progress || 0}%`;
+
+        const bar = document.getElementById('scraperProgressBar');
+        if (bar) bar.style.width = `${job.progress || 0}%`;
+
+        const statFound = document.getElementById('scraperStatFound');
+        if (statFound) statFound.innerText = job.leadsFound || 0;
+        const statEmail = document.getElementById('scraperStatWithEmail');
+        if (statEmail) statEmail.innerText = job.withEmail || 0;
+        const statWeb = document.getElementById('scraperStatWithWeb');
+        if (statWeb) statWeb.innerText = job.withWebsite || 0;
+        const statDup = document.getElementById('scraperStatDuplicates');
+        if (statDup) statDup.innerText = job.duplicatesSkipped || 0;
+
+        const btnPause = document.getElementById('btnPauseScraper');
+        const btnResume = document.getElementById('btnResumeScraper');
+        if (btnPause && btnResume) {
+          if (job.status === 'paused') {
+            btnPause.style.display = 'none';
+            btnResume.style.display = 'inline-block';
+          } else if (job.status === 'running') {
+            btnPause.style.display = 'inline-block';
+            btnResume.style.display = 'none';
+          } else {
+            btnPause.style.display = 'none';
+            btnResume.style.display = 'none';
+          }
+        }
+
+        if (Array.isArray(job.leads)) {
+          this.scraperLeadsCache = job.leads;
+          this.renderScraperResults(job.leads);
+        }
+
+        if (['completed', 'failed', 'cancelled'].includes(job.status)) {
+          clearInterval(this.scraperPollTimer);
+          this.scraperPollTimer = null;
+          const btnExport = document.getElementById('btnExportScraperCsv');
+          const btnSave = document.getElementById('btnSaveScraperToDb');
+          if (btnExport) btnExport.disabled = (this.scraperLeadsCache.length === 0);
+          if (btnSave) btnSave.disabled = (this.scraperLeadsCache.length === 0);
+
+          if (job.status === 'completed') {
+            this.showToast(`✓ Discovery completed! Found ${job.leadsFound || 0} leads.`);
+            this.loadOverviewMetrics();
+          }
+        }
+      } catch (e) {
+        console.warn('Scraper poll error:', e.message);
+      }
+    };
+
+    poll();
+    this.scraperPollTimer = setInterval(poll, 1200);
+  },
+
+  async pauseScraperJob() {
+    if (!this.activeScraperJobId) return;
+    try {
+      await this.authFetch(`/api/scraper/jobs/${this.activeScraperJobId}/pause`, { method: 'POST' });
+      this.showToast('Job paused');
+    } catch (e) {
+      this.showToast(e.message, 'danger');
+    }
+  },
+
+  async resumeScraperJob() {
+    if (!this.activeScraperJobId) return;
+    try {
+      await this.authFetch(`/api/scraper/jobs/${this.activeScraperJobId}/resume`, { method: 'POST' });
+      this.showToast('Job resumed');
+    } catch (e) {
+      this.showToast(e.message, 'danger');
+    }
+  },
+
+  async cancelScraperJob() {
+    if (!this.activeScraperJobId) return;
+    try {
+      await this.authFetch(`/api/scraper/jobs/${this.activeScraperJobId}/cancel`, { method: 'POST' });
+      this.showToast('Job cancelled');
+    } catch (e) {
+      this.showToast(e.message, 'danger');
+    }
+  },
+
+  renderScraperResults(leads) {
+    const tbody = document.getElementById('scraperResultsTbody');
+    if (!tbody) return;
+
+    if (!leads || leads.length === 0) {
+      tbody.innerHTML = `
+        <tr>
+          <td colspan="7" style="text-align: center; padding: 36px; color: var(--text-dim);">
+            <div style="font-size: 28px; margin-bottom: 8px;">🔎</div>
+            <div style="font-weight: 600; font-size: 14px; color: var(--text-main);">No Leads Discovered Yet</div>
+            <div style="font-size: 12.5px; margin-top: 4px;">Enter an industry and city above, then click <strong>"Start Lead Discovery"</strong>.</div>
+          </td>
+        </tr>`;
+      return;
+    }
+
+    tbody.innerHTML = leads.map((l, idx) => {
+      const emailBadge = l.email 
+        ? `<strong style="color: #059669; font-size: 12.5px;">${this.escapeHtml(l.email)}</strong>` 
+        : `<span style="color: var(--text-dim); font-style: italic; font-size: 12px;">No email published</span>`;
+
+      const webLink = l.website 
+        ? `<a href="${this.escapeHtml(l.website)}" target="_blank" rel="noopener noreferrer" style="color: #2563eb; text-decoration: underline; font-size: 12px;">${this.escapeHtml(l.website.replace(/^https?:\/\//i, '').replace(/\/$/, '').slice(0, 28))}</a>` 
+        : `<span style="color: var(--text-dim); font-size: 12px;">—</span>`;
+
+      const verifiedBadge = l.email 
+        ? `<span class="status-badge status-completed" style="font-size: 10px; padding: 1px 6px;">Verified Contact</span>` 
+        : `<span class="status-badge" style="background: #f1f5f9; color: #64748b; font-size: 10px; padding: 1px 6px;">Web Only</span>`;
+
+      return `
+        <tr>
+          <td><input type="checkbox" data-index="${idx}" ${this.selectedScraperIndices.has(idx) ? 'checked' : ''} onchange="app.toggleScraperLeadSelection(${idx}, this.checked)"></td>
+          <td><strong style="color: var(--text-main); font-size: 13px;">${this.escapeHtml(l.businessName || l.name || 'Unnamed')}</strong></td>
+          <td style="font-size: 12px; color: var(--text-muted);">${this.escapeHtml(l.niche || '—')} • ${this.escapeHtml(l.city || l.location || '—')}</td>
+          <td>${webLink}</td>
+          <td>${emailBadge}</td>
+          <td>${verifiedBadge}</td>
+          <td style="font-size: 12px; color: var(--text-dim);">${this.escapeHtml(l.phone || '—')}</td>
+        </tr>`;
+    }).join('');
+
+    const btnExport = document.getElementById('btnExportScraperCsv');
+    const btnSave = document.getElementById('btnSaveScraperToDb');
+    if (btnExport) btnExport.disabled = false;
+    if (btnSave) btnSave.disabled = false;
+  },
+
+  toggleSelectAllScraper(checked) {
+    if (checked) {
+      this.selectedScraperIndices = new Set(this.scraperLeadsCache.map((_, i) => i));
+    } else {
+      this.selectedScraperIndices.clear();
+    }
+    const checkboxes = document.querySelectorAll('#scraperResultsTbody input[type="checkbox"]');
+    checkboxes.forEach((cb) => { cb.checked = checked; });
+  },
+
+  toggleScraperLeadSelection(idx, checked) {
+    if (checked) this.selectedScraperIndices.add(idx);
+    else this.selectedScraperIndices.delete(idx);
+    const allBox = document.getElementById('chkSelectAllScraper');
+    if (allBox) allBox.checked = (this.selectedScraperIndices.size === this.scraperLeadsCache.length);
+  },
+
+  async saveScraperLeadsToDatabase() {
+    if (!this.activeScraperJobId) return;
+    const btn = document.getElementById('btnSaveScraperToDb');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="loading-spinner"></span> Saving...`;
+    }
+
+    try {
+      const selected = Array.from(this.selectedScraperIndices);
+      const res = await this.authFetch(`/api/scraper/jobs/${this.activeScraperJobId}/save-leads`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ indices: selected.length > 0 ? selected : undefined })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to save leads to database');
+      }
+
+      this.showToast(`✓ Saved ${data.savedCount || 0} leads into your Lead Database!`);
+      this.loadLeads(1);
+      this.loadOverviewMetrics();
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg> <span>Save to Lead Database</span>`;
+      }
+    }
+  },
+
+  exportScraperCsv() {
+    if (!this.activeScraperJobId) return;
+    window.open(`/api/scraper/jobs/${this.activeScraperJobId}/export-csv`, '_blank');
+  },
+
+  async loadScraperJobs() {
+    try {
+      const res = await this.authFetch('/api/scraper/jobs');
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data && Array.isArray(data.jobs) && data.jobs.length > 0) {
+        const active = data.jobs.find(j => j.status === 'running' || j.status === 'paused');
+        if (active && (!this.activeScraperJobId || this.activeScraperJobId === active.id)) {
+          this.activeScraperJobId = active.id;
+          const progressCard = document.getElementById('scraperJobProgressCard');
+          if (progressCard) progressCard.style.display = 'block';
+          this.startScraperPolling(active.id);
+        } else if (!this.activeScraperJobId && data.jobs[0].leads?.length > 0) {
+          this.activeScraperJobId = data.jobs[0].id;
+          this.scraperLeadsCache = data.jobs[0].leads;
+          this.renderScraperResults(data.jobs[0].leads);
+        }
+      }
+    } catch (e) {
+      console.warn('Scraper jobs load error:', e.message);
+    }
+  },
+
+  // ==========================================================
+  // TAB 3: WEBSITE AUDITOR CONTROLLER
+  // ==========================================================
+  currentAuditResult: null,
+
+  async handleAuditUrlSubmit(e) {
+    if (e) e.preventDefault();
+    const urlInput = document.getElementById('auditorTargetUrl');
+    let url = urlInput ? urlInput.value.trim() : '';
+    if (!url) {
+      this.showToast('Please enter a website URL', 'danger');
+      return;
+    }
+
+    if (!/^https?:\/\//i.test(url)) {
+      url = 'https://' + url;
+      if (urlInput) urlInput.value = url;
+    }
+
+    const btn = document.getElementById('btnRunAudit');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="loading-spinner"></span> Auditing Diagnostics...`;
+    }
+
+    try {
+      const res = await this.authFetch('/api/auditor/audit-url', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ url })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Audit failed');
+      }
+
+      this.currentAuditResult = data.audit;
+      this.renderAuditReport(data.audit);
+      this.showToast(`✓ Website audit completed for ${url}`);
+      this.loadAuditsHistory();
+      this.loadOverviewMetrics();
+    } catch (err) {
+      this.showToast(`Audit failed: ${err.message}`, 'danger');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `<svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg> <span>Run Full Audit</span>`;
+      }
+    }
+  },
+
+  renderAuditReport(audit) {
+    const container = document.getElementById('auditReportContainer');
+    if (!container) return;
+    container.style.display = 'block';
+
+    const urlEl = document.getElementById('auditResultUrl');
+    if (urlEl) urlEl.innerText = audit.url;
+
+    const scoreEl = document.getElementById('auditResultScore');
+    if (scoreEl) scoreEl.innerHTML = `${audit.score}<span style="font-size: 18px; color: var(--text-dim); font-weight: 600;">/100</span>`;
+
+    const badgeEl = document.getElementById('auditScoreBadge');
+    if (badgeEl) {
+      if (audit.score >= 80) {
+        badgeEl.style.background = '#ecfdf5';
+        badgeEl.style.color = '#059669';
+        badgeEl.style.borderColor = '#a7f3d0';
+        badgeEl.innerText = '✓';
+      } else if (audit.score >= 60) {
+        badgeEl.style.background = '#fffbeb';
+        badgeEl.style.color = '#d97706';
+        badgeEl.style.borderColor = '#fde68a';
+        badgeEl.innerText = '⚠️';
+      } else {
+        badgeEl.style.background = '#fef2f2';
+        badgeEl.style.color = '#dc2626';
+        badgeEl.style.borderColor = '#fecaca';
+        badgeEl.innerText = '✕';
+      }
+    }
+
+    const summaryEl = document.getElementById('auditResultSummary');
+    if (summaryEl) {
+      summaryEl.innerText = audit.summary || `${audit.findings?.length || 0} issues detected across Technical, SEO, Speed, and Quality checks.`;
+    }
+
+    const timeEl = document.getElementById('auditTimestampText');
+    if (timeEl && audit.timestamp) {
+      timeEl.innerText = new Date(audit.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    }
+
+    // Severity counts
+    const critical = audit.findings?.filter(f => f.severity === 'Critical').length || 0;
+    const high = audit.findings?.filter(f => f.severity === 'High').length || 0;
+    const medium = audit.findings?.filter(f => f.severity === 'Medium').length || 0;
+    const low = audit.findings?.filter(f => f.severity === 'Low' || f.severity === 'Info').length || 0;
+
+    const cCrit = document.getElementById('auditCountCritical');
+    if (cCrit) cCrit.innerText = critical;
+    const cHigh = document.getElementById('auditCountHigh');
+    if (cHigh) cHigh.innerText = high;
+    const cMed = document.getElementById('auditCountMedium');
+    if (cMed) cMed.innerText = medium;
+    const cLow = document.getElementById('auditCountLow');
+    if (cLow) cLow.innerText = low;
+
+    // Pitch Snippet
+    const pitchEl = document.getElementById('auditPitchSnippetText');
+    if (pitchEl) {
+      pitchEl.innerText = `"${audit.pitchSnippet || 'I ran a quick diagnostic on your website and noticed several opportunities to improve load speed, SEO visibility, and mobile conversion.'}"`;
+    }
+
+    // Render findings
+    this.renderAuditFindingsList(audit.findings || []);
+  },
+
+  renderAuditFindingsList(findings) {
+    const listEl = document.getElementById('auditFindingsList');
+    if (!listEl) return;
+
+    if (!findings || findings.length === 0) {
+      listEl.innerHTML = `
+        <div style="text-align: center; padding: 24px; color: var(--text-dim); background: #f8fafc; border-radius: 6px;">
+          ✓ No significant defects detected! This website meets technical, SEO, speed, and quality best practices.
+        </div>`;
+      return;
+    }
+
+    listEl.innerHTML = findings.map(f => {
+      const severityColor = f.severity === 'Critical' ? '#dc2626' : f.severity === 'High' ? '#d97706' : f.severity === 'Medium' ? '#ca8a04' : '#2563eb';
+      const severityBg = f.severity === 'Critical' ? '#fef2f2' : f.severity === 'High' ? '#fffbeb' : f.severity === 'Medium' ? '#fefce8' : '#eff6ff';
+
+      return `
+        <div style="padding: 12px 14px; background: #ffffff; border: 1px solid var(--border-subtle); border-radius: 6px; display: flex; flex-direction: column; gap: 4px;">
+          <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 6px;">
+            <div style="display: flex; align-items: center; gap: 8px;">
+              <span class="status-badge" style="background: ${severityBg}; color: ${severityColor}; font-weight: 700; font-size: 10px; padding: 2px 6px;">${f.severity}</span>
+              <span class="status-badge" style="background: #f1f5f9; color: #475569; font-size: 10px; padding: 2px 6px;">${f.category || 'General'}</span>
+              <strong style="font-size: 13px; color: var(--text-main);">${this.escapeHtml(f.title || f.name || 'Issue')}</strong>
+            </div>
+            ${f.scoreImpact ? `<span style="font-size: 11px; font-weight: 600; color: #dc2626;">-${f.scoreImpact} pts</span>` : ''}
+          </div>
+          <div style="font-size: 12.5px; color: var(--text-muted); line-height: 1.4; margin-top: 2px;">
+            ${this.escapeHtml(f.description || '')}
+          </div>
+          ${f.recommendation ? `
+            <div style="font-size: 11.5px; color: #047857; background: #f0fdf4; padding: 6px 10px; border-radius: 4px; margin-top: 4px; border-left: 3px solid #10b981;">
+              💡 <strong>Action:</strong> ${this.escapeHtml(f.recommendation)}
+            </div>` : ''}
+        </div>`;
+    }).join('');
+  },
+
+  filterAuditFindings(severity, btn) {
+    if (btn) {
+      const parent = btn.parentElement;
+      if (parent) parent.querySelectorAll('button').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+    if (!this.currentAuditResult) return;
+    const all = this.currentAuditResult.findings || [];
+    if (severity === 'all') {
+      this.renderAuditFindingsList(all);
+    } else {
+      this.renderAuditFindingsList(all.filter(f => f.severity === severity));
+    }
+  },
+
+  copyAuditPitchSnippet() {
+    const pitchEl = document.getElementById('auditPitchSnippetText');
+    if (!pitchEl) return;
+    const text = pitchEl.innerText.replace(/^"|"$/g, '');
+    navigator.clipboard.writeText(text).then(() => {
+      this.showToast('✓ Pitch snippet copied to clipboard!');
+    }).catch(() => {
+      this.copyToClipboard(text);
+    });
+  },
+
+  insertAuditPitchIntoComposer() {
+    const pitchEl = document.getElementById('auditPitchSnippetText');
+    if (!pitchEl) return;
+    const snippet = pitchEl.innerText.replace(/^"|"$/g, '');
+    this.switchTab('composer');
+    const msgEl = document.getElementById('emailMessage');
+    if (msgEl) {
+      if (msgEl.value.trim().length > 0) {
+        msgEl.value = msgEl.value + '\n\n' + snippet;
+      } else {
+        msgEl.value = `Hi {{firstName}},\n\n${snippet}\n\nWould you be open to a 5-minute chat on how to fix this?\n\nBest,\n{{senderName}}`;
+      }
+      this.updateDesktopLivePreview();
+      this.showToast('✓ Audit pitch inserted into Campaign Studio!');
+    }
+  },
+
+  async loadAuditsHistory() {
+    try {
+      const res = await this.authFetch('/api/auditor/audits');
+      if (!res.ok) return;
+      const data = await res.json();
+      const tbody = document.getElementById('auditorHistoryTbody');
+      if (!tbody) return;
+
+      if (!data.audits || data.audits.length === 0) {
+        tbody.innerHTML = `<tr><td colspan="5" style="text-align: center; padding: 24px; color: var(--text-dim);">No audits recorded yet. Run your first audit above!</td></tr>`;
+        return;
+      }
+
+      tbody.innerHTML = data.audits.map(a => {
+        const timeStr = a.timestamp ? new Date(a.timestamp).toLocaleDateString([], { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' }) : '—';
+        const crit = a.findings?.filter(f => f.severity === 'Critical' || f.severity === 'High').length || 0;
+        const scoreBadge = a.score >= 80 ? 'status-completed' : a.score >= 60 ? 'status-inprogress' : 'status-failed';
+
+        return `
+          <tr>
+            <td><strong style="font-size: 12.5px; color: var(--text-main);">${this.escapeHtml(a.url)}</strong></td>
+            <td><span class="status-badge ${scoreBadge}" style="font-size: 11px;">${a.score}/100</span></td>
+            <td style="font-size: 12px; color: ${crit > 0 ? '#dc2626' : '#059669'}; font-weight: 600;">${crit} priority issues</td>
+            <td style="font-size: 11.5px; color: var(--text-dim);">${timeStr}</td>
+            <td>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="app.loadHistoricalAudit('${a.id}')" style="font-size: 11px; padding: 2px 8px;">View Report</button>
+            </td>
+          </tr>`;
+      }).join('');
+    } catch (e) {
+      console.warn('Audits history load error:', e.message);
+    }
+  },
+
+  async loadHistoricalAudit(auditId) {
+    try {
+      const res = await this.authFetch(`/api/auditor/audits/${auditId}`);
+      if (!res.ok) return;
+      const data = await res.json();
+      if (data.audit) {
+        this.currentAuditResult = data.audit;
+        this.renderAuditReport(data.audit);
+        window.scrollTo({ top: 0, behavior: 'smooth' });
+      }
+    } catch (e) {
+      this.showToast('Failed to load audit: ' + e.message, 'danger');
+    }
+  },
+
+  async batchAuditLeadWebsites() {
+    if (!confirm('Run automated diagnostic audits on all database leads with websites?')) return;
+    try {
+      const res = await this.authFetch('/api/auditor/batch-audit', { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Batch audit failed');
+      this.showToast(`Batch audit started for ${data.queuedCount || 0} leads`);
+      this.loadAuditsHistory();
+    } catch (e) {
+      this.showToast(e.message, 'danger');
+    }
+  },
+
+  async auditLeadWebsiteInline(leadId, websiteUrl) {
+    if (!websiteUrl) {
+      this.showToast('This lead does not have a website URL', 'danger');
+      return;
+    }
+    this.showToast(`Auditing ${websiteUrl}...`);
+    try {
+      const res = await this.authFetch(`/api/auditor/audit-lead/${leadId}`, { method: 'POST' });
+      const data = await res.json();
+      if (!res.ok || !data.success) throw new Error(data.error || 'Audit failed');
+      this.showToast(`✓ Audit complete! Score: ${data.audit?.score}/100`);
+      this.loadLeads(this.leadsCurrentPage);
+      this.loadOverviewMetrics();
+    } catch (e) {
+      this.showToast(`Audit failed: ${e.message}`, 'danger');
+    }
+  },
+
+  // ==========================================================
+  // TAB 1B: DURABLE BULK LEAD IMPORTER (>1,000 RECORDS)
+  // ==========================================================
+  activeImportJobId: null,
+  importJobPollTimer: null,
+
+  toggleBulkImporterBox() {
+    const body = document.getElementById('bulkImporterBody');
+    const icon = document.getElementById('bulkImporterToggleIcon');
+    if (!body) return;
+    const isHidden = body.style.display === 'none';
+    body.style.display = isHidden ? 'block' : 'none';
+    if (icon) icon.innerText = isHidden ? '▾' : '▸';
+  },
+
+  handleBulkImportFileSelect(e) {
+    const file = e.target.files && e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (evt) => {
+      const content = evt.target.result;
+      const input = document.getElementById('bulkImportInput');
+      if (input) {
+        input.value = content;
+        this.previewBulkImportLines();
+      }
+    };
+    reader.readAsText(file);
+  },
+
+  previewBulkImportLines() {
+    const input = document.getElementById('bulkImportInput');
+    const countEl = document.getElementById('bulkImportPrecheckCount');
+    if (!input || !countEl) return;
+    const lines = input.value.split(/\r?\n/).filter(l => l.trim().length > 0);
+    const count = lines.length;
+    countEl.innerHTML = `<strong>${count}</strong> record(s) detected in paste area. Ready for non-blocking chunked import.`;
+  },
+
+  async executeBulkImportJob() {
+    const rawText = document.getElementById('bulkImportInput')?.value || '';
+    const defaultNiche = document.getElementById('bulkImportDefaultNiche')?.value.trim() || '';
+    const updateExisting = document.getElementById('bulkImportUpdateExisting')?.checked ?? true;
+
+    if (!rawText.trim()) {
+      this.showToast('Please paste lead records or select a CSV file first', 'danger');
+      return;
+    }
+
+    const btn = document.getElementById('btnStartBulkImport');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="loading-spinner"></span> Launching Import Engine...`;
+    }
+
+    const progressBox = document.getElementById('bulkImportJobProgressBox');
+    if (progressBox) progressBox.style.display = 'block';
+
+    try {
+      const res = await this.authFetch('/api/leads/bulk-import-job', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawText, defaultNiche, updateExisting })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Failed to submit bulk import job');
+      }
+
+      this.activeImportJobId = data.job.id;
+      this.showToast(`Import job started: ${data.job.totalRows || 0} rows submitted`);
+      this.startImportJobPolling(data.job.id);
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+      if (progressBox) progressBox.style.display = 'none';
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `🚀 Start Durable Import`;
+      }
+    }
+  },
+
+  startImportJobPolling(jobId) {
+    if (this.importJobPollTimer) clearInterval(this.importJobPollTimer);
+
+    const poll = async () => {
+      try {
+        const res = await this.authFetch(`/api/leads/import-jobs/${jobId}`);
+        if (!res.ok) return;
+        const data = await res.json();
+        if (!data || !data.job) return;
+        const job = data.job;
+
+        const statusText = document.getElementById('bulkImportJobStatusText');
+        if (statusText) statusText.innerText = `Processing Batch Import (${job.processedRows || 0} / ${job.totalRows || 0})...`;
+
+        const percentEl = document.getElementById('bulkImportJobPercent');
+        if (percentEl) percentEl.innerText = `${job.progress || 0}%`;
+
+        const bar = document.getElementById('bulkImportJobProgressBar');
+        if (bar) bar.style.width = `${job.progress || 0}%`;
+
+        const sSub = document.getElementById('importStatSubmitted');
+        if (sSub) sSub.innerText = job.totalRows || 0;
+        const sImp = document.getElementById('importStatImported');
+        if (sImp) sImp.innerText = job.imported || 0;
+        const sDup = document.getElementById('importStatDuplicates');
+        if (sDup) sDup.innerText = job.skippedDuplicates || 0;
+        const sInv = document.getElementById('importStatInvalid');
+        if (sInv) sInv.innerText = job.invalid || 0;
+        const sSup = document.getElementById('importStatSuppressed');
+        if (sSup) sSup.innerText = job.suppressed || 0;
+
+        if (['completed', 'failed', 'cancelled'].includes(job.status)) {
+          clearInterval(this.importJobPollTimer);
+          this.importJobPollTimer = null;
+          if (statusText) statusText.innerText = `✓ Import ${job.status.toUpperCase()}! Processed ${job.processedRows || 0} rows.`;
+
+          const reportRow = document.getElementById('bulkImportExportReportRow');
+          if (reportRow) reportRow.style.display = 'block';
+
+          this.showToast(`✓ Bulk import completed: ${job.imported || 0} added, ${job.skippedDuplicates || 0} duplicates skipped.`);
+          this.loadLeads(1);
+          this.loadOverviewMetrics();
+        }
+      } catch (e) {
+        console.warn('Import job poll error:', e.message);
+      }
+    };
+
+    poll();
+    this.importJobPollTimer = setInterval(poll, 800);
+  },
+
+  downloadCurrentImportReport() {
+    if (!this.activeImportJobId) return;
+    window.open(`/api/leads/import-jobs/${this.activeImportJobId}/export`, '_blank');
+  },
+
+  // ==========================================================
+  // TAB 5: SENDER ACCOUNTS & MULTI-ACCOUNT POOL CONTROLLER
+  // ==========================================================
+  toggleBulkAccountsBox() {
+    const drawer = document.getElementById('bulkAccountsDrawer');
+    if (!drawer) return;
+    drawer.style.display = (drawer.style.display === 'none' || !drawer.style.display) ? 'block' : 'none';
+  },
+
+  async executeBulkAccountsImport() {
+    const raw = document.getElementById('bulkAccountsInput')?.value || '';
+    const testImmediately = document.getElementById('bulkAccountsTestConn')?.checked ?? true;
+
+    if (!raw.trim()) {
+      this.showToast('Please enter accounts in email, password format', 'danger');
+      return;
+    }
+
+    const lines = raw.split(/\r?\n/).filter(l => l.trim().length > 0);
+    const accounts = [];
+    for (const line of lines) {
+      const parts = line.split(',').map(p => p.trim());
+      if (parts.length >= 2) {
+        accounts.push({
+          email: parts[0],
+          password: parts[1],
+          name: parts[2] || parts[0].split('@')[0],
+          dailySendCap: parseInt(parts[3] || '50', 10) || 50
+        });
+      }
+    }
+
+    if (accounts.length === 0) {
+      this.showToast('No valid account rows found (format: email, password, name, cap)', 'danger');
+      return;
+    }
+
+    const btn = document.getElementById('btnExecuteBulkAccounts');
+    if (btn) {
+      btn.disabled = true;
+      btn.innerHTML = `<span class="loading-spinner"></span> Validating & Connecting Accounts...`;
+    }
+
+    const reportBox = document.getElementById('bulkAccountsReportBox');
+    const summaryText = document.getElementById('bulkAccountsSummaryText');
+    const resultsList = document.getElementById('bulkAccountsResultsList');
+
+    try {
+      const res = await this.authFetch('/api/accounts/bulk-import', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accounts, testConnections: testImmediately })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) {
+        throw new Error(data.error || 'Bulk setup failed');
+      }
+
+      if (reportBox && summaryText && resultsList) {
+        reportBox.style.display = 'block';
+        summaryText.innerHTML = `✓ Processed ${data.summary?.total || 0} accounts: <span style="color: #059669;">${data.summary?.added || 0} Connected</span>, <span style="color: #dc2626;">${data.summary?.failed || 0} Failed</span>`;
+        resultsList.innerHTML = (data.results || []).map(r => `
+          <div style="font-size: 12px; display: flex; justify-content: space-between; padding: 4px 8px; background: ${r.status === 'Connected' ? '#ecfdf5' : '#fef2f2'}; border-radius: 4px;">
+            <span><strong>${this.escapeHtml(r.email)}</strong> (${this.escapeHtml(r.name || 'Sender')})</span>
+            <span style="font-weight: 600; color: ${r.status === 'Connected' ? '#059669' : '#dc2626'};">${this.escapeHtml(r.status)}</span>
+          </div>
+        `).join('');
+      }
+
+      this.showToast(`✓ Bulk accounts imported: ${data.summary?.added || 0} connected`);
+      await this.loadSavedAccounts();
+      this.renderAccountsManagerTable();
+      this.loadOverviewMetrics();
+    } catch (err) {
+      this.showToast(err.message, 'danger');
+    } finally {
+      if (btn) {
+        btn.disabled = false;
+        btn.innerHTML = `⚡ Validate & Save All Accounts`;
+      }
+    }
+  },
+
+  toggleSenderRoutingMode(mode) {
+    const isMulti = mode === 'multi';
+    const poolConfig = document.getElementById('multiAccountPoolConfig');
+    const singleGrid = document.getElementById('singleSenderInputsGrid');
+
+    if (poolConfig) poolConfig.style.display = isMulti ? 'block' : 'none';
+    if (singleGrid) singleGrid.style.display = isMulti ? 'none' : 'grid';
+
+    if (isMulti) {
+      this.renderMultiAccountCheckboxes();
+      this.previewMultiAccountAllocation();
+    }
+  },
+
+  renderMultiAccountCheckboxes() {
+    const container = document.getElementById('multiAccountCheckboxesContainer');
+    if (!container) return;
+
+    if (!this.accounts || this.accounts.length === 0) {
+      container.innerHTML = `<div style="font-size: 12px; color: var(--text-dim); padding: 4px;">No sender accounts configured. Add accounts in Sender Accounts tab first.</div>`;
+      return;
+    }
+
+    container.innerHTML = this.accounts.map(acc => {
+      const remaining = acc.remainingToday ?? ((acc.dailySendCap || 50) - (acc.sentToday || 0));
+      return `
+        <label style="display: flex; justify-content: space-between; align-items: center; font-size: 12px; cursor: pointer; padding: 2px 4px;">
+          <div style="display: flex; align-items: center; gap: 6px;">
+            <input type="checkbox" class="multi-acc-cb" value="${acc.id}" checked onchange="app.previewMultiAccountAllocation()">
+            <strong style="color: var(--text-main);">${this.escapeHtml(acc.email)}</strong>
+            <span style="color: var(--text-dim); font-size: 11px;">(${this.escapeHtml(acc.name || 'Sender')})</span>
+          </div>
+          <span style="font-size: 11px; color: ${remaining > 0 ? '#059669' : '#dc2626'}; font-weight: 600;">
+            ${remaining} sends left today
+          </span>
+        </label>
+      `;
+    }).join('');
+  },
+
+  selectAllSenderAccountsForCampaign() {
+    const cbs = document.querySelectorAll('.multi-acc-cb');
+    cbs.forEach(cb => { cb.checked = true; });
+    this.previewMultiAccountAllocation();
+  },
+
+  async previewMultiAccountAllocation() {
+    const selectedCbs = Array.from(document.querySelectorAll('.multi-acc-cb:checked'));
+    const accountIds = selectedCbs.map(cb => cb.value);
+    const perAccountCap = parseInt(document.getElementById('multiAccountPerCapInput')?.value || '50', 10);
+    const routingPolicy = document.getElementById('multiAccountPolicySelect')?.value || 'balanced';
+
+    const leadsCount = this.parsedValidation?.validCount || 0;
+
+    const capSpan = document.getElementById('allocPreviewCapacity');
+    const statusSpan = document.getElementById('allocPreviewStatus');
+    const listEl = document.getElementById('allocPreviewList');
+
+    if (accountIds.length === 0) {
+      if (capSpan) capSpan.innerText = 'Total Pool Capacity: 0 sends';
+      if (statusSpan) statusSpan.innerText = '0 accounts selected';
+      if (listEl) listEl.innerHTML = '<span style="color: #dc2626;">Select at least one sender mailbox.</span>';
+      return;
+    }
+
+    try {
+      const res = await this.authFetch('/api/campaigns/multi-account-preview', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ accountIds, perAccountCap, routingPolicy, leadsCount })
+      });
+      const data = await res.json();
+      if (!res.ok || !data.success) return;
+
+      if (capSpan) capSpan.innerText = `Total Pool Capacity: ${data.totalCapacity || 0} sends today`;
+      if (statusSpan) statusSpan.innerText = `${data.accountsCount || accountIds.length} accounts ready`;
+
+      if (listEl) {
+        listEl.innerHTML = (data.allocations || []).map(a => `
+          <div>• ${this.escapeHtml(a.email)}: allocated ${a.assignedLeads} leads (Cap: ${a.dailySendCap}, ${a.remainingToday} left)</div>
+        `).join('');
+      }
+    } catch (e) {
+      console.warn('Preview allocation error:', e.message);
     }
   },
 

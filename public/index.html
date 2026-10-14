@@ -31,79 +31,72 @@
       </div>
 
       <nav class="nav-list">
-        <!-- SECTION 1: CAMPAIGN STUDIO -->
-        <div class="nav-section-title">Campaign Studio</div>
+        <!-- SECTION 1: CORE ENGINE -->
+        <div class="nav-section-title">Core Engine</div>
 
-        <!-- 1. COMPOSE -->
-        <a class="nav-link active" data-tab="composer" id="nav-composer" title="Compose &amp; Launch Outreach">
-          <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-          <span>Compose</span>
+        <!-- 1. OVERVIEW -->
+        <a class="nav-link active" data-tab="overview" id="nav-overview" title="Executive Overview &amp; Real Metrics Dashboard">
+          <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
+          <span>Overview</span>
         </a>
 
-        <!-- 2. TRACKER -->
-        <a class="nav-link" data-tab="tracker" id="nav-tracker" title="Live Open Tracker">
-          <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-          <span>Live Open Tracker</span>
-          <span class="status-badge status-inprogress" id="navTrackerPill" style="padding: 2px 6px; font-size: 10px; margin-left: auto;">Live</span>
+        <!-- 2. LEAD SCRAPER -->
+        <a class="nav-link" data-tab="scraper" id="nav-scraper" title="Discover Business Leads from Public Sources">
+          <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+          <span>Lead Scraper</span>
+          <span class="status-badge status-inprogress" id="navScraperPill" style="padding: 1px 6px; font-size: 10px; margin-left: auto;">OSM</span>
         </a>
 
-        <!-- 3. SENT -->
-        <a class="nav-link" data-tab="sent" id="nav-sent" title="Sent Outreach &amp; Logs">
-          <svg viewBox="0 0 24 24"><line x1="22" y1="2" x2="11" y2="13"/><polygon points="22 2 15 22 11 13 2 9 22 2"/></svg>
-          <span>Sent Log</span>
+        <!-- 3. WEBSITE AUDITOR -->
+        <a class="nav-link" data-tab="auditor" id="nav-auditor" title="Automatic Website Audit &amp; Technical Health Analysis">
+          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/><polyline points="9 12 11 14 15 10"/></svg>
+          <span>Website Auditor</span>
+          <span class="status-badge status-completed" style="font-size: 9px; padding: 1px 5px; margin-left: auto;">SSRF Safe</span>
         </a>
 
-        <!-- SECTION 2: INBOX ENGINE -->
-        <div class="nav-section-title" style="margin-top: 14px;">Inbox Engine</div>
+        <!-- 4. LEAD DATABASE -->
+        <a class="nav-link" data-tab="leads" id="nav-leads" title="Lead Database &amp; Bulk 1,000+ Importer">
+          <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+          <span>Lead Database</span>
+          <span class="nav-counter-pill" id="navLeadsBadge" style="display: none;">0</span>
+        </a>
 
-        <!-- 4. ALL INBOX -->
-        <a class="nav-link" data-tab="all-inbox" id="nav-all-inbox" title="All Connected Inboxes">
-          <svg viewBox="0 0 24 24"><path d="M22 19a2 2 0 0 1-2 2H4a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h5l2 3h9a2 2 0 0 1 2 2z"/></svg>
-          <span>All Inbox</span>
+        <!-- SECTION 2: OUTREACH & DISPATCH -->
+        <div class="nav-section-title" style="margin-top: 14px;">Outreach</div>
+
+        <!-- 5. CAMPAIGN STUDIO -->
+        <a class="nav-link" data-tab="composer" id="nav-composer" title="Multi-Account Campaign Studio &amp; Allocation">
+          <svg viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+          <span>Campaign Studio</span>
+        </a>
+
+        <!-- 6. SENDER ACCOUNTS -->
+        <a class="nav-link" data-tab="accounts" id="nav-accounts" title="Sender Mailbox Manager &amp; Bulk Setup">
+          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7.5" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
+          <span>Sender Accounts</span>
+          <span class="nav-counter-pill" id="navAccountsBadge" style="display: none;">0</span>
+        </a>
+
+        <!-- 7. INBOX -->
+        <a class="nav-link" data-tab="all-inbox" id="nav-all-inbox" title="Unified Inbox &amp; Real Replies">
+          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
+          <span>Inbox</span>
           <span class="nav-counter-pill" id="navAllInboxBadge" style="display: none;">0</span>
         </a>
 
-        <!-- 5. PRIMARY INBOX -->
-        <a class="nav-link" data-tab="primary-inbox" id="nav-primary-inbox" title="Primary Active Inbox">
-          <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
-          <span>Primary Inbox</span>
-          <span class="nav-counter-pill" id="navPrimaryInboxBadge" style="display: none;">0</span>
+        <!-- SECTION 3: INTELLIGENCE & CONTROL -->
+        <div class="nav-section-title" style="margin-top: 14px;">Intelligence</div>
+
+        <!-- 8. ANALYTICS -->
+        <a class="nav-link" data-tab="analytics" id="nav-analytics" title="Live Open Telemetry, Sent Logs &amp; Delivery Analytics">
+          <svg viewBox="0 0 24 24"><path d="M18 20V10"/><path d="M12 20V4"/><path d="M6 20v-6"/></svg>
+          <span>Analytics</span>
         </a>
 
-        <!-- 6. SPAM RESCUE -->
-        <a class="nav-link" data-tab="spam" id="nav-spam" title="Spam &amp; Filtered Leads Rescue">
-          <svg viewBox="0 0 24 24"><path d="M10.29 3.86L1.82 18a2 2 0 0 0 1.71 3h16.94a2 2 0 0 0 1.71-3L13.71 3.86a2 2 0 0 0-3.42 0z"/><line x1="12" y1="9" x2="12" y2="13"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <span>Spam Rescue</span>
-          <span class="nav-counter-pill" id="navSpamBadge" style="display: none; background: #ef4444;">0</span>
-        </a>
-
-        <!-- 7. BOUNCED LEADS -->
-        <a class="nav-link" data-tab="bounces" id="nav-bounces" title="Bounced Leads &amp; Shield">
-          <svg viewBox="0 0 24 24"><path d="M10 14l-5-5 5-5"/><path d="M4 19h10a6 6 0 0 0 6-6v-1a6 6 0 0 0-6-6H5"/></svg>
-          <span>Bounced Leads</span>
-          <span class="nav-counter-pill" id="navBouncesBadge" style="display: none; background: #dc2626;">0</span>
-        </a>
-
-        <!-- SECTION 3: SYSTEM -->
-        <div class="nav-section-title" style="margin-top: 14px;">System</div>
-
-        <!-- 8. SENDER ACCOUNTS -->
-        <a class="nav-link" data-tab="accounts" id="nav-accounts" title="Sender Mailbox Manager">
-          <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7.5" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
-          <span>Sender Accounts</span>
-        </a>
-
-        <!-- 9. POSTMASTER & DNS SHIELD -->
-        <a class="nav-link" data-tab="deliverability" id="nav-deliverability" title="Google Postmaster &amp; DNS Deliverability Shield">
-          <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
-          <span>DNS &amp; Postmaster</span>
-          <span class="status-badge status-completed" id="navDeliverabilityScoreBadge" style="font-size: 10px; padding: 1px 6px; margin-left: auto;">100%</span>
-        </a>
-
-        <!-- 10. APP PASSWORD HELP -->
-        <a class="nav-link" data-tab="guide" id="nav-guide" title="Google App Password Guide">
-          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><path d="M9.09 9a3 3 0 0 1 5.83 1c0 2-3 3-3 3"/><line x1="12" y1="17" x2="12.01" y2="17"/></svg>
-          <span>App Password Help</span>
+        <!-- 9. SETTINGS -->
+        <a class="nav-link" data-tab="settings" id="nav-settings" title="Workspaces, API Credentials &amp; Deliverability Shield">
+          <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 0 0 .33 1.82l.06.06a2 2 0 0 1 0 2.83 2 2 0 0 1-2.83 0l-.06-.06a1.65 1.65 0 0 0-1.82-.33 1.65 1.65 0 0 0-1 1.51V21a2 2 0 0 1-2 2 2 2 0 0 1-2-2v-.09A1.65 1.65 0 0 0 9 19.4a1.65 1.65 0 0 0-1.82.33l-.06.06a2 2 0 0 1-2.83 0 2 2 0 0 1 0-2.83l.06-.06a1.65 1.65 0 0 0 .33-1.82 1.65 1.65 0 0 0-1.51-1H3a2 2 0 0 1-2-2 2 2 0 0 1 2-2h.09A1.65 1.65 0 0 0 4.6 9a1.65 1.65 0 0 0-.33-1.82l-.06-.06a2 2 0 0 1 0-2.83 2 2 0 0 1 2.83 0l.06.06a1.65 1.65 0 0 0 1.82.33H9a1.65 1.65 0 0 0 1-1.51V3a2 2 0 0 1 2-2 2 2 0 0 1 2 2v.09a1.65 1.65 0 0 0 1 1.51 1.65 1.65 0 0 0 1.82-.33l.06-.06a2 2 0 0 1 2.83 0 2 2 0 0 1 0 2.83l-.06.06a1.65 1.65 0 0 0-.33 1.82V9a1.65 1.65 0 0 0 1.51 1H21a2 2 0 0 1 2 2 2 2 0 0 1-2 2h-.09a1.65 1.65 0 0 0-1.51 1z"/></svg>
+          <span>Settings</span>
         </a>
       </nav>
 
@@ -311,9 +304,552 @@
         </div>
 
         <!-- ==========================================================
-             TAB 1: SEND OUTREACH (FOCUSED WORKSPACE)
+             TAB 0: EXECUTIVE OVERVIEW & REAL METRICS DASHBOARD
              ========================================================== -->
-        <section id="tab-composer" class="tab-view active">
+        <section id="tab-overview" class="tab-view active">
+          <div class="overview-header-row" style="display: flex; justify-content: space-between; align-items: flex-start; flex-wrap: wrap; gap: 14px; margin-bottom: 24px;">
+            <div>
+              <div class="studio-badge-row" style="margin-bottom: 6px;">
+                <span class="studio-status-dot" style="background: #10b981;"></span>
+                <span class="studio-badge-title">MailFlow Intelligence Hub</span>
+                <span class="studio-badge-divider">•</span>
+                <span class="studio-badge-spec" id="overviewDataSourceBadge">Real Stored Metrics • Persistent Store</span>
+              </div>
+              <h1 class="page-main-heading" style="margin: 0; font-size: 24px; font-weight: 800; color: var(--text-main);">Executive Command Center</h1>
+              <p style="color: var(--text-muted); font-size: 13.5px; margin-top: 4px;">Live operational telemetry across lead discovery, site audits, sender capacities, and delivery events.</p>
+            </div>
+            <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="app.loadOverviewMetrics()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <span>Refresh Metrics</span>
+              </button>
+              <button type="button" class="btn btn-primary btn-sm" onclick="app.switchTab('scraper')">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+                <span>Discover Leads</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- PRIMARY KPI METRICS GRID (ALL REAL PERSISTENT DATA) -->
+          <div class="kpi-metrics-grid" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)); gap: 16px; margin-bottom: 24px;">
+            
+            <div class="kpi-card" onclick="app.switchTab('scraper')" style="cursor: pointer; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; box-shadow: var(--shadow-sm); transition: transform 0.15s, box-shadow 0.15s;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-dim);">Leads Discovered</span>
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(16, 185, 129, 0.12); color: #059669; display: flex; align-items: center; justify-content: center; font-size: 16px;">🔍</div>
+              </div>
+              <div style="font-size: 28px; font-weight: 800; color: var(--text-main); line-height: 1;" id="kpiTotalDiscovered">0</div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11.5px;">
+                <span class="status-badge status-completed" style="font-size: 10px; padding: 1px 6px;">OSM Live</span>
+                <span style="color: var(--text-dim);">OpenStreetMap &amp; Search APIs</span>
+              </div>
+            </div>
+
+            <div class="kpi-card" onclick="app.switchTab('leads')" style="cursor: pointer; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; box-shadow: var(--shadow-sm); transition: transform 0.15s, box-shadow 0.15s;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-dim);">Lead Database</span>
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(37, 99, 235, 0.12); color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 16px;">👥</div>
+              </div>
+              <div style="font-size: 28px; font-weight: 800; color: var(--text-main); line-height: 1;" id="kpiTotalLeads">0</div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11.5px;">
+                <span class="status-badge" style="background: #eff6ff; color: #1d4ed8; font-size: 10px; padding: 1px 6px;" id="kpiImportedBadge">0 Imported</span>
+                <span style="color: var(--text-dim);" id="kpiEligibleSubtext">0 outreach eligible</span>
+              </div>
+            </div>
+
+            <div class="kpi-card" onclick="app.switchTab('auditor')" style="cursor: pointer; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; box-shadow: var(--shadow-sm); transition: transform 0.15s, box-shadow 0.15s;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-dim);">Websites Audited</span>
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(245, 158, 11, 0.12); color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 16px;">🛡️</div>
+              </div>
+              <div style="font-size: 28px; font-weight: 800; color: var(--text-main); line-height: 1;" id="kpiWebsitesAudited">0</div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11.5px;">
+                <span class="status-badge" style="background: #fffbeb; color: #b45309; font-size: 10px; padding: 1px 6px;" id="kpiVerifiedFindingsBadge">0 with Issues</span>
+                <span style="color: var(--text-dim);">SSRF Protected Crawls</span>
+              </div>
+            </div>
+
+            <div class="kpi-card" onclick="app.switchTab('accounts')" style="cursor: pointer; background: var(--bg-card); border: 1px solid var(--border-subtle); border-radius: var(--radius-md); padding: 18px; box-shadow: var(--shadow-sm); transition: transform 0.15s, box-shadow 0.15s;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <span style="font-size: 13px; font-weight: 600; color: var(--text-dim);">Sender Mailboxes</span>
+                <div style="width: 32px; height: 32px; border-radius: 8px; background: rgba(99, 102, 241, 0.12); color: #6366f1; display: flex; align-items: center; justify-content: center; font-size: 16px;">📬</div>
+              </div>
+              <div style="font-size: 28px; font-weight: 800; color: var(--text-main); line-height: 1;" id="kpiConnectedSenders">0</div>
+              <div style="display: flex; align-items: center; gap: 6px; margin-top: 10px; font-size: 11.5px;">
+                <span class="status-badge" style="background: #f5f3ff; color: #5b21b6; font-size: 10px; padding: 1px 6px;" id="kpiSendCapacityBadge">0 Daily Cap</span>
+                <span style="color: var(--text-dim);" id="kpiRemainingCapSubtext">0 sends left today</span>
+              </div>
+            </div>
+
+          </div>
+
+          <!-- SECONDARY ROW: CAMPAIGNS, DELIVERIES, REPLIES -->
+          <div class="campaign-card" style="margin-bottom: 24px; padding: 16px 20px;">
+            <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 14px; text-align: center;">
+              <div>
+                <div style="font-size: 20px; font-weight: 800; color: #059669;" id="kpiActiveCampaigns">0</div>
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: var(--text-dim); margin-top: 2px;">Active Campaigns</div>
+              </div>
+              <div style="border-left: 1px solid var(--border-subtle);">
+                <div style="font-size: 20px; font-weight: 800; color: var(--text-main);" id="kpiAttempted">0</div>
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: var(--text-dim); margin-top: 2px;">Messages Attempted</div>
+              </div>
+              <div style="border-left: 1px solid var(--border-subtle);">
+                <div style="font-size: 20px; font-weight: 800; color: #059669;" id="kpiDelivered">0</div>
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: var(--text-dim); margin-top: 2px;">Delivered Events</div>
+              </div>
+              <div style="border-left: 1px solid var(--border-subtle);">
+                <div style="font-size: 20px; font-weight: 800; color: #dc2626;" id="kpiBounces">0</div>
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: var(--text-dim); margin-top: 2px;">Bounces / Failures</div>
+              </div>
+              <div style="border-left: 1px solid var(--border-subtle);">
+                <div style="font-size: 20px; font-weight: 800; color: #2563eb;" id="kpiReplies">0</div>
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: var(--text-dim); margin-top: 2px;">Inbox Replies</div>
+              </div>
+              <div style="border-left: 1px solid var(--border-subtle);">
+                <div style="font-size: 20px; font-weight: 800; color: #64748b;" id="kpiUnsubscribes">0</div>
+                <div style="font-size: 11px; text-transform: uppercase; font-weight: 600; color: var(--text-dim); margin-top: 2px;">Suppressed / Opt-Outs</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- SYSTEM WORKFLOW LAUNCHPAD & SECURITY COMPLIANCE -->
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(340px, 1fr)); gap: 20px;">
+            
+            <!-- LEFT: WORKFLOW LAUNCHPAD -->
+            <div class="campaign-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0;">🚀 Engine Launchpad</h3>
+                <span class="status-badge status-completed" style="font-size: 11px;">All Systems Operational</span>
+              </div>
+              
+              <div style="display: flex; flex-direction: column; gap: 10px;">
+                <div onclick="app.switchTab('scraper')" style="cursor: pointer; padding: 12px 14px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; transition: background 0.15s;">
+                  <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); color: #059669; display: flex; align-items: center; justify-content: center; font-size: 16px;">🔎</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">1. Discover Leads</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Search public directories across any global city &amp; niche.</div>
+                  </div>
+                  <span style="color: var(--primary); font-weight: 700;">→</span>
+                </div>
+
+                <div onclick="app.switchTab('auditor')" style="cursor: pointer; padding: 12px 14px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; transition: background 0.15s;">
+                  <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(245, 158, 11, 0.15); color: #d97706; display: flex; align-items: center; justify-content: center; font-size: 16px;">🔬</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">2. Audit Websites</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Inspect technical health, SEO gaps &amp; generate verified pitch proof.</div>
+                  </div>
+                  <span style="color: var(--primary); font-weight: 700;">→</span>
+                </div>
+
+                <div onclick="app.switchTab('leads')" style="cursor: pointer; padding: 12px 14px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; transition: background 0.15s;">
+                  <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(37, 99, 235, 0.15); color: #2563eb; display: flex; align-items: center; justify-content: center; font-size: 16px;">📥</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">3. Bulk Import 1,000+ Leads</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Paste 1,000+ leads or upload CSV with chunked non-blocking engine.</div>
+                  </div>
+                  <span style="color: var(--primary); font-weight: 700;">→</span>
+                </div>
+
+                <div onclick="app.switchTab('composer')" style="cursor: pointer; padding: 12px 14px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); display: flex; align-items: center; gap: 12px; transition: background 0.15s;">
+                  <div style="width: 34px; height: 34px; border-radius: 8px; background: rgba(16, 185, 129, 0.15); color: #059669; display: flex; align-items: center; justify-content: center; font-size: 16px;">⚡</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">4. Multi-Account Dispatch</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Round-robin quota balancing across up to 50+ sender inboxes.</div>
+                  </div>
+                  <span style="color: var(--primary); font-weight: 700;">→</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- RIGHT: SECURITY & COMPLIANCE SHIELD -->
+            <div class="campaign-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+                <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0;">🛡️ Security &amp; Compliance Shield</h3>
+                <span class="status-badge status-inprogress" style="font-size: 11px;">Enforced</span>
+              </div>
+
+              <div style="display: flex; flex-direction: column; gap: 12px;">
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                  <div style="width: 22px; height: 22px; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 2px;">✓</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">SSRF &amp; Private Network Protection</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Loopback (127.0.0.1), RFC1918 private subnets &amp; AWS/GCP metadata endpoints blocked.</div>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                  <div style="width: 22px; height: 22px; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 2px;">✓</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">AES-256-GCM Sender Secret Vault</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">App passwords encrypted securely on server. Zero client-side plaintext exposure.</div>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                  <div style="width: 22px; height: 22px; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 2px;">✓</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">Zero Anti-Bot Circumvention Policy</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Uses official APIs &amp; permitted public open directories. No CAPTCHA bypass or paywall evasion.</div>
+                  </div>
+                </div>
+
+                <div style="display: flex; gap: 10px; align-items: flex-start;">
+                  <div style="width: 22px; height: 22px; border-radius: 50%; background: #ecfdf5; color: #059669; display: flex; align-items: center; justify-content: center; font-size: 12px; font-weight: 800; flex-shrink: 0; margin-top: 2px;">✓</div>
+                  <div style="flex: 1;">
+                    <div style="font-weight: 700; font-size: 13px; color: var(--text-main);">Provider Throttling &amp; Anti-Spam Compliance</div>
+                    <div style="font-size: 12px; color: var(--text-muted);">Automatic cooldown on SMTP 454/550 restrictions. Respects sending caps without evading bans.</div>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+        </section>
+
+        <!-- ==========================================================
+             TAB 2: LEAD SCRAPER & BUSINESS DISCOVERY ENGINE
+             ========================================================== -->
+        <section id="tab-scraper" class="tab-view">
+          <div class="studio-header-clean desktop-only" style="margin-bottom: 20px;">
+            <div class="studio-header-left">
+              <div class="studio-badge-row">
+                <span class="studio-status-dot" style="background: #10b981;"></span>
+                <span class="studio-badge-title">Lead Discovery Engine</span>
+                <span class="studio-badge-divider">•</span>
+                <span class="studio-badge-spec">Permitted Open Data &amp; Search APIs</span>
+              </div>
+              <h1 class="studio-page-title">Lead Scraper</h1>
+              <p class="studio-page-desc">Discover publicly listed businesses, websites, and verified contact channels by industry and location using authorized data sources.</p>
+            </div>
+            <div class="studio-header-actions">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="app.loadScraperJobs()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M23 4v6h-6M1 20v-6h6"/><path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10M1 14l4.64 4.36A9 9 0 0 0 20.49 15"/></svg>
+                <span>Job History</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- DISCOVERY SEARCH CONTROLS -->
+          <div class="campaign-card" style="margin-bottom: 24px;">
+            <form id="scraperSearchForm" onsubmit="app.handleScraperSubmit(event)">
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 14px; margin-bottom: 16px;">
+                
+                <div>
+                  <label class="form-label">Business Niche / Industry <span style="color: #dc2626;">*</span></label>
+                  <input type="text" class="input-clean" id="scraperNiche" placeholder="e.g. Dental clinic, SEO agency, HVAC" required value="Dental clinic">
+                </div>
+
+                <div>
+                  <label class="form-label">City &amp; Location <span style="color: #dc2626;">*</span></label>
+                  <input type="text" class="input-clean" id="scraperLocation" placeholder="e.g. Austin, TX, Miami, FL, London" required value="Austin, TX">
+                </div>
+
+                <div>
+                  <label class="form-label">Search Keywords (Optional)</label>
+                  <input type="text" class="input-clean" id="scraperKeywords" placeholder="e.g. cosmetic, orthodontics">
+                </div>
+
+                <div>
+                  <label class="form-label">Data Source Provider</label>
+                  <select class="input-clean" id="scraperSource">
+                    <option value="osm" selected>OpenStreetMap Overpass API (Live Public Directory - Default)</option>
+                    <option value="directory">Verified High-Fidelity Directory Index</option>
+                    <option value="google_places">Google Places API (Requires GOOGLE_PLACES_API_KEY)</option>
+                    <option value="serpapi">SerpAPI Search (Requires SERPAPI_KEY)</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="form-label">Maximum Results</label>
+                  <select class="input-clean" id="scraperMaxResults">
+                    <option value="10">10 results</option>
+                    <option value="25" selected>25 results</option>
+                    <option value="50">50 results</option>
+                    <option value="100">100 results</option>
+                    <option value="250">250 results</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label class="form-label">Website Filter</label>
+                  <input type="text" class="input-clean" id="scraperDomainFilter" placeholder="e.g. .com or leave blank">
+                </div>
+
+              </div>
+
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 12px; border-top: 1px solid var(--border-subtle); padding-top: 14px;">
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; color: var(--text-dim);">
+                  <span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #10b981;"></span>
+                  <span>Compliance Guarantee: Only publicly listed business info collected. No CAPTCHAs bypassed.</span>
+                </div>
+                <div style="display: flex; gap: 10px;">
+                  <button type="submit" class="btn btn-primary" id="btnStartScraper">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"><polygon points="5 3 19 12 5 21 5 3"/></svg>
+                    <span>Start Lead Discovery</span>
+                  </button>
+                </div>
+              </div>
+            </form>
+          </div>
+
+          <!-- ACTIVE JOB PROGRESS & CONTROLS -->
+          <div class="campaign-card" id="scraperJobProgressCard" style="display: none; margin-bottom: 24px; border-left: 4px solid var(--primary);">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; flex-wrap: wrap; gap: 10px;">
+              <div>
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <h3 style="font-size: 15px; font-weight: 700; margin: 0; color: var(--text-main);" id="scraperJobTitle">Discovery Job in Progress</h3>
+                  <span class="status-badge status-inprogress" id="scraperJobStatusPill">Running</span>
+                </div>
+                <div style="font-size: 12.5px; color: var(--text-muted); margin-top: 2px;" id="scraperJobSubtext">Querying OpenStreetMap Overpass API for registered business coordinates...</div>
+              </div>
+              <div style="display: flex; gap: 8px;" id="scraperJobControls">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnPauseScraper" onclick="app.pauseScraperJob()">Pause</button>
+                <button type="button" class="btn btn-secondary btn-sm" id="btnResumeScraper" style="display: none;" onclick="app.resumeScraperJob()">Resume</button>
+                <button type="button" class="btn btn-danger btn-sm" id="btnCancelScraper" onclick="app.cancelScraperJob()">Cancel</button>
+              </div>
+            </div>
+
+            <!-- Scraper Progress Bar -->
+            <div style="margin: 12px 0 10px;">
+              <div style="display: flex; justify-content: space-between; font-size: 12px; margin-bottom: 4px;">
+                <span id="scraperProgressCount">0 / 25 leads processed</span>
+                <span id="scraperProgressPercent" style="font-family: monospace; font-weight: 600;">0%</span>
+              </div>
+              <div class="progress-bar-bg" style="height: 6px; border-radius: 3px; overflow: hidden; background: #e2e8f0;">
+                <div class="progress-bar-fill progress-shimmer" id="scraperProgressBar" style="width: 0%; height: 100%; background: #059669;"></div>
+              </div>
+            </div>
+
+            <!-- Discovery Mini-Stats -->
+            <div style="display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-top: 14px;">
+              <div class="send-stat-box" style="padding: 10px;">
+                <div class="send-stat-value" id="scraperStatFound" style="font-size: 18px; color: var(--text-main);">0</div>
+                <div class="send-stat-label" style="font-size: 11px;">Discovered</div>
+              </div>
+              <div class="send-stat-box" style="padding: 10px; background: #ecfdf5;">
+                <div class="send-stat-value" id="scraperStatWithEmail" style="font-size: 18px; color: #059669;">0</div>
+                <div class="send-stat-label" style="font-size: 11px;">With Email</div>
+              </div>
+              <div class="send-stat-box" style="padding: 10px; background: #eff6ff;">
+                <div class="send-stat-value" id="scraperStatWithWeb" style="font-size: 18px; color: #2563eb;">0</div>
+                <div class="send-stat-label" style="font-size: 11px;">With Website</div>
+              </div>
+              <div class="send-stat-box" style="padding: 10px; background: #fffbeb;">
+                <div class="send-stat-value" id="scraperStatDuplicates" style="font-size: 18px; color: #d97706;">0</div>
+                <div class="send-stat-label" style="font-size: 11px;">Duplicates Skipped</div>
+              </div>
+            </div>
+          </div>
+
+          <!-- RESULTS PREVIEW & ACTION BAR -->
+          <div class="campaign-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 12px;">
+              <div>
+                <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0;">Discovered Leads Preview</h3>
+                <p style="font-size: 12.5px; color: var(--text-muted); margin: 2px 0 0 0;">Inspect discovered leads, verify contact details, and save directly to your Lead Database.</p>
+              </div>
+              <div style="display: flex; gap: 8px;">
+                <button type="button" class="btn btn-secondary btn-sm" id="btnExportScraperCsv" onclick="app.exportScraperCsv()" disabled>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>
+                  <span>Export CSV</span>
+                </button>
+                <button type="button" class="btn btn-primary btn-sm" id="btnSaveScraperToDb" onclick="app.saveScraperLeadsToDatabase()" disabled>
+                  <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11l5 5v11a2 2 0 0 1-2 2z"/><polyline points="17 21 17 13 7 13 7 21"/><polyline points="7 3 7 8 15 8"/></svg>
+                  <span>Save to Lead Database</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Scraper Results Table -->
+            <div class="table-container" style="max-height: 480px; overflow-y: auto;">
+              <table class="clean-table" id="scraperResultsTable">
+                <thead>
+                  <tr>
+                    <th style="width: 32px;"><input type="checkbox" id="chkSelectAllScraper" onchange="app.toggleSelectAllScraper(this.checked)"></th>
+                    <th>Business Name</th>
+                    <th>Category &amp; City</th>
+                    <th>Website URL</th>
+                    <th>Public Contact Email</th>
+                    <th>Verification Status</th>
+                    <th>Phone</th>
+                  </tr>
+                </thead>
+                <tbody id="scraperResultsTbody">
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: 36px; color: var(--text-dim);">
+                      <div style="font-size: 28px; margin-bottom: 8px;">🔎</div>
+                      <div style="font-weight: 600; font-size: 14px; color: var(--text-main);">No Leads Discovered Yet</div>
+                      <div style="font-size: 12.5px; margin-top: 4px;">Enter an industry and city above, then click <strong>"Start Lead Discovery"</strong>.</div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================================
+             TAB 3: WEBSITE AUDITOR & TECHNICAL HEALTH ENGINE
+             ========================================================== -->
+        <section id="tab-auditor" class="tab-view">
+          <div class="studio-header-clean desktop-only" style="margin-bottom: 20px;">
+            <div class="studio-header-left">
+              <div class="studio-badge-row">
+                <span class="studio-status-dot" style="background: #10b981;"></span>
+                <span class="studio-badge-title">Website Auditor &amp; SEO Engine</span>
+                <span class="studio-badge-divider">•</span>
+                <span class="studio-badge-spec">Strict SSRF &amp; Private IP Protection Active</span>
+              </div>
+              <h1 class="studio-page-title">Website Auditor</h1>
+              <p class="studio-page-desc">Automated, diagnostic technical health, on-page SEO, speed, and quality checks to uncover verified website defects for hyper-personalized outreach.</p>
+            </div>
+            <div class="studio-header-actions">
+              <button type="button" class="btn btn-secondary btn-sm" onclick="app.batchAuditLeadWebsites()">
+                <svg width="13" height="13" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="2" y="3" width="20" height="14" rx="2" ry="2"/><line x1="8" y1="21" x2="16" y2="21"/><line x1="12" y1="17" x2="12" y2="21"/></svg>
+                <span>Audit Leads from Database</span>
+              </button>
+            </div>
+          </div>
+
+          <!-- AUDIT SINGLE URL CARD -->
+          <div class="campaign-card" style="margin-bottom: 24px;">
+            <form id="auditorForm" onsubmit="app.handleAuditUrlSubmit(event)">
+              <div style="display: flex; gap: 12px; align-items: flex-end; flex-wrap: wrap;">
+                <div style="flex: 1; min-width: 280px;">
+                  <label class="form-label">Website URL to Audit <span style="color: #dc2626;">*</span></label>
+                  <div style="position: relative;">
+                    <input type="text" class="input-clean" id="auditorTargetUrl" placeholder="https://example.com" required style="padding-left: 36px;">
+                    <span style="position: absolute; left: 12px; top: 50%; transform: translateY(-50%); color: var(--text-dim); font-size: 14px;">🌐</span>
+                  </div>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button type="submit" class="btn btn-primary" id="btnRunAudit">
+                    <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                    <span>Run Full Audit</span>
+                  </button>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 16px; margin-top: 10px; font-size: 12px; color: var(--text-dim);">
+                <span>🔒 SSRF Guard: Blocks localhost, 127.0.0.1, 10.x, 192.168.x, 172.16-31.x &amp; 169.254.169.254</span>
+                <span>⏱️ Timeout: 8.0s</span>
+                <span>📦 Max document: 2.0MB</span>
+              </div>
+            </form>
+          </div>
+
+          <!-- AUDIT REPORT DISPLAY CONTAINER -->
+          <div id="auditReportContainer" style="display: none; margin-bottom: 24px;">
+            
+            <!-- OVERALL HEALTH SCORE & URL BANNER -->
+            <div class="campaign-card" style="margin-bottom: 20px; background: linear-gradient(135deg, #ffffff 0%, #f0fdf4 100%);">
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 16px;">
+                <div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-bottom: 4px;">
+                    <span class="status-badge status-completed" id="auditStatusPill">Audit Completed</span>
+                    <span style="font-size: 12px; color: var(--text-dim);" id="auditTimestampText">Just now</span>
+                  </div>
+                  <h2 style="font-size: 20px; font-weight: 800; color: var(--text-main); margin: 0;" id="auditResultUrl">https://example.com</h2>
+                  <div style="font-size: 13px; color: var(--text-muted); margin-top: 4px;" id="auditResultSummary">Technical health and SEO analysis complete.</div>
+                </div>
+
+                <div style="display: flex; align-items: center; gap: 20px;">
+                  <div style="text-align: right;">
+                    <div style="font-size: 11px; text-transform: uppercase; font-weight: 700; color: var(--text-dim); letter-spacing: 0.5px;">Health Score</div>
+                    <div style="font-size: 36px; font-weight: 800; line-height: 1;" id="auditResultScore">85<span style="font-size: 18px; color: var(--text-dim); font-weight: 600;">/100</span></div>
+                  </div>
+                  <div class="score-circle-badge" id="auditScoreBadge" style="width: 48px; height: 48px; border-radius: 50%; background: #ecfdf5; color: #059669; font-size: 22px; display: flex; align-items: center; justify-content: center; font-weight: 800; border: 2px solid #a7f3d0;">✓</div>
+                </div>
+              </div>
+
+              <!-- 4 SEVERITY COUNTS ROW -->
+              <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 10px; margin-top: 18px; padding-top: 16px; border-top: 1px solid var(--border-subtle);">
+                <div class="send-stat-box" style="padding: 8px; background: #fef2f2; border: 1px solid #fee2e2;">
+                  <div class="send-stat-value" id="auditCountCritical" style="color: #dc2626; font-size: 18px;">0</div>
+                  <div class="send-stat-label" style="color: #991b1b; font-size: 11px;">Critical Issues</div>
+                </div>
+                <div class="send-stat-box" style="padding: 8px; background: #fffbeb; border: 1px solid #fef3c7;">
+                  <div class="send-stat-value" id="auditCountHigh" style="color: #d97706; font-size: 18px;">0</div>
+                  <div class="send-stat-label" style="color: #92400e; font-size: 11px;">High Priority</div>
+                </div>
+                <div class="send-stat-box" style="padding: 8px; background: #fefce8; border: 1px solid #fef9c3;">
+                  <div class="send-stat-value" id="auditCountMedium" style="color: #ca8a04; font-size: 18px;">0</div>
+                  <div class="send-stat-label" style="color: #854d0e; font-size: 11px;">Medium Issues</div>
+                </div>
+                <div class="send-stat-box" style="padding: 8px; background: #eff6ff; border: 1px solid #dbeafe;">
+                  <div class="send-stat-value" id="auditCountLow" style="color: #2563eb; font-size: 18px;">0</div>
+                  <div class="send-stat-label" style="color: #1e40af; font-size: 11px;">Low &amp; Info</div>
+                </div>
+              </div>
+            </div>
+
+            <!-- PERSONALIZED OUTREACH PITCH GENERATOR BOX -->
+            <div class="campaign-card" style="margin-bottom: 20px; border: 1px solid #a7f3d0; background: #f0fdf4;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px; flex-wrap: wrap; gap: 8px;">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 16px;">💡</span>
+                  <h4 style="font-size: 14px; font-weight: 700; color: #065f46; margin: 0;">Verified Outreach Pitch Snippet</h4>
+                  <span class="status-badge status-completed" style="font-size: 10px;">Evidence-Based</span>
+                </div>
+                <div style="display: flex; gap: 8px;">
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="app.copyAuditPitchSnippet()">Copy Snippet</button>
+                  <button type="button" class="btn btn-primary btn-sm" onclick="app.insertAuditPitchIntoComposer()">Insert into Composer →</button>
+                </div>
+              </div>
+              <p style="font-size: 13.5px; color: #047857; margin: 0; line-height: 1.5; font-style: italic; background: #ffffff; padding: 12px; border-radius: 6px; border: 1px solid #d1fae5;" id="auditPitchSnippetText">
+                "I noticed your website has unoptimized metadata and several broken internal links..."
+              </p>
+            </div>
+
+            <!-- 4 AUDIT CATEGORIES DETAILS & FINDINGS LIST -->
+            <div class="campaign-card">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px; flex-wrap: wrap; gap: 10px;">
+                <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0;">Verified Diagnostic Findings</h3>
+                <div style="display: flex; gap: 6px;" id="auditFilterButtons">
+                  <button type="button" class="btn btn-secondary btn-sm active" onclick="app.filterAuditFindings('all', this)">All</button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="app.filterAuditFindings('Critical', this)">Critical</button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="app.filterAuditFindings('High', this)">High</button>
+                  <button type="button" class="btn btn-secondary btn-sm" onclick="app.filterAuditFindings('Medium', this)">Medium</button>
+                </div>
+              </div>
+
+              <!-- Findings Container -->
+              <div id="auditFindingsList" style="display: flex; flex-direction: column; gap: 10px;"></div>
+            </div>
+
+          </div>
+
+          <!-- PAST AUDITS HISTORY TABLE -->
+          <div class="campaign-card">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+              <h3 style="font-size: 15px; font-weight: 700; color: var(--text-main); margin: 0;">Recent Website Audits</h3>
+              <button type="button" class="btn btn-secondary btn-sm" onclick="app.loadAuditsHistory()">Refresh List</button>
+            </div>
+            <div class="table-container" style="max-height: 320px; overflow-y: auto;">
+              <table class="clean-table">
+                <thead>
+                  <tr>
+                    <th>Website URL</th>
+                    <th>Health Score</th>
+                    <th>Critical / High Issues</th>
+                    <th>Audited At</th>
+                    <th>Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="auditorHistoryTbody">
+                  <tr>
+                    <td colspan="5" style="text-align: center; padding: 24px; color: var(--text-dim);">No audits recorded yet. Run your first audit above!</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </section>
+
+        <!-- ==========================================================
+             TAB 4: CAMPAIGN STUDIO (MULTI-ACCOUNT ENGINE)
+             ========================================================== -->
+        <section id="tab-composer" class="tab-view">
           
           <!-- LIVE SENDING PROGRESS SCREEN -->
           <div class="sending-progress-card" id="activeSendingProgressCard" style="display: none; margin-bottom: 24px;">
@@ -458,8 +994,54 @@
                       </select>
                     </div>
 
+                    <!-- SENDER ROUTING MODE TOGGLE -->
+                    <div style="background: #ffffff; border: 1px solid var(--border-subtle); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px;">
+                      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                        <span style="font-weight: 700; font-size: 12.5px; color: var(--text-main);">Dispatch Routing Mode</span>
+                        <div style="display: flex; gap: 10px;">
+                          <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer;">
+                            <input type="radio" name="senderRoutingMode" value="single" checked onchange="app.toggleSenderRoutingMode(this.value)"> Single Account
+                          </label>
+                          <label style="display: flex; align-items: center; gap: 4px; font-size: 12px; cursor: pointer; color: #059669; font-weight: 700;">
+                            <input type="radio" name="senderRoutingMode" value="multi" onchange="app.toggleSenderRoutingMode(this.value)"> ⚡ Multi-Account Pool
+                          </label>
+                        </div>
+                      </div>
+
+                      <!-- MULTI-ACCOUNT POOL SELECTOR & ALLOCATION PREVIEW -->
+                      <div id="multiAccountPoolConfig" style="display: none; border-top: 1px dashed var(--border-subtle); padding-top: 10px;">
+                        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+                          <span style="font-size: 11.5px; color: var(--text-muted);">Select Authorized Accounts for Campaign:</span>
+                          <button type="button" class="action-btn-link" onclick="app.selectAllSenderAccountsForCampaign()" style="font-size: 11px;">Select All Active</button>
+                        </div>
+                        <div id="multiAccountCheckboxesContainer" style="display: flex; flex-direction: column; gap: 6px; max-height: 140px; overflow-y: auto; margin-bottom: 10px; background: #f8fafc; padding: 8px; border-radius: 6px; border: 1px solid #e2e8f0;"></div>
+
+                        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-bottom: 10px;">
+                          <div>
+                            <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 2px;">Cap Per Account (Sends)</label>
+                            <input type="number" id="multiAccountPerCapInput" class="input-clean" value="50" min="1" max="500" style="padding: 4px 8px; font-size: 12px;" onchange="app.previewMultiAccountAllocation()">
+                          </div>
+                          <div>
+                            <label style="font-size: 11px; font-weight: 600; color: var(--text-dim); display: block; margin-bottom: 2px;">Routing Policy</label>
+                            <select id="multiAccountPolicySelect" class="input-clean" style="padding: 4px 8px; font-size: 12px;" onchange="app.previewMultiAccountAllocation()">
+                              <option value="balanced" selected>Balanced Quota Distribution</option>
+                              <option value="round_robin">Round-Robin Rotation</option>
+                            </select>
+                          </div>
+                        </div>
+
+                        <div id="multiAccountAllocationPreviewBox" style="background: #f0fdf4; border: 1px solid #a7f3d0; border-radius: 6px; padding: 10px; font-size: 11.5px; color: #065f46;">
+                          <div style="display: flex; justify-content: space-between; font-weight: 700; margin-bottom: 4px;">
+                            <span id="allocPreviewCapacity">Total Pool Capacity: 0 sends</span>
+                            <span id="allocPreviewStatus">0 accounts selected</span>
+                          </div>
+                          <div id="allocPreviewList" style="max-height: 80px; overflow-y: auto; font-family: monospace; font-size: 11px; color: #047857;"></div>
+                        </div>
+                      </div>
+                    </div>
+
                     <!-- Active Sender Credentials Input Form -->
-                    <div class="sender-inputs-grid">
+                    <div class="sender-inputs-grid" id="singleSenderInputsGrid">
                       <div>
                         <label class="step-label" style="font-size: 12px; margin-bottom: 4px; display: block;">Your Full Name (Human Name) *</label>
                         <input type="text" id="senderDisplayName" class="form-control" placeholder="Your Name" value="" oninput="app.updateDesktopLivePreview()" title="Using a real human name stops Google from flagging your emails as a bot">
@@ -533,7 +1115,7 @@
                         <div>
                           <div style="display: flex; align-items: center; gap: 8px; flex-wrap: wrap;">
                             <strong style="color: #065f46; font-size: 13px;">Google Postmaster &amp; DNS Deliverability Shield:</strong>
-                            <span class="status-badge status-completed" id="step1DeliverabilityBadge" style="font-size: 10.5px; background: #059669; color: #fff;">100% Primary Inbox Ready</span>
+                            <span class="status-badge status-completed" id="step1DeliverabilityBadge" style="font-size: 10.5px; background: #059669; color: #fff;">DNS &amp; Auth Verified</span>
                           </div>
                           <div style="font-size: 11.5px; color: #047857; margin-top: 2px;" id="step1DeliverabilitySummary">
                             SPF: Valid • DKIM: 2048-bit Aligned • DMARC: Active • One-Click Unsub &amp; TLS 1.3 Active
@@ -553,17 +1135,19 @@
                   </div>
                 </div>
 
-                <!-- STEP 2: PASTE EMAIL LEADS (UP TO 50) -->
+                <!-- STEP 2: PASTE OR SELECT EMAIL LEADS (UP TO 50) -->
                 <div class="campaign-card" style="margin-bottom: 20px;">
                   <div class="form-step" style="padding: 0;">
                     <div class="step-label-row">
-                      <label class="step-label" for="leadsInput" style="font-size: 14px; font-weight: 700; color: var(--text-main);">2. Paste Email Leads (Max 50)</label>
-                      <div style="display: flex; gap: 8px; align-items: center;">
-                        <button type="button" class="action-btn-link" onclick="app.pasteSampleLeads()">+ Paste 10 Example Leads</button>
+                      <label class="step-label" for="leadsInput" style="font-size: 14px; font-weight: 700; color: var(--text-main);">2. Recipient Leads (Max 50)</label>
+                      <div style="display: flex; gap: 8px; align-items: center; flex-wrap: wrap;">
+                        <button type="button" class="action-btn-link" onclick="app.openSelectLeadsForComposerModal()">📋 Select from Leads</button>
+                        <button type="button" class="action-btn-link" onclick="app.openPreviewPersonalizationModal()">👁️ Preview Personalization</button>
+                        <button type="button" class="action-btn-link" onclick="app.pasteSampleLeads()">+ Sample</button>
                         <button type="button" class="action-btn-link" onclick="app.clearLeadsInput()" style="color: #dc2626;" title="Clear lead addresses">🗑️ Clear</button>
                       </div>
                     </div>
-                    <span class="step-helper" style="display: block; margin-bottom: 8px;">Paste up to 50 email addresses, one per line. No names or CSV headers required.</span>
+                    <span class="step-helper" style="display: block; margin-bottom: 8px;">Paste up to 50 email addresses (one per line) or import directly from your Leads Database.</span>
 
                     <textarea 
                       id="leadsInput" 
@@ -641,7 +1225,12 @@
                           <span style="font-size: 13px; font-weight: 700; color: #0f172a;" id="activeVariantIndicator">Editing Message 1 of 5</span>
                           <span class="status-badge status-completed" id="variantSaveStatusBadge" style="font-size: 10.5px; background: #ecfdf5; color: #059669; border: 1px solid #a7f3d0;">● Blank Slot</span>
                         </div>
-                        <div style="display: flex; align-items: center; gap: 8px;">
+                        <div class="meter-info-group" style="display: flex; align-items: center; gap: 10px; flex-wrap: wrap;">
+                          <span class="meter-score-text" id="meterTitle" style="font-size: 12px; font-weight: 700;">Content Deliverability Score: 98%</span>
+                          <div class="inbuilt-gauge-track" title="Real-time content deliverability rating">
+                            <div class="inbuilt-gauge-fill" id="meterGaugeFill" style="width: 98%;"></div>
+                          </div>
+                          <span class="meter-badge-pill" id="meterBadge">● High Deliverability</span>
                           <button type="button" onclick="app.openSpamGuideModal()" style="background: none; border: none; font-size: 11.5px; color: #059669; font-weight: 600; cursor: pointer; display: flex; align-items: center; gap: 4px;" title="Click to view why emails land in spam and how to reach Primary Inbox">
                             <span>🛡️ 100% Primary Inbox Shield</span>
                             <span style="text-decoration: underline; font-size: 11px;">(Tips ↗)</span>
@@ -703,8 +1292,12 @@
                         <div class="personalization-hint" style="margin-top: 10px; display: flex; align-items: center; justify-content: space-between; gap: 8px; flex-wrap: wrap;">
                           <div style="display: flex; align-items: center; gap: 6px; flex-wrap: wrap;">
                             <span style="font-weight: 600; color: var(--text-dim); font-size: 12px;">Insert Tag:</span>
-                            <button type="button" class="tag-btn" onclick="app.insertTag('{{email}}')">{{email}}</button>
+                            <button type="button" class="tag-btn" onclick="app.insertTag('{{businessName}}')">{{businessName}}</button>
+                            <button type="button" class="tag-btn" onclick="app.insertTag('{{website}}')">{{website}}</button>
+                            <button type="button" class="tag-btn" onclick="app.insertTag('{{auditFinding}}')" style="background: #fefce8; color: #854d0e; border-color: #fef08a; font-weight: 600;">{{auditFinding}}</button>
+                            <button type="button" class="tag-btn" onclick="app.insertTag('{{city}}')">{{city}}</button>
                             <button type="button" class="tag-btn" onclick="app.insertTag('{{name}}')">{{name}}</button>
+                            <button type="button" class="tag-btn" onclick="app.insertTag('{{email}}')">{{email}}</button>
                             <button type="button" class="tag-btn" onclick="app.insertTag('{{senderName}}')">{{senderName}}</button>
                             <button type="button" class="tag-btn" onclick="app.insertSpintaxSample()" style="background: #f0fdf4; color: #047857; font-weight: 600; border-color: #a7f3d0;">+ Spintax {A|B}</button>
                             <button type="button" class="tag-btn" onclick="app.openInsertImageModal()" style="background: #eff6ff; color: #1d4ed8; font-weight: 600; border-color: #bfdbfe; box-shadow: 0 1px 3px rgba(37,99,235,0.12);">🖼️ Insert Image</button>
@@ -854,6 +1447,185 @@
               </div>
 
             </div>
+          </div>
+        </section>
+
+
+        <!-- ==========================================================
+             TAB 1B: LEADS & CONTACTS MANAGEMENT
+             ========================================================== -->
+        <section id="tab-leads" class="tab-view">
+          <div class="card" style="padding: 24px;">
+            
+            <!-- Leads Top Bar -->
+            <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 14px; margin-bottom: 20px;">
+              <div>
+                <h2 style="font-size: 18px; font-weight: 700; color: var(--text-main); margin: 0 0 4px 0;">Leads &amp; Contacts Management</h2>
+                <p style="font-size: 13px; color: var(--text-muted); margin: 0;">Organize, import, validate, and personalize prospect contacts with automated suppression protection.</p>
+              </div>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-sm btn-primary" onclick="app.openAddLeadModal()">+ Add Lead</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="app.openImportLeadsModal()">📥 Import CSV / List</button>
+                <button type="button" class="btn btn-sm btn-secondary" onclick="app.exportLeadsCsv()">📤 Export CSV</button>
+                <button type="button" class="btn btn-sm btn-secondary" style="color: #dc2626;" onclick="app.confirmClearAllLeads()">🗑️ Clear All</button>
+              </div>
+            </div>
+
+            <!-- Leads Summary Metrics Row -->
+            <div class="stats-row" style="display: grid; grid-template-columns: repeat(auto-fit, minmax(130px, 1fr)); gap: 12px; margin-bottom: 20px;">
+              <div class="stat-card" style="padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Total Leads</div>
+                <div style="font-size: 20px; font-weight: 800; color: var(--text-main); margin-top: 4px;" id="leadsTotalCount">0</div>
+              </div>
+              <div class="stat-card" style="padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Active</div>
+                <div style="font-size: 20px; font-weight: 800; color: #10b981; margin-top: 4px;" id="leadsActiveCount">0</div>
+              </div>
+              <div class="stat-card" style="padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Contacted</div>
+                <div style="font-size: 20px; font-weight: 800; color: #38bdf8; margin-top: 4px;" id="leadsContactedCount">0</div>
+              </div>
+              <div class="stat-card" style="padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Bounced</div>
+                <div style="font-size: 20px; font-weight: 800; color: #f59e0b; margin-top: 4px;" id="leadsBouncedCount">0</div>
+              </div>
+              <div class="stat-card" style="padding: 14px; background: rgba(255,255,255,0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+                <div style="font-size: 11px; text-transform: uppercase; color: var(--text-muted); font-weight: 600;">Suppressed</div>
+                <div style="font-size: 20px; font-weight: 800; color: #ef4444; margin-top: 4px;" id="leadsSuppressedCount">0</div>
+              </div>
+            </div>
+
+            <!-- BULK LEAD IMPORTER (> 1,000 LEADS DURABLE CHUNKED PROCESSING) -->
+            <div class="campaign-card" style="margin-bottom: 20px; border: 1px solid var(--border-subtle); background: var(--bg-card); padding: 18px;">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; cursor: pointer;" onclick="app.toggleBulkImporterBox()">
+                <div style="display: flex; align-items: center; gap: 8px;">
+                  <span style="font-size: 18px;">📥</span>
+                  <h3 style="font-size: 14px; font-weight: 700; color: var(--text-main); margin: 0;">Bulk Lead Importer (1,000+ Records Supported)</h3>
+                  <span class="status-badge status-completed" style="font-size: 10px;">Chunked &amp; Durable</span>
+                </div>
+                <span id="bulkImporterToggleIcon" style="font-size: 16px; color: var(--text-dim); font-weight: 700;">▾</span>
+              </div>
+
+              <div id="bulkImporterBody" style="display: block;">
+                <p style="font-size: 12.5px; color: var(--text-muted); margin-bottom: 12px;">
+                  Paste 1,000, 5,000, or more leads below or upload a CSV file. Supported formats: <code>email, businessName, website, phone, niche</code> or just raw email addresses. Processed in non-blocking server batches.
+                </p>
+
+                <div style="margin-bottom: 12px;">
+                  <textarea id="bulkImportInput" class="input-clean" rows="6" placeholder="john@acmecorp.com, John Doe, https://acmecorp.com, 555-0192, SaaS&#10;sarah@dentalsmiles.com, Sarah Smith, https://dentalsmiles.com, 555-0183, Dental Clinic&#10;support@startup.io&#10;hello@agency.co" style="font-family: monospace; font-size: 12px;"></textarea>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 12px; margin-bottom: 14px;">
+                  <div>
+                    <label class="form-label" style="font-size: 11.5px;">Default Niche / Category</label>
+                    <input type="text" class="input-clean" id="bulkImportDefaultNiche" placeholder="e.g. Inbound Marketing, Local Business">
+                  </div>
+                  <div>
+                    <label class="form-label" style="font-size: 11.5px;">Or Upload CSV File</label>
+                    <input type="file" class="input-clean" id="bulkImportFileInput" accept=".csv, .tsv, .txt" onchange="app.handleBulkImportFileSelect(event)" style="padding: 6px;">
+                  </div>
+                  <div style="display: flex; align-items: center; gap: 8px; margin-top: 18px;">
+                    <input type="checkbox" id="bulkImportUpdateExisting" checked>
+                    <label for="bulkImportUpdateExisting" style="font-size: 12px; color: var(--text-main); cursor: pointer;">Update existing leads if email matches</label>
+                  </div>
+                </div>
+
+                <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; border-top: 1px solid var(--border-subtle); padding-top: 12px;">
+                  <div style="font-size: 12px; color: var(--text-dim);" id="bulkImportPrecheckCount">
+                    Ready to import. No limit on lead volume.
+                  </div>
+                  <div style="display: flex; gap: 8px;">
+                    <button type="button" class="btn btn-secondary btn-sm" onclick="app.previewBulkImportLines()">👁️ Quick Pre-Check</button>
+                    <button type="button" class="btn btn-primary btn-sm" id="btnStartBulkImport" onclick="app.executeBulkImportJob()">🚀 Start Durable Import</button>
+                  </div>
+                </div>
+
+                <!-- Live Bulk Import Progress Monitor -->
+                <div id="bulkImportJobProgressBox" style="display: none; margin-top: 14px; padding: 14px; background: var(--bg-subtle); border: 1px solid #a7f3d0; border-radius: var(--radius-sm);">
+                  <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+                    <div style="font-weight: 700; font-size: 13px; color: #065f46;" id="bulkImportJobStatusText">Processing Batch Import (Chunked)...</div>
+                    <div style="font-family: monospace; font-size: 12px; color: #047857;" id="bulkImportJobPercent">0%</div>
+                  </div>
+                  <div class="progress-bar-bg" style="height: 6px; border-radius: 3px; overflow: hidden; background: #d1fae5; margin-bottom: 10px;">
+                    <div class="progress-bar-fill" id="bulkImportJobProgressBar" style="width: 0%; height: 100%; background: #059669;"></div>
+                  </div>
+                  <div style="display: grid; grid-template-columns: repeat(5, 1fr); gap: 8px; text-align: center; font-size: 11px;">
+                    <div><strong id="importStatSubmitted">0</strong><div style="color: var(--text-dim);">Submitted</div></div>
+                    <div><strong id="importStatImported" style="color: #059669;">0</strong><div style="color: var(--text-dim);">Imported</div></div>
+                    <div><strong id="importStatDuplicates" style="color: #d97706;">0</strong><div style="color: var(--text-dim);">Duplicates</div></div>
+                    <div><strong id="importStatInvalid" style="color: #dc2626;">0</strong><div style="color: var(--text-dim);">Invalid</div></div>
+                    <div><strong id="importStatSuppressed" style="color: #9333ea;">0</strong><div style="color: var(--text-dim);">Suppressed</div></div>
+                  </div>
+                  <div id="bulkImportExportReportRow" style="display: none; margin-top: 10px; text-align: right;">
+                    <button type="button" class="btn btn-secondary btn-sm" id="btnDownloadImportReport" onclick="app.downloadCurrentImportReport()">📄 Download Accepted/Rejected CSV Report</button>
+                  </div>
+                </div>
+
+              </div>
+            </div>
+
+            <!-- Filters & Actions Toolbar -->
+            <div style="display: flex; gap: 10px; align-items: center; justify-content: space-between; flex-wrap: wrap; margin-bottom: 16px;">
+              <div style="display: flex; gap: 8px; align-items: center; flex: 1; min-width: 260px;">
+                <input type="text" id="leadsSearchInput" class="form-control" placeholder="Search by name, email, website, niche..." oninput="app.onLeadsSearchChange()" style="font-size: 13px;">
+                <select id="leadsStatusFilter" class="form-control" onchange="app.onLeadsStatusFilterChange()" style="width: 130px; font-size: 13px;">
+                  <option value="all">All Statuses</option>
+                  <option value="Active">Active</option>
+                  <option value="Contacted">Contacted</option>
+                  <option value="Bounced">Bounced</option>
+                  <option value="Suppressed">Suppressed</option>
+                  <option value="Unsubscribed">Unsubscribed</option>
+                </select>
+                <select id="leadsAuditFilter" class="form-control" onchange="app.onLeadsAuditFilterChange()" style="width: 140px; font-size: 13px;">
+                  <option value="all">All Audit States</option>
+                  <option value="completed">Audited Sites</option>
+                  <option value="none">Not Audited</option>
+                </select>
+              </div>
+              <div style="display: flex; gap: 8px; align-items: center;">
+                <button type="button" class="btn btn-sm btn-secondary" id="leadsBulkDeleteBtn" style="display: none; color: #dc2626;" onclick="app.bulkDeleteSelectedLeads()">
+                  🗑️ Delete Selected (<span id="leadsSelectedCount">0</span>)
+                </button>
+                <button type="button" class="btn btn-sm btn-primary" id="leadsUseInCampaignBtn" style="display: none;" onclick="app.sendToSelectedLeads()">
+                  ⚡ Use in Campaign
+                </button>
+              </div>
+            </div>
+
+            <!-- Leads Table Container -->
+            <div class="table-container" style="overflow-x: auto; border: 1px solid var(--border-color); border-radius: var(--radius-sm);">
+              <table class="data-table" style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                <thead>
+                  <tr style="background: rgba(255,255,255,0.03); border-bottom: 1px solid var(--border-color);">
+                    <th style="width: 36px; padding: 10px; text-align: center;"><input type="checkbox" id="selectAllLeadsCheckbox" onchange="app.toggleSelectAllLeads(this.checked)"></th>
+                    <th style="padding: 10px 14px; text-align: left;">Contact &amp; Business</th>
+                    <th style="padding: 10px 14px; text-align: left;">Website &amp; Audit</th>
+                    <th style="padding: 10px 14px; text-align: left;">Category / Niche</th>
+                    <th style="padding: 10px 14px; text-align: left;">Phone</th>
+                    <th style="padding: 10px 14px; text-align: left;">Outreach Status</th>
+                    <th style="padding: 10px 14px; text-align: right;">Actions</th>
+                  </tr>
+                </thead>
+                <tbody id="leadsTableBody">
+                  <tr>
+                    <td colspan="7" style="text-align: center; padding: 36px; color: var(--text-muted);">
+                      Loading leads...
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Pagination Footer -->
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 10px; font-size: 12.5px; color: var(--text-muted);">
+              <div id="leadsPaginationInfo">Showing 0 of 0 leads</div>
+              <div style="display: flex; gap: 6px; align-items: center;">
+                <button type="button" class="btn btn-sm btn-secondary" id="leadsPrevPageBtn" onclick="app.changeLeadsPage(-1)" disabled>Previous</button>
+                <span id="leadsCurrentPageNum" style="padding: 0 8px; font-weight: 600; color: var(--text-main);">Page 1</span>
+                <button type="button" class="btn btn-sm btn-secondary" id="leadsNextPageBtn" onclick="app.changeLeadsPage(1)" disabled>Next</button>
+              </div>
+            </div>
+
           </div>
         </section>
 
@@ -1418,26 +2190,59 @@
 
 
         <!-- ==========================================================
-             TAB 5: SENDER ACCOUNTS (GMAIL APP PASSWORD MANAGER)
+             TAB 5: SENDER ACCOUNTS (MULTI-MAILBOX & BULK SETUP)
              ========================================================== -->
         <section id="tab-accounts" class="tab-view">
-          <div class="card">
-            <div class="card-header">
+          <div class="card" style="margin-bottom: 24px;">
+            <div class="card-header" style="flex-wrap: wrap; gap: 12px;">
               <div>
-                <div class="card-title">Connected Sender Accounts</div>
-                <div class="card-subtitle">Manage multiple email accounts and switch senders without losing your credentials</div>
+                <div class="card-title">Connected Sender Mailboxes</div>
+                <div class="card-subtitle">Manage multiple authorized sender accounts with per-account daily caps, AES-256 encrypted credentials, and automated rotation.</div>
               </div>
-              <button class="btn btn-sm btn-primary" onclick="app.openAddAccountModal()">+ Add Account</button>
+              <div style="display: flex; gap: 8px; flex-wrap: wrap;">
+                <button type="button" class="btn btn-sm btn-secondary" onclick="app.toggleBulkAccountsBox()">📥 Bulk Setup Accounts</button>
+                <button type="button" class="btn btn-sm btn-primary" onclick="app.openAddAccountModal()">+ Add Account</button>
+              </div>
             </div>
 
+            <!-- BULK SENDER ACCOUNTS SETUP DRAWER -->
+            <div id="bulkAccountsDrawer" style="display: none; margin-bottom: 20px; padding: 18px; background: var(--bg-subtle); border: 1px solid var(--border-subtle); border-radius: var(--radius-sm);">
+              <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 10px;">
+                <h4 style="font-size: 14px; font-weight: 700; color: var(--text-main); margin: 0;">📥 Bulk Sender Account Setup</h4>
+                <button type="button" class="action-btn-link" onclick="app.toggleBulkAccountsBox()" style="font-size: 13px;">✕ Close</button>
+              </div>
+              <p style="font-size: 12px; color: var(--text-muted); margin-bottom: 10px;">
+                Add multiple authorized email accounts at once. Provide an explicit mapping of each email to its corresponding 16-character App Password. Format: <code>email, app_password, displayName, dailySendCap</code> (one per line).
+              </p>
+              <textarea id="bulkAccountsInput" class="input-clean" rows="5" placeholder="sender1@company.com, abcd efgh ijkl mnop, Sales Rep 1, 50&#10;sender2@company.com, wxyz qrst uvwx yzab, Sales Rep 2, 50" style="font-family: monospace; font-size: 12px; margin-bottom: 12px;"></textarea>
+              
+              <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px;">
+                <div style="display: flex; align-items: center; gap: 8px; font-size: 12px;">
+                  <input type="checkbox" id="bulkAccountsTestConn" checked>
+                  <label for="bulkAccountsTestConn" style="cursor: pointer; color: var(--text-main);">Test SMTP/IMAP connection immediately for each account</label>
+                </div>
+                <button type="button" class="btn btn-primary btn-sm" id="btnExecuteBulkAccounts" onclick="app.executeBulkAccountsImport()">
+                  ⚡ Validate &amp; Save All Accounts
+                </button>
+              </div>
+
+              <!-- Bulk Setup Output Report -->
+              <div id="bulkAccountsReportBox" style="display: none; margin-top: 14px; border-top: 1px dashed var(--border-subtle); padding-top: 12px;">
+                <div id="bulkAccountsSummaryText" style="font-weight: 700; font-size: 12.5px; margin-bottom: 8px;"></div>
+                <div id="bulkAccountsResultsList" style="display: flex; flex-direction: column; gap: 6px; max-height: 200px; overflow-y: auto;"></div>
+              </div>
+            </div>
+
+            <!-- ACCOUNTS MANAGER TABLE -->
             <div class="table-container">
               <table class="clean-table">
                 <thead>
                   <tr>
-                    <th>Email Address</th>
-                    <th>Status</th>
-                    <th>Daily Usage</th>
-                    <th>Type</th>
+                    <th>Sender Account</th>
+                    <th>Connection Status</th>
+                    <th>Daily Cap &amp; Usage</th>
+                    <th>Remaining Sends</th>
+                    <th>Last Connected</th>
                     <th>Actions</th>
                   </tr>
                 </thead>
@@ -1512,10 +2317,10 @@
               <div>
                 <div class="card-title" style="display: flex; align-items: center; gap: 8px;">
                   <span>🛡️ Google Postmaster &amp; DNS Deliverability Shield</span>
-                  <span class="status-badge status-completed" id="deliverabilityMainBadge" style="font-size: 11px;">● 100% Primary Inbox Ready</span>
+                  <span class="status-badge status-completed" id="deliverabilityMainBadge" style="font-size: 11px;">● DNS Authentication Verified</span>
                 </div>
                 <div class="card-subtitle">
-                  Real-time SPF, DKIM, DMARC, and MX record inspection aligned with Google Bulk Sender requirements to prevent your emails from ever hitting spam.
+                  Real-time SPF, DKIM, DMARC, and MX record inspection aligned with Google Bulk Sender requirements to maintain strong domain reputation.
                 </div>
               </div>
               <div style="display: flex; gap: 8px; flex-wrap: wrap; align-items: center;">
@@ -1544,9 +2349,9 @@
               </div>
 
               <div style="text-align: right; background: rgba(255, 255, 255, 0.12); padding: 12px 20px; border-radius: var(--radius-sm); backdrop-filter: blur(8px); border: 1px solid rgba(255, 255, 255, 0.2);">
-                <div style="font-size: 11.5px; font-weight: 600; opacity: 0.85; text-transform: uppercase;">Deliverability Score</div>
+                <div style="font-size: 11.5px; font-weight: 600; opacity: 0.85; text-transform: uppercase;">DNS Health Score</div>
                 <div style="font-size: 32px; font-weight: 900; line-height: 1; margin: 4px 0 2px;" id="auditScoreVal">100%</div>
-                <div style="font-size: 11px; color: #a7f3d0; font-weight: 700;" id="auditScoreLabel">● Maximum Primary Placement</div>
+                <div style="font-size: 11px; color: #a7f3d0; font-weight: 700;" id="auditScoreLabel">● Verified Configuration</div>
               </div>
             </div>
 
@@ -1870,42 +2675,47 @@
 
   <!-- Native Mobile Bottom Navigation Bar (Dock) -->
   <nav class="mobile-bottom-nav" id="mobileBottomNav">
-    <a class="mobile-bottom-nav-item active" data-tab="composer" id="mb-nav-composer">
+    <a class="mobile-bottom-nav-item active" data-tab="overview" id="mb-nav-overview">
       <div class="mb-nav-icon-wrap">
-        <svg viewBox="0 0 24 24"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7"/><rect x="14" y="3" width="7" height="7"/><rect x="14" y="14" width="7" height="7"/><rect x="3" y="14" width="7" height="7"/></svg>
       </div>
-      <span>Compose</span>
+      <span>Overview</span>
     </a>
 
-    <a class="mobile-bottom-nav-item" data-tab="primary-inbox" id="mb-nav-primary-inbox">
+    <a class="mobile-bottom-nav-item" data-tab="scraper" id="mb-nav-scraper">
+      <div class="mb-nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/><path d="M11 8v6"/><path d="M8 11h6"/></svg>
+      </div>
+      <span>Scraper</span>
+    </a>
+
+    <a class="mobile-bottom-nav-item" data-tab="auditor" id="mb-nav-auditor">
+      <div class="mb-nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+      </div>
+      <span>Auditor</span>
+    </a>
+
+    <a class="mobile-bottom-nav-item" data-tab="leads" id="mb-nav-leads">
+      <div class="mb-nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+      </div>
+      <span>Database</span>
+    </a>
+
+    <a class="mobile-bottom-nav-item" data-tab="composer" id="mb-nav-composer">
+      <div class="mb-nav-icon-wrap">
+        <svg viewBox="0 0 24 24"><polygon points="3 11 22 2 13 21 11 13 3 11"/></svg>
+      </div>
+      <span>Campaign</span>
+    </a>
+
+    <a class="mobile-bottom-nav-item" data-tab="all-inbox" id="mb-nav-all-inbox">
       <div class="mb-nav-icon-wrap">
         <svg viewBox="0 0 24 24"><path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z"/><polyline points="22,6 12,13 2,6"/></svg>
         <span class="mb-nav-counter-pill" id="mbPrimaryInboxBadge" style="display: none;">0</span>
       </div>
       <span>Inbox</span>
-    </a>
-
-    <a class="mobile-bottom-nav-item" data-tab="tracker" id="mb-nav-tracker">
-      <div class="mb-nav-icon-wrap">
-        <svg viewBox="0 0 24 24"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg>
-        <span class="mb-nav-live-dot"></span>
-      </div>
-      <span>Tracker</span>
-    </a>
-
-    <a class="mobile-bottom-nav-item" data-tab="bounces" id="mb-nav-bounces">
-      <div class="mb-nav-icon-wrap">
-        <svg viewBox="0 0 24 24"><path d="M10 14l-5-5 5-5"/><path d="M4 19h10a6 6 0 0 0 6-6v-1a6 6 0 0 0-6-6H5"/></svg>
-        <span class="mb-nav-counter-pill" id="mbBouncesBadge" style="display: none; background: #dc2626;">0</span>
-      </div>
-      <span>Bounces</span>
-    </a>
-
-    <a class="mobile-bottom-nav-item" data-tab="accounts" id="mb-nav-accounts">
-      <div class="mb-nav-icon-wrap">
-        <svg viewBox="0 0 24 24"><path d="M16 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="8.5" cy="7.5" r="4"/><polyline points="17 11 19 13 23 9"/></svg>
-      </div>
-      <span>Accounts</span>
     </a>
   </nav>
 
@@ -1918,7 +2728,7 @@
             <span>🛡️ Why Cold Emails Land in Spam &amp; How to Fix It</span>
           </div>
           <div style="font-size: 13px; color: var(--text-dim);">
-            The 5 Critical Rules to Guarantee 99%+ Primary Inbox Placement on Gmail &amp; Outlook
+            The 5 Critical Rules for Email Deliverability &amp; Reputation on Gmail &amp; Outlook
           </div>
         </div>
         <button type="button" class="btn btn-sm btn-secondary" onclick="app.closeModal('modalSpamGuide')" style="font-size: 14px; padding: 2px 8px; border-radius: 6px;">✕</button>
@@ -2225,6 +3035,198 @@
         <button type="button" class="btn btn-primary" id="btnConfirmInsertImage" onclick="app.confirmInsertImage()" style="background: #2563eb; border-color: #2563eb;">
           🖼️ Insert into Message
         </button>
+      </div>
+    </div>
+  <!-- MODAL: ADD / EDIT LEAD -->
+  <div class="modal-backdrop" id="modalAddLead" style="display: none;">
+    <div class="modal-card" style="max-width: 500px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+        <div>
+          <div class="modal-title" id="addLeadModalTitle">Add New Lead</div>
+          <div style="font-size: 12.5px; color: var(--text-dim);">Save prospect contact information for personalized outreach campaigns.</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="app.closeModal('modalAddLead')" style="font-size: 14px; padding: 2px 8px; border-radius: 6px;">✕</button>
+      </div>
+
+      <form id="formAddLead" onsubmit="app.saveLeadModal(event)">
+        <input type="hidden" id="leadModalId">
+        <div class="form-group" style="margin-bottom: 12px;">
+          <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Email Address *</label>
+          <input type="email" id="leadModalEmail" class="form-control" placeholder="prospect@company.com" required style="width: 100%; font-size: 13px;">
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">First Name</label>
+            <input type="text" id="leadModalFirstName" class="form-control" placeholder="Jane" style="width: 100%; font-size: 13px;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Last Name</label>
+            <input type="text" id="leadModalLastName" class="form-control" placeholder="Doe" style="width: 100%; font-size: 13px;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 12px;">
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Company Name</label>
+            <input type="text" id="leadModalCompany" class="form-control" placeholder="Acme Corporation" style="width: 100%; font-size: 13px;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Niche / Industry</label>
+            <input type="text" id="leadModalNiche" class="form-control" placeholder="B2B SaaS" style="width: 100%; font-size: 13px;">
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 16px;">
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Phone Number</label>
+            <input type="tel" id="leadModalPhone" class="form-control" placeholder="+1 (555) 000-0000" style="width: 100%; font-size: 13px;">
+          </div>
+          <div>
+            <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Status</label>
+            <select id="leadModalStatus" class="form-control" style="width: 100%; font-size: 13px;">
+              <option value="Active">Active</option>
+              <option value="Contacted">Contacted</option>
+              <option value="Bounced">Bounced</option>
+              <option value="Suppressed">Suppressed</option>
+              <option value="Unsubscribed">Unsubscribed</option>
+            </select>
+          </div>
+        </div>
+
+        <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 8px;">
+          <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalAddLead')">Cancel</button>
+          <button type="submit" class="btn btn-primary" id="btnSaveLeadModal">Save Lead</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
+  <!-- MODAL: IMPORT LEADS FROM CSV / LIST -->
+  <div class="modal-backdrop" id="modalImportLeads" style="display: none;">
+    <div class="modal-card" style="max-width: 600px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+        <div>
+          <div class="modal-title">Import Leads from CSV / TSV / List</div>
+          <div style="font-size: 12.5px; color: var(--text-dim);">Paste CSV rows with headers (Email, Name, Company, Niche, Phone) or copy/paste directly from Google Sheets / Excel.</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="app.closeModal('modalImportLeads')" style="font-size: 14px; padding: 2px 8px; border-radius: 6px;">✕</button>
+      </div>
+
+      <div class="form-group" style="margin-bottom: 12px;">
+        <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Paste CSV Data or Email List *</label>
+        <textarea id="importLeadsRawText" class="form-control mono-textarea" placeholder="email,name,company,niche&#10;sarah@innovate.com,Sarah Connor,Innovate AI,Tech&#10;alex@apex.io,Alex Vance,Apex Cloud,SaaS" style="min-height: 160px; font-size: 12px;"></textarea>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Default Niche / Tag</label>
+          <input type="text" id="importLeadsDefaultNiche" class="form-control" placeholder="e.g. Real Estate" style="width: 100%; font-size: 13px;">
+        </div>
+        <div style="display: flex; align-items: center; padding-top: 18px;">
+          <label style="display: flex; align-items: center; gap: 8px; font-size: 12.5px; cursor: pointer;">
+            <input type="checkbox" id="importLeadsUpdateExisting">
+            <span>Update existing leads if email matches</span>
+          </label>
+        </div>
+      </div>
+
+      <!-- Import Summary Results Box -->
+      <div id="importSummaryBox" style="display: none; background: rgba(255, 255, 255, 0.04); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 12px 14px; margin-bottom: 14px; font-size: 12.5px;">
+        <!-- Filled by JS -->
+      </div>
+
+      <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalImportLeads')">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="app.executeImportLeads()">📥 Start Import</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: SELECT LEADS FOR COMPOSER -->
+  <div class="modal-backdrop" id="modalSelectLeadsForComposer" style="display: none;">
+    <div class="modal-card" style="max-width: 640px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+        <div>
+          <div class="modal-title">Select Leads for Outreach Campaign</div>
+          <div style="font-size: 12.5px; color: var(--text-dim);">Pick active leads from your database to load into the outreach composer (up to 50 max).</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="app.closeModal('modalSelectLeadsForComposer')" style="font-size: 14px; padding: 2px 8px; border-radius: 6px;">✕</button>
+      </div>
+
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; gap: 10px; flex-wrap: wrap;">
+        <button type="button" class="btn btn-sm btn-secondary" onclick="app.selectAllActiveForComposer()">Select All Active Leads</button>
+        <span id="composerLeadSelectionCount" style="font-size: 12.5px; font-weight: 600; color: #10b981;">0 selected (max 50)</span>
+      </div>
+
+      <div class="table-container" style="max-height: 260px; overflow-y: auto; margin-bottom: 16px;">
+        <table class="clean-table" style="font-size: 12.5px;">
+          <thead>
+            <tr>
+              <th style="width: 30px;"><input type="checkbox" id="selectAllComposerPick" onchange="app.toggleSelectAllComposerPick(this.checked)"></th>
+              <th>Email</th>
+              <th>Name</th>
+              <th>Company</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="composerPickLeadsTableBody">
+            <!-- Dynamically populated -->
+          </tbody>
+        </table>
+      </div>
+
+      <div class="modal-actions" style="display: flex; justify-content: flex-end; gap: 8px;">
+        <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalSelectLeadsForComposer')">Cancel</button>
+        <button type="button" class="btn btn-primary" onclick="app.applySelectedLeadsToComposer()">Apply to Campaign</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- MODAL: PREVIEW PERSONALIZATION VARIABLES -->
+  <div class="modal-backdrop" id="modalPreviewPersonalization" style="display: none;">
+    <div class="modal-card" style="max-width: 600px;">
+      <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 16px;">
+        <div>
+          <div class="modal-title">Personalization Preview &amp; Validation</div>
+          <div style="font-size: 12.5px; color: var(--text-dim);">Verify that variables like {{name}} and {{company}} resolve properly with fallbacks before launching.</div>
+        </div>
+        <button type="button" class="btn btn-sm btn-secondary" onclick="app.closeModal('modalPreviewPersonalization')" style="font-size: 14px; padding: 2px 8px; border-radius: 6px;">✕</button>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px; margin-bottom: 14px;">
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Test Recipient Lead</label>
+          <select id="previewLeadSelect" class="form-control" onchange="app.updatePersonalizationPreview()" style="width: 100%; font-size: 12.5px;">
+            <!-- Populated via JS -->
+          </select>
+        </div>
+        <div>
+          <label style="display: block; font-size: 12px; font-weight: 600; margin-bottom: 4px;">Message Variant</label>
+          <select id="previewVariantSelect" class="form-control" onchange="app.updatePersonalizationPreview()" style="width: 100%; font-size: 12.5px;">
+            <option value="0">Variant 1 (Active Subject &amp; Body)</option>
+            <option value="1">Variant 2</option>
+            <option value="2">Variant 3</option>
+            <option value="3">Variant 4</option>
+            <option value="4">Variant 5</option>
+          </select>
+        </div>
+      </div>
+
+      <div id="previewUnresolvedWarning" style="display: none; background: #fef2f2; border: 1px solid #fecaca; border-radius: var(--radius-sm); padding: 10px 12px; color: #b91c1c; font-size: 12px; margin-bottom: 12px;">
+        <!-- Warning for missing variables -->
+      </div>
+
+      <div style="background: rgba(255, 255, 255, 0.03); border: 1px solid var(--border-color); border-radius: var(--radius-sm); padding: 14px; margin-bottom: 16px;">
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Rendered Subject:</div>
+        <div id="previewRenderedSubject" style="font-size: 14px; font-weight: 600; color: var(--text-main); margin-bottom: 14px; padding-bottom: 10px; border-bottom: 1px solid var(--border-color);">Subject line</div>
+
+        <div style="font-size: 11.5px; font-weight: 700; color: var(--text-muted); text-transform: uppercase; margin-bottom: 6px;">Rendered Body:</div>
+        <div id="previewRenderedBody" style="font-size: 13px; line-height: 1.6; color: var(--text-main); white-space: pre-wrap; font-family: inherit;">Message body</div>
+      </div>
+
+      <div class="modal-actions" style="display: flex; justify-content: flex-end;">
+        <button type="button" class="btn btn-secondary" onclick="app.closeModal('modalPreviewPersonalization')">Close</button>
       </div>
     </div>
   </div>
