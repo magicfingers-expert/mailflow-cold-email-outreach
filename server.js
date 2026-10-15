@@ -668,6 +668,11 @@ app.delete('/api/leads', (req, res) => {
   res.json({ success: true, message: 'All leads cleared', tenantId: req.tenantId });
 });
 
+app.post('/api/leads/clear', (req, res) => {
+  req.tenantServices.leadService.clearAllLeads();
+  res.json({ success: true, message: 'All leads cleared', tenantId: req.tenantId });
+});
+
 // ---------------- IMAGE UPLOADER FOR COMPOSER ----------------
 
 app.post('/api/upload-image', (req, res) => {
@@ -1376,12 +1381,16 @@ app.post('/api/auditor/audit-url', async (req, res) => {
 
 app.post('/api/auditor/batch-audit', async (req, res) => {
   try {
-    const { urls, options } = req.body || {};
+    let { urls, options } = req.body || {};
     if (!Array.isArray(urls) || urls.length === 0) {
-      return res.status(400).json({ success: false, error: 'Array of URLs is required for batch audit.' });
+      const allLeads = req.tenantServices.leadService.getLeads ? req.tenantServices.leadService.getLeads() : (req.tenantServices.leadService.leads || []);
+      urls = allLeads.filter(l => l.website && typeof l.website === 'string' && l.website.trim().length > 3).map(l => l.website.trim());
+    }
+    if (urls.length === 0) {
+      return res.json({ success: true, queuedCount: 0, results: [], message: 'No lead websites found to audit.', tenantId: req.tenantId });
     }
     const results = await req.tenantServices.websiteAuditorService.auditBatch(urls, options);
-    res.json({ success: true, results, tenantId: req.tenantId });
+    res.json({ success: true, queuedCount: results.length, results, tenantId: req.tenantId });
   } catch (err) {
     res.status(400).json({ success: false, error: err.message });
   }

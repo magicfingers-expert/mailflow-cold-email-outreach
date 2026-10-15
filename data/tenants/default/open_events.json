@@ -1,1 +1,13 @@
-[]
+[
+  {
+    "id": "open-1792022141241-8sxc",
+    "campaignId": "general",
+    "subject": "Collaboration inquiry",
+    "email": "lead.test@domain.com",
+    "openedAt": "2026-10-14T23:55:41.239Z",
+    "openCount": 1,
+    "isFirstOpen": true,
+    "ip": "::1",
+    "userAgent": "Web Browser / Test Simulation"
+  }
+]

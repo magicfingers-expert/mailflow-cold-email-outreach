@@ -783,6 +783,10 @@ class WebsiteAuditorService {
     return this.saveAuditRecord(audit);
   }
 
+  getAudit(id) {
+    return this.getAuditById(id);
+  }
+
   getAuditHistory() {
     return this.getAudits();
   }
@@ -790,6 +794,50 @@ class WebsiteAuditorService {
   getAudits() {
     this.loadAudits();
     return [...this.audits];
+  }
+
+  listAudits(query = {}) {
+    this.loadAudits();
+    let items = [...this.audits];
+    if (query && query.domain) {
+      const q = query.domain.toLowerCase();
+      items = items.filter(a => a.domain && a.domain.toLowerCase().includes(q));
+    }
+    const page = parseInt(query?.page, 10) || 1;
+    const limit = Math.min(2000, parseInt(query?.limit, 10) || 50);
+    const total = items.length;
+    const start = (page - 1) * limit;
+    const paginated = items.slice(start, start + limit);
+    return { audits: paginated, total, page, limit };
+  }
+
+  getFindingsSummary() {
+    this.loadAudits();
+    const totalAudits = this.audits.length;
+    let totalScore = 0;
+    let critical = 0;
+    let high = 0;
+    let medium = 0;
+    let low = 0;
+    let totalFindings = 0;
+
+    for (const a of this.audits) {
+      totalScore += (a.score || a.healthScore || 0);
+      if (a.counts) {
+        critical += a.counts.critical || 0;
+        high += a.counts.high || 0;
+        medium += a.counts.medium || 0;
+        low += a.counts.low || 0;
+        totalFindings += a.counts.total || 0;
+      }
+    }
+
+    return {
+      totalAudits,
+      averageScore: totalAudits > 0 ? Math.round(totalScore / totalAudits) : 0,
+      totalFindings,
+      breakdown: { critical, high, medium, low }
+    };
   }
 
   getAuditById(id) {
@@ -810,6 +858,10 @@ class WebsiteAuditorService {
     this.audits = this.audits.filter(a => a.id !== id);
     this.saveAudits();
     return this.audits.length < before;
+  }
+
+  auditBatch(urls, options = {}) {
+    return this.batchAudit(urls, options && options.onProgress ? options.onProgress : null);
   }
 
   /**

@@ -66,6 +66,11 @@ class InboxService {
     storage.writeJSON(this.cacheFile, this.messages);
   }
 
+  getCachedMessages() {
+    this.loadCache();
+    return [...this.messages];
+  }
+
   // Get filtered messages (by folder: INBOX, SPAM, SENT, or ALL; by account; by search)
   getMessages({ search = '', folder = 'all', accountEmail = '', limit = 100 } = {}) {
     let list = [...this.messages];

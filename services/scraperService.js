@@ -23,6 +23,10 @@ class ScraperService {
     storage.writeJSON(this.jobsFile, this.jobs);
   }
 
+  listJobs() {
+    return this.getJobs();
+  }
+
   getJobs() {
     this.loadJobs();
     return [...this.jobs];
@@ -50,7 +54,15 @@ class ScraperService {
     return this.exportResultsCsv(jobId);
   }
 
+  exportJobResultsAsCsv(jobId) {
+    return this.exportResultsCsv(jobId);
+  }
+
   saveLeadsToDatabase(jobId, indices) {
+    return this.saveResultsToLeadDatabase(jobId, indices);
+  }
+
+  saveJobLeadsToDatabase(jobId, indices) {
     return this.saveResultsToLeadDatabase(jobId, indices);
   }
 
